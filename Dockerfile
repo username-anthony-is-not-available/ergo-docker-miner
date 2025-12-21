@@ -1,6 +1,7 @@
-FROM nvidia/cuda:11.8.0-base-ubuntu22.04
+# Builder Stage
+FROM nvidia/cuda:11.8.0-base-ubuntu22.04 AS builder
 
-RUN apt-get update && apt-get install -y curl wget gettext
+RUN apt-get update && apt-get install -y curl wget
 
 WORKDIR /app
 
@@ -10,6 +11,21 @@ RUN wget -q "$LOLMINER_URL" && \
     tar -xvf $(basename "$LOLMINER_URL") && \
     chmod +x 1.92/lolMiner
 
+# Runtime Stage
+FROM nvidia/cuda:11.8.0-base-ubuntu22.04
+
+WORKDIR /app
+
+# Install only necessary runtime dependencies
+RUN apt-get update && apt-get install -y gettext-base && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy miner binary from builder stage
+COPY --from=builder /app/1.92 /app/1.92
+
+# Copy scripts
 COPY start.sh miner_config.template ./
+
+RUN chmod +x start.sh
 
 CMD ["./start.sh"]
