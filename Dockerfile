@@ -1,5 +1,5 @@
 # Builder Stage
-FROM nvidia/cuda:11.8.0-base-ubuntu22.04 AS builder
+FROM nvcr.io/nvidia/cuda:11.8.0-base-ubuntu22.04 AS builder
 
 RUN apt-get update && apt-get install -y curl wget
 
@@ -12,7 +12,7 @@ RUN wget -q "$LOLMINER_URL" && \
     chmod +x 1.92/lolMiner
 
 # Runtime Stage
-FROM nvidia/cuda:11.8.0-base-ubuntu22.04
+FROM nvcr.io/nvidia/cuda:11.8.0-base-ubuntu22.04
 
 WORKDIR /app
 
