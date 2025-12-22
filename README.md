@@ -28,7 +28,7 @@ To use this Dockerized Ergo miner, you need the following:
 
 3.  **Run the Docker container:**
     ```bash
-    sudo docker run --gpus all -d --name ergo-miner --env-file .env --restart unless-stopped ergo-miner
+    sudo docker run --gpus all -d --name ergo-miner -p 4444:4444 -p 4455:4455 --env-file .env --restart unless-stopped ergo-miner
     ```
 
 ## Environment Variable Reference
@@ -45,6 +45,43 @@ You can monitor the miner's output and view logs using the following command:
 ```bash
 sudo docker logs -f ergo-miner
 ```
+
+## Monitoring
+
+This Docker image includes built-in health checks and a metrics exporter to help you monitor your mining operation.
+
+### Health Check
+
+The container has a Docker health check that verifies the lolMiner API is running and responsive. If the miner crashes or the API becomes unavailable, the container will be marked as "unhealthy" and automatically restarted (if you're using the `--restart unless-stopped` flag).
+
+### Metrics Endpoint
+
+The image also includes a lightweight metrics exporter that provides key performance indicators in a simple JSON format.
+
+-   **URL:** `http://<your-docker-host>:4455`
+-   **Method:** `GET`
+
+**Example Output:**
+
+```json
+{
+  "hashrate": "123.45 MH/s",
+  "avg_temperature": "65",
+  "avg_fan_speed": "80"
+}
+```
+
+If the miner is not running or the API is unavailable, the endpoint will return "N/A" for all values:
+
+```json
+{
+  "hashrate": "N/A",
+  "avg_temperature": "N/A",
+  "avg_fan_speed": "N/A"
+}
+```
+
+You can use this endpoint to integrate with monitoring systems like Prometheus (with a simple exporter), Grafana, or your own custom scripts.
 
 ## Troubleshooting
 

@@ -17,15 +17,20 @@ FROM nvcr.io/nvidia/cuda:11.8.0-base-ubuntu22.04
 WORKDIR /app
 
 # Install only necessary runtime dependencies
-RUN apt-get update && apt-get install -y gettext-base && \
+RUN apt-get update && apt-get install -y gettext-base curl jq netcat && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy miner binary from builder stage
 COPY --from=builder /app/1.92 /app/1.92
 
 # Copy scripts
-COPY start.sh miner_config.template ./
+COPY start.sh miner_config.template metrics.sh ./
 
-RUN chmod +x start.sh
+RUN chmod +x start.sh metrics.sh
+
+EXPOSE 4444 4455
+
+HEALTHCHECK --interval=30s --timeout=3s \
+  CMD curl --fail http://localhost:4444/
 
 CMD ["./start.sh"]
