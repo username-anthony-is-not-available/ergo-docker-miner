@@ -11,8 +11,4 @@ if [ -n "$BACKUP_POOL_ADDRESS" ]; then
   MINER_CONFIG="$MINER_CONFIG --pool ${BACKUP_POOL_ADDRESS}"
 fi
 
-echo "$MINER_CONFIG" > miner_config.sh
-
-chmod +x miner_config.sh
-
-/app/1.92/lolMiner $(cat miner_config.sh)
+exec /app/lolMiner $MINER_CONFIG

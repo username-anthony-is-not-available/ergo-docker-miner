@@ -1,17 +1,16 @@
 # Builder Stage
 FROM nvidia/cuda:11.8.0-base-ubuntu22.04 AS builder
 
-RUN apt-get update && \
-    apt-get install -y curl wget && \
-    rm -rf /var/lib/apt/lists/*
+ARG LOLMINER_VERSION=1.92
+ARG LOLMINER_URL=https://github.com/Lolliedieb/lolMiner-releases/releases/download/${LOLMINER_VERSION}/lolMiner_v${LOLMINER_VERSION}_Lin64.tar.gz
 
 WORKDIR /app
 
-ENV LOLMINER_URL=https://github.com/Lolliedieb/lolMiner-releases/releases/download/1.92/lolMiner_v1.92_Lin64.tar.gz
-
-RUN wget -q "$LOLMINER_URL" && \
-    tar -xvf $(basename "$LOLMINER_URL") && \
-    chmod +x 1.92/lolMiner
+RUN apt-get update && \
+    apt-get install -y wget && \
+    wget -qO- "${LOLMINER_URL}" | tar -xvz --strip-components=1 && \
+    chmod +x lolMiner && \
+    rm -rf /var/lib/apt/lists/*
 
 # Runtime Stage
 FROM nvidia/cuda:11.8.0-runtime-ubuntu22.04
@@ -25,7 +24,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy miner binary from builder stage
-COPY --from=builder /app/1.92 /app/1.92
+COPY --from=builder /app/lolMiner /app/lolMiner
 
 # Copy scripts
 COPY start.sh metrics.sh ./
