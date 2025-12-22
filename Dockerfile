@@ -27,7 +27,7 @@ RUN apt-get update && \
 COPY --from=builder /app/1.92 /app/1.92
 
 # Copy scripts
-COPY start.sh miner_config.template metrics.sh ./
+COPY start.sh metrics.sh ./
 
 RUN chmod +x start.sh metrics.sh
 
