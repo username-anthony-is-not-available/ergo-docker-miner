@@ -24,7 +24,7 @@ RUN apt-get update && apt-get install -y gettext-base curl jq netcat && \
 COPY --from=builder /app/1.92 /app/1.92
 
 # Copy scripts
-COPY start.sh miner_config.template metrics.sh ./
+COPY start.sh metrics.sh ./
 
 RUN chmod +x start.sh metrics.sh
 
