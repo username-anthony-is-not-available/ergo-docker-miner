@@ -34,9 +34,10 @@ To use this Dockerized Ergo miner, you need the following:
 ## Environment Variable Reference
 
 -   `POOL_ADDRESS`: The full address of the mining pool (e.g., `stratum+tcp://erg.2miners.com:8080`).
+-   `BACKUP_POOL_ADDRESS`: The address of a backup mining pool. The miner will automatically failover to this pool if the primary one becomes unavailable.
 -   `WALLET_ADDRESS`: Your Ergo wallet address where the mining rewards will be sent.
 -   `WORKER_NAME`: A name for your mining rig to identify it on the pool's dashboard.
--   `GPU_DEVICES`: The specific GPU device(s) to use for mining (e.g., `0` for the first GPU, `0,1` for the first two).
+-   `GPU_DEVICES`: The specific GPU device(s) to use for mining. Set to `AUTO` to use all available GPUs, or specify a comma-separated list of device IDs (e.g., `0,1`).
 
 ## Verifying the Setup
 
@@ -65,9 +66,17 @@ The image also includes a lightweight metrics exporter that provides key perform
 
 ```json
 {
-  "hashrate": "123.45 MH/s",
+  "hashrate": "246.90 MH/s",
   "avg_temperature": "65",
-  "avg_fan_speed": "80"
+  "avg_fan_speed": "80",
+  "gpus": [
+    {
+      "hashrate": "123.45 MH/s"
+    },
+    {
+      "hashrate": "123.45 MH/s"
+    }
+  ]
 }
 ```
 
@@ -77,7 +86,8 @@ If the miner is not running or the API is unavailable, the endpoint will return 
 {
   "hashrate": "N/A",
   "avg_temperature": "N/A",
-  "avg_fan_speed": "N/A"
+  "avg_fan_speed": "N/A",
+  "gpus": []
 }
 ```
 
