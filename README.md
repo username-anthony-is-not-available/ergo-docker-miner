@@ -4,14 +4,18 @@
 
 This project provides a Dockerized solution for mining Ergo (ERG) using lolMiner. It simplifies the setup process and ensures a consistent mining environment.
 
+## Features
+
+- **Automated Failover:** Automatically switches to a backup pool if the primary one is unavailable.
+- **Health Monitoring:** Includes a Docker health check to ensure the miner is running correctly.
+- **Performance Metrics:** Exposes a JSON endpoint for easy integration with monitoring tools.
+
 ## Requirements
 
-To use this Dockerized Ergo miner, you need the following:
-
-- **Docker:** The containerization platform to run the miner. Follow the [official installation guide](https://docs.docker.com/engine/install/) for your operating system.
-- **NVIDIA Drivers:** The official NVIDIA drivers for your GPU must be installed on the host machine.
-- **NVIDIA Container Toolkit:** This package allows Docker to access the GPU. Follow the [official installation guide](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
-- **GPU Compatibility:** A CUDA-enabled NVIDIA GPU is required.
+- [Docker](https.docs.docker.com/engine/install/)
+- [NVIDIA Drivers](https://www.nvidia.com/Download/index.aspx)
+- [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
+- CUDA-enabled NVIDIA GPU
 
 ## Setup
 
@@ -101,11 +105,7 @@ You can use this endpoint to integrate with monitoring systems like Prometheus (
 
 ## Building from Source
 
-To use a different version of lolMiner, you can modify the `LOLMINER_URL` in the `Dockerfile` and rebuild the image.
-
-## Performance Tuning Tips
-
-For advanced users, you can pass additional command-line arguments to lolMiner by modifying `miner_config.template`. Refer to the [lolMiner documentation](https://github.com/Lolliedieb/lolMiner-releases) for a full list of available options.
+To use a different version of lolMiner, you can modify the `LOLMINER_URL` in the `Dockerfile` and rebuild the image. For advanced configurations, you can edit the `start.sh` script to pass additional command-line arguments to the miner.
 
 ## License
 
