@@ -18,8 +18,9 @@ FROM nvidia/cuda:11.8.0-runtime-ubuntu22.04
 
 WORKDIR /app
 
-# Install only necessary runtime dependencies
+# Install only necessary runtime dependencies and apply security upgrades
 RUN apt-get update && \
+    apt-get upgrade -y && \
     apt-get install -y gettext-base curl jq netcat && \
     rm -rf /var/lib/apt/lists/*
 
