@@ -1,0 +1,11 @@
+
+Report Summary
+
+┌───────────────────────────┬────────┬─────────────────┬─────────┐
+│          Target           │  Type  │ Vulnerabilities │ Secrets │
+├───────────────────────────┼────────┼─────────────────┼─────────┤
+│ ergo-miner (ubuntu 22.04) │ ubuntu │        0        │    -    │
+└───────────────────────────┴────────┴─────────────────┴─────────┘
+Legend:
+- '-': Not scanned
+- '0': Clean (no security findings detected)
