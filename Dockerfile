@@ -20,14 +20,14 @@ WORKDIR /app
 # Install only necessary runtime dependencies and apply security upgrades
 RUN apt-get update && \
     apt-get upgrade -y && \
-    apt-get install -y gettext-base curl jq netcat && \
+    apt-get install -y gettext-base curl jq python3 && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy miner binary from builder stage
 COPY --from=builder /app/lolMiner /app/lolMiner
 
 # Copy scripts
-COPY start.sh metrics.sh ./
+COPY start.sh metrics.sh metrics.py ./
 
 RUN chmod +x start.sh metrics.sh
 
