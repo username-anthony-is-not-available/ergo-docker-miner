@@ -1,75 +1,81 @@
-import http.server
-import socketserver
+from prometheus_client import start_http_server, Gauge
 import json
 import subprocess
+import time
 
 PORT = 4455
 
-class MetricsHandler(http.server.SimpleHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.send_header('Content-type', 'application/json')
-        self.end_headers()
+# Define Prometheus metrics
+HASHRATE = Gauge('lolminer_hashrate', 'Total hashrate in MH/s')
+AVG_FAN_SPEED = Gauge('lolminer_avg_fan_speed', 'Average fan speed of all GPUs in %')
+TOTAL_POWER_DRAW = Gauge('lolminer_total_power_draw', 'Total power draw of all GPUs in W')
 
-        metrics = self.get_metrics()
-        self.wfile.write(json.dumps(metrics).encode())
+GPU_HASHRATE = Gauge('lolminer_gpu_hashrate', 'Hashrate of a single GPU in MH/s', ['gpu'])
+GPU_TEMPERATURE = Gauge('lolminer_gpu_temperature', 'Temperature of a single GPU in °C', ['gpu'])
+GPU_POWER_DRAW = Gauge('lolminer_gpu_power_draw', 'Power draw of a single GPU in W', ['gpu'])
+GPU_FAN_SPEED = Gauge('lolminer_gpu_fan_speed', 'Fan speed of a single GPU in %', ['gpu'])
+GPU_SHARES_ACCEPTED = Gauge('lolminer_gpu_shares_accepted', 'Number of accepted shares for a single GPU', ['gpu'])
+GPU_SHARES_REJECTED = Gauge('lolminer_gpu_shares_rejected', 'Number of rejected shares for a single GPU', ['gpu'])
 
-    def get_metrics(self):
+def update_metrics():
+    try:
+        # Get lolMiner API data
+        api_data_raw = subprocess.check_output(['curl', '-s', 'http://localhost:4444/'])
+        api_data = json.loads(api_data_raw)
+
+        hashrate = api_data.get('Total_Performance', [0])[0]
+        gpus_data = api_data.get('GPUs', [])
+        num_gpus = len(gpus_data)
+
+        if num_gpus > 0:
+            avg_fan_speed = sum(gpu.get('Fan_Speed', 0) for gpu in gpus_data) / num_gpus
+        else:
+            avg_fan_speed = 0
+
+        HASHRATE.set(hashrate)
+        AVG_FAN_SPEED.set(avg_fan_speed)
+
+        lolminer_gpus = [{'hashrate': gpu.get('Performance'), 'fan_speed': gpu.get('Fan_Speed'), 'shares_accepted': gpu.get('Accepted_Shares'), 'shares_rejected': gpu.get('Rejected_Shares')} for gpu in gpus_data]
+
+        # Get nvidia-smi stats
         try:
-            # Check if lolMiner API is available
-            api_data = subprocess.check_output(['curl', '-s', 'http://localhost:4444/'])
-            metrics = json.loads(api_data)
+            nvidia_stats_raw = subprocess.check_output(['nvidia-smi', '--query-gpu=temperature.gpu,power.draw', '--format=csv,noheader,nounits']).decode()
+            nvidia_stats = []
+            for line in nvidia_stats_raw.strip().split('\n'):
+                temp, power = line.split(', ')
+                nvidia_stats.append({'temperature': float(temp), 'power_draw': float(power)})
 
-            hashrate = metrics.get('Total_Performance', [None])[0]
-            gpus_data = metrics.get('GPUs', [])
-            num_gpus = len(gpus_data)
+            # Merge stats
+            gpus = [dict(lol, **nvidia) for lol, nvidia in zip(lolminer_gpus, nvidia_stats)]
+            total_power_draw = sum(gpu.get('power_draw', 0) for gpu in gpus)
+            TOTAL_POWER_DRAW.set(total_power_draw)
 
-            if num_gpus > 0:
-                avg_fan_speed = sum(gpu.get('Fan_Speed', 0) for gpu in gpus_data) / num_gpus
-            else:
-                avg_fan_speed = 0
+            for i, gpu in enumerate(gpus):
+                GPU_HASHRATE.labels(gpu=i).set(gpu.get('hashrate', 0))
+                GPU_TEMPERATURE.labels(gpu=i).set(gpu.get('temperature', 0))
+                GPU_POWER_DRAW.labels(gpu=i).set(gpu.get('power_draw', 0))
+                GPU_FAN_SPEED.labels(gpu=i).set(gpu.get('fan_speed', 0))
+                GPU_SHARES_ACCEPTED.labels(gpu=i).set(gpu.get('shares_accepted', 0))
+                GPU_SHARES_REJECTED.labels(gpu=i).set(gpu.get('shares_rejected', 0))
 
-            lolminer_gpus = [{'hashrate': gpu.get('Performance')} for gpu in gpus_data]
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            TOTAL_POWER_DRAW.set(0)
+            for i, gpu in enumerate(lolminer_gpus):
+                GPU_HASHRATE.labels(gpu=i).set(gpu.get('hashrate', 0))
+                GPU_FAN_SPEED.labels(gpu=i).set(gpu.get('fan_speed', 0))
+                GPU_TEMPERATURE.labels(gpu=i).set(0)
+                GPU_POWER_DRAW.labels(gpu=i).set(0)
+                GPU_SHARES_ACCEPTED.labels(gpu=i).set(gpu.get('shares_accepted', 0))
+                GPU_SHARES_REJECTED.labels(gpu=i).set(gpu.get('shares_rejected', 0))
 
-            # Get nvidia-smi stats
-            try:
-                nvidia_stats_raw = subprocess.check_output(['nvidia-smi', '--query-gpu=temperature.gpu,power.draw', '--format=csv,noheader,nounits']).decode()
-                nvidia_stats = []
-                for line in nvidia_stats_raw.strip().split('\n'):
-                    temp, power = line.split(', ')
-                    nvidia_stats.append({'temperature': float(temp), 'power_draw': float(power)})
+    except (subprocess.CalledProcessError, json.JSONDecodeError, IndexError):
+        HASHRATE.set(0)
+        AVG_FAN_SPEED.set(0)
+        TOTAL_POWER_DRAW.set(0)
 
-                # Merge stats
-                gpus = [dict(lol, **nvidia) for lol, nvidia in zip(lolminer_gpus, nvidia_stats)]
-
-                if num_gpus > 0:
-                    avg_temperature = sum(gpu.get('temperature', 0) for gpu in gpus) / num_gpus
-                else:
-                    avg_temperature = 0
-                total_power_draw = sum(gpu.get('power_draw', 0) for gpu in gpus)
-
-            except (subprocess.CalledProcessError, FileNotFoundError):
-                gpus = [dict(gpu, temperature='N/A', power_draw='N/A') for gpu in lolminer_gpus]
-                avg_temperature = 'N/A'
-                total_power_draw = 'N/A'
-
-            return {
-                'hashrate': hashrate,
-                'avg_temperature': avg_temperature,
-                'avg_fan_speed': avg_fan_speed,
-                'total_power_draw': total_power_draw,
-                'gpus': gpus
-            }
-
-        except (subprocess.CalledProcessError, json.JSONDecodeError, IndexError):
-            return {
-                'hashrate': 'N/A',
-                'avg_temperature': 'N/A',
-                'avg_fan_speed': 'N/A',
-                'total_power_draw': 'N/A',
-                'gpus': []
-            }
-
-with socketserver.TCPServer(("", PORT), MetricsHandler) as httpd:
-    print(f"Serving at port {PORT}")
-    httpd.serve_forever()
+if __name__ == '__main__':
+    start_http_server(PORT)
+    print(f"Serving Prometheus metrics at port {PORT}")
+    while True:
+        update_metrics()
+        time.sleep(15)

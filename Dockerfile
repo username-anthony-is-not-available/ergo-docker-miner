@@ -20,7 +20,8 @@ WORKDIR /app
 # Install only necessary runtime dependencies and apply security upgrades
 RUN apt-get update && \
     apt-get upgrade -y && \
-    apt-get install -y gettext-base curl jq python3 && \
+    apt-get install -y gettext-base curl jq python3 python3-pip && \
+    pip3 install prometheus_client && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy miner binary from builder stage
