@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  ergo-miner:
+    build: .
+    container_name: ergo-miner
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "4444:4444"
+      - "4455:4455"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
