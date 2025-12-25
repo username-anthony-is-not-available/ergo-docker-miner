@@ -9,10 +9,12 @@ This project provides a Dockerized solution for mining Ergo (ERG) using lolMiner
 - **Automated Failover:** Automatically switches to a backup pool if the primary one is unavailable.
 - **Health Monitoring:** Includes a Docker health check to ensure the miner is running correctly.
 - **Performance Metrics:** Exposes a JSON endpoint for easy integration with monitoring tools.
+- **Auto-Restart:** Automatically restarts the container if the miner crashes or becomes unresponsive.
 
 ## Requirements
 
 - [Docker](https.docs.docker.com/engine/install/)
+- [Docker Compose](https://docs.docker.com/compose/install/)
 - [NVIDIA Drivers](https://www.nvidia.com/Download/index.aspx)
 - [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
 - CUDA-enabled NVIDIA GPU
@@ -25,14 +27,9 @@ This project provides a Dockerized solution for mining Ergo (ERG) using lolMiner
     nano .env
     ```
 
-2.  **Build the Docker image:**
+2.  **Build and run the Docker container:**
     ```bash
-    sudo docker build -t ergo-miner .
-    ```
-
-3.  **Run the Docker container:**
-    ```bash
-    sudo docker run --gpus all -d --name ergo-miner -p 4444:4444 -p 4455:4455 --env-file .env --restart unless-stopped ergo-miner
+    sudo docker-compose up -d --build
     ```
 
 ## Environment Variable Reference
@@ -48,7 +45,7 @@ This project provides a Dockerized solution for mining Ergo (ERG) using lolMiner
 You can monitor the miner's output and view logs using the following command:
 
 ```bash
-sudo docker logs -f ergo-miner
+sudo docker-compose logs -f
 ```
 
 ## Monitoring
@@ -57,7 +54,7 @@ This Docker image includes built-in health checks and a metrics exporter to help
 
 ### Health Check
 
-The container has a Docker health check that verifies the lolMiner API is running and responsive. If the miner crashes or the API becomes unavailable, the container will be marked as "unhealthy" and automatically restarted (if you're using the `--restart unless-stopped` flag).
+The container has a Docker health check that verifies the lolMiner API is running and responsive. If the miner crashes or the API becomes unavailable, the container will be marked as "unhealthy" and automatically restarted.
 
 ### Metrics Endpoint
 
@@ -99,7 +96,7 @@ You can use this endpoint to integrate with monitoring systems like Prometheus (
 
 ## Troubleshooting
 
--   **Container exits immediately:** Check the container logs for errors using `docker logs ergo-miner`. This is often due to an incorrect `.env` file or NVIDIA driver issues.
+-   **Container exits immediately:** Check the container logs for errors using `docker-compose logs`. This is often due to an incorrect `.env` file or NVIDIA driver issues.
 -   **`nvidia-container-cli: initialization error`:** This indicates a problem with the NVIDIA Container Toolkit installation. Ensure it's properly installed and configured.
 -   **Low hashrate:** This could be due to a number of factors, including GPU overheating, incorrect drivers, or suboptimal lolMiner settings.
 
