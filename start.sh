@@ -11,4 +11,9 @@ if [ -n "$BACKUP_POOL_ADDRESS" ]; then
   MINER_CONFIG="$MINER_CONFIG --pool ${BACKUP_POOL_ADDRESS}"
 fi
 
-exec /app/lolMiner $MINER_CONFIG
+if [ -n "$TEST_MODE" ]; then
+  /app/lolMiner $MINER_CONFIG &
+  tail -f /dev/null
+else
+  exec /app/lolMiner $MINER_CONFIG
+fi
