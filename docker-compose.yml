@@ -10,6 +10,7 @@ services:
     ports:
       - "4444:4444"
       - "4455:4455"
+      - "4456:4456"
     deploy:
       resources:
         reservations:
