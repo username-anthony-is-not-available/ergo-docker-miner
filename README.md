@@ -9,6 +9,7 @@ This project provides a Dockerized solution for mining Ergo (ERG) using lolMiner
 - **Automated Failover:** Automatically switches to a backup pool if the primary one is unavailable.
 - **Health Monitoring:** Includes a Docker health check to ensure the miner is running correctly.
 - **Performance Metrics:** Exposes a JSON endpoint for easy integration with monitoring tools.
+- **Web Dashboard:** Provides a simple web interface to view real-time mining statistics.
 - **Auto-Restart:** Automatically restarts the container if the miner crashes or becomes unresponsive.
 
 ## Requirements
@@ -55,6 +56,12 @@ This Docker image includes built-in health checks and a metrics exporter to help
 ### Health Check
 
 The container has a Docker health check that verifies the lolMiner API is running and responsive. If the miner crashes or the API becomes unavailable, the container will be marked as "unhealthy" and automatically restarted.
+
+### Web Dashboard
+
+The image includes a web dashboard to view real-time mining statistics.
+
+-   **URL:** `http://<your-docker-host>:4456`
 
 ### Metrics Endpoint
 

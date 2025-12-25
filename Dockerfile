@@ -20,18 +20,18 @@ WORKDIR /app
 # Install only necessary runtime dependencies and apply security upgrades
 RUN apt-get update && \
     apt-get upgrade -y && \
-    apt-get install -y gettext-base curl jq python3 && \
+    apt-get install -y gettext-base curl jq python3 python3-flask && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy miner binary from builder stage
 COPY --from=builder /app/lolMiner /app/lolMiner
 
 # Copy scripts
-COPY start.sh metrics.sh metrics.py ./
+COPY start.sh metrics.sh metrics.py dashboard.py index.html ./
 
 RUN chmod +x start.sh metrics.sh
 
-EXPOSE 4444 4455
+EXPOSE 4444 4455 4456
 
 HEALTHCHECK --interval=30s --timeout=3s \
   CMD curl --fail http://localhost:4444/
