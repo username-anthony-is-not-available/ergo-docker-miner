@@ -20,7 +20,8 @@ WORKDIR /app
 # Install only necessary runtime dependencies and apply security upgrades
 RUN apt-get update && \
     apt-get upgrade -y && \
-    apt-get install -y gettext-base curl jq python3 python3-flask && \
+    apt-get install -y gettext-base curl jq python3 python3-pip python3-flask && \
+    pip3 install prometheus_client && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy miner binary from builder stage
@@ -34,6 +35,6 @@ RUN chmod +x start.sh metrics.sh
 EXPOSE 4444 4455 4456
 
 HEALTHCHECK --interval=30s --timeout=3s \
-  CMD curl --fail http://localhost:4444/
+    CMD curl --fail http://localhost:4444/
 
 CMD ["./start.sh"]

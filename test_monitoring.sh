@@ -25,7 +25,7 @@ echo "Skipping health check in test environment..."
 echo "Testing the metrics endpoint..."
 if docker inspect -f '{{.State.Running}}' ergo-miner-test-container | grep -q "true"; then
     METRICS_OUTPUT=$(docker exec ergo-miner-test-container curl -s http://localhost:4455)
-    if ! echo "$METRICS_OUTPUT" | jq -e 'has("hashrate") and has("avg_temperature") and has("avg_fan_speed") and has("total_power_draw")' > /dev/null; then
+    if ! echo "$METRICS_OUTPUT" | grep -q "lolminer_hashrate"; then
       echo "Metrics endpoint test failed!"
       echo "Output: $METRICS_OUTPUT"
       docker rm -f ergo-miner-test-container
