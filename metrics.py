@@ -38,35 +38,50 @@ def update_metrics():
         lolminer_gpus = [{'hashrate': gpu.get('Performance'), 'fan_speed': gpu.get('Fan_Speed'), 'shares_accepted': gpu.get('Accepted_Shares'), 'shares_rejected': gpu.get('Rejected_Shares')} for gpu in gpus_data]
 
         # Get nvidia-smi stats
+        smi_output = ""
+        smi_cmd = ""
+        gpu_stats = []
+
+        # Detect GPU type
         try:
-            nvidia_stats_raw = subprocess.check_output(['nvidia-smi', '--query-gpu=temperature.gpu,power.draw', '--format=csv,noheader,nounits']).decode()
-            nvidia_stats = []
-            for line in nvidia_stats_raw.strip().split('\n'):
-                temp, power = line.split(', ')
-                nvidia_stats.append({'temperature': float(temp), 'power_draw': float(power)})
-
-            # Merge stats
-            gpus = [dict(lol, **nvidia) for lol, nvidia in zip(lolminer_gpus, nvidia_stats)]
-            total_power_draw = sum(gpu.get('power_draw', 0) for gpu in gpus)
-            TOTAL_POWER_DRAW.set(total_power_draw)
-
-            for i, gpu in enumerate(gpus):
-                GPU_HASHRATE.labels(gpu=i).set(gpu.get('hashrate', 0))
-                GPU_TEMPERATURE.labels(gpu=i).set(gpu.get('temperature', 0))
-                GPU_POWER_DRAW.labels(gpu=i).set(gpu.get('power_draw', 0))
-                GPU_FAN_SPEED.labels(gpu=i).set(gpu.get('fan_speed', 0))
-                GPU_SHARES_ACCEPTED.labels(gpu=i).set(gpu.get('shares_accepted', 0))
-                GPU_SHARES_REJECTED.labels(gpu=i).set(gpu.get('shares_rejected', 0))
-
+            subprocess.check_output(['which', 'nvidia-smi'])
+            smi_cmd = "nvidia-smi --query-gpu=temperature.gpu,power.draw --format=csv,noheader,nounits"
         except (subprocess.CalledProcessError, FileNotFoundError):
-            TOTAL_POWER_DRAW.set(0)
-            for i, gpu in enumerate(lolminer_gpus):
-                GPU_HASHRATE.labels(gpu=i).set(gpu.get('hashrate', 0))
-                GPU_FAN_SPEED.labels(gpu=i).set(gpu.get('fan_speed', 0))
-                GPU_TEMPERATURE.labels(gpu=i).set(0)
-                GPU_POWER_DRAW.labels(gpu=i).set(0)
-                GPU_SHARES_ACCEPTED.labels(gpu=i).set(gpu.get('shares_accepted', 0))
-                GPU_SHARES_REJECTED.labels(gpu=i).set(gpu.get('shares_rejected', 0))
+            try:
+                subprocess.check_output(['which', 'rocm-smi'])
+                smi_cmd = "rocm-smi --showtemp --showpower --csv | tail -n +2"
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                pass
+
+        if smi_cmd:
+            try:
+                smi_output = subprocess.check_output(smi_cmd, shell=True).decode()
+                for line in smi_output.strip().split('\n'):
+                    if "nvidia-smi" in smi_cmd:
+                        temp, power = line.split(', ')
+                        gpu_stats.append({'temperature': float(temp), 'power_draw': float(power)})
+                    elif "rocm-smi" in smi_cmd:
+                        parts = line.split(',')
+                        temp = float(parts[1])
+                        power = float(parts[2].replace('W', ''))
+                        gpu_stats.append({'temperature': temp, 'power_draw': power})
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                pass
+
+        gpus = lolminer_gpus
+        if gpu_stats:
+            gpus = [dict(lol, **stats) for lol, stats in zip(lolminer_gpus, gpu_stats)]
+
+        total_power_draw = sum(gpu.get('power_draw', 0) for gpu in gpus)
+        TOTAL_POWER_DRAW.set(total_power_draw)
+
+        for i, gpu in enumerate(gpus):
+            GPU_HASHRATE.labels(gpu=i).set(gpu.get('hashrate', 0))
+            GPU_TEMPERATURE.labels(gpu=i).set(gpu.get('temperature', 0))
+            GPU_POWER_DRAW.labels(gpu=i).set(gpu.get('power_draw', 0))
+            GPU_FAN_SPEED.labels(gpu=i).set(gpu.get('fan_speed', 0))
+            GPU_SHARES_ACCEPTED.labels(gpu=i).set(gpu.get('shares_accepted', 0))
+            GPU_SHARES_REJECTED.labels(gpu=i).set(gpu.get('shares_rejected', 0))
 
     except (subprocess.CalledProcessError, json.JSONDecodeError, IndexError):
         HASHRATE.set(0)
