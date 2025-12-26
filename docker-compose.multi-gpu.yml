@@ -1,0 +1,60 @@
+# This Docker Compose file is configured for a multi-GPU setup.
+# It creates a separate container for each GPU, allowing you to customize
+# the worker name and other settings for each one.
+
+# To use this file, run the following command:
+# sudo docker-compose -f docker-compose.multi-gpu.yml up -d --build
+
+# By default, this file is configured for a two-GPU setup. To add more GPUs,
+# copy the ergo-miner-gpu1 service and update the following:
+# - Service name (e.g., ergo-miner-gpu2)
+# - Container name (e.g., ergo-miner-gpu2)
+# - WORKER_NAME (e.g., ergo-miner-gpu2)
+# - GPU_DEVICES (e.g., 2)
+# - Host ports (e.g., 4446:4444, 4459:4455, 4460:4456)
+# - device_ids (e.g., ['2'])
+
+version: '3.8'
+
+services:
+  ergo-miner-gpu0:
+    build: .
+    container_name: ergo-miner-gpu0
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - WORKER_NAME=ergo-miner-gpu0
+      - GPU_DEVICES=0
+    ports:
+      - "4444:4444"
+      - "4455:4455"
+      - "4456:4456"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ['0']
+              capabilities: [gpu]
+
+  ergo-miner-gpu1:
+    build: .
+    container_name: ergo-miner-gpu1
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - WORKER_NAME=ergo-miner-gpu1
+      - GPU_DEVICES=1
+    ports:
+      - "4445:4444"
+      - "4457:4455"
+      - "4458:4456"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ['1']
+              capabilities: [gpu]
