@@ -9,6 +9,7 @@ This project provides a Dockerized solution for mining Ergo (ERG) using lolMiner
 - **Automated Failover:** Automatically switches to a backup pool if the primary one is unavailable.
 - **Health Monitoring:** Includes a Docker health check to ensure the miner is running correctly.
 - **Performance Metrics:** Exposes a JSON endpoint for easy integration with monitoring tools.
+- **Web Dashboard:** Provides a simple web interface to view real-time mining statistics.
 - **Auto-Restart:** Automatically restarts the container if the miner crashes or becomes unresponsive.
 
 ## Requirements
@@ -56,6 +57,12 @@ This Docker image includes built-in health checks and a metrics exporter to help
 
 The container has a Docker health check that verifies the lolMiner API is running and responsive. If the miner crashes or the API becomes unavailable, the container will be marked as "unhealthy" and automatically restarted.
 
+### Web Dashboard
+
+The image includes a web dashboard to view real-time mining statistics.
+
+-   **URL:** `http://<your-docker-host>:4456`
+
 ### Metrics Endpoint
 
 The image also includes a lightweight metrics exporter that provides key performance indicators in a simple JSON format.
@@ -93,6 +100,45 @@ If the miner is not running or the API is unavailable, the endpoint will return 
 ```
 
 You can use this endpoint to integrate with monitoring systems like Prometheus (with a simple exporter), Grafana, or your own custom scripts.
+
+## Profitability Estimation
+
+Mining profitability can vary significantly based on your hardware, electricity costs, and the current price of Ergo. This section provides some general estimates to help you gauge your potential earnings.
+
+### Expected Hashrate & Power Consumption
+
+The following table lists the approximate hashrate and power consumption for popular NVIDIA GPUs when mining Ergo. These values can vary depending on your specific GPU model, overclocking settings, and the mining software you use.
+
+| GPU Model        | Hashrate (MH/s) | Power Consumption (Watts) |
+| ---------------- | --------------- | ------------------------- |
+| NVIDIA RTX 3080  | 200 - 235       | 230 - 250                 |
+| NVIDIA RTX 3070  | 170 - 180       | 120 - 140                 |
+| NVIDIA RTX 3060  | 120 - 130       | 110 - 120                 |
+
+*Note: These are estimates. Your actual performance may vary.*
+
+### Pool Fees
+
+Most mining pools charge a fee for their services, which is typically a percentage of your mining rewards. This fee can range from **1% to 2%**. Be sure to check the fee structure of your chosen pool.
+
+### Break-Even Calculator
+
+To calculate your break-even point, you need to consider the following:
+
+*   **Total Hashrate:** The combined hashrate of all your GPUs.
+*   **Total Power Consumption:** The total power draw of your mining rig in watts.
+*   **Electricity Cost:** Your cost per kilowatt-hour (kWh).
+*   **Pool Fee:** The fee charged by your mining pool.
+*   **Ergo Price:** The current market price of ERG.
+*   **Network Difficulty:** The current difficulty of the Ergo network.
+
+There are several online profitability calculators that can help you with this calculation. Here are a few popular options:
+
+*   [WhatToMine](https://whattomine.com/coins/345-erg-autolykos2)
+*   [2CryptoCalc](https://2cryptocalc.com/erg-mining-calculator)
+*   [MinerStat](https://minerstat.com/coin/ERG)
+
+**Disclaimer:** The information provided in this guide is for estimation purposes only. Your actual profitability may vary. Always do your own research and calculations before making any investment decisions.
 
 ## Troubleshooting
 
