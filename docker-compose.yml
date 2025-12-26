@@ -1,9 +1,11 @@
 version: '3.8'
 
 services:
-  ergo-miner:
-    build: .
-    container_name: ergo-miner
+  nvidia:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ergo-miner-nvidia
     restart: unless-stopped
     env_file:
       - .env
@@ -18,3 +20,18 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+  amd:
+    build:
+      context: .
+      dockerfile: Dockerfile.amd
+    container_name: ergo-miner-amd
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "4447:4444"
+      - "4458:4455"
+      - "4459:4456"
+    devices:
+      - "/dev/kfd:/dev/kfd"
+      - "/dev/dri:/dev/dri"

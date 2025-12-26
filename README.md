@@ -30,8 +30,13 @@ This project provides a Dockerized solution for mining Ergo (ERG) using lolMiner
     ```
 
 2.  **Build and run the Docker container:**
+    - For NVIDIA GPUs, run the following command:
     ```bash
-    sudo docker-compose up -d --build
+    sudo docker-compose up -d --build nvidia
+    ```
+    - For AMD GPUs, run the following command:
+    ```bash
+    sudo docker-compose up -d --build amd
     ```
 
 ## Multi-GPU Setup
