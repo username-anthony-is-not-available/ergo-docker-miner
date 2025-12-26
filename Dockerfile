@@ -20,7 +20,15 @@ WORKDIR /app
 # Install only necessary runtime dependencies and apply security upgrades
 RUN apt-get update && \
     apt-get upgrade -y && \
-    apt-get install -y gettext-base curl jq python3 python3-pip python3-flask && \
+    apt-get install -y --no-install-recommends \
+    gettext-base \
+    curl \
+    jq \
+    python3 \
+    python3-pip \
+    python3-flask \
+    nvidia-utils-525 \
+    xserver-xorg && \
     pip3 install prometheus_client && \
     rm -rf /var/lib/apt/lists/*
 
