@@ -11,6 +11,7 @@ This project provides a Dockerized solution for mining Ergo (ERG) using lolMiner
 - **Performance Metrics:** Exposes a JSON endpoint for easy integration with monitoring tools.
 - **Web Dashboard:** Provides a simple web interface to view real-time mining statistics.
 - **Auto-Restart:** Automatically restarts the container if the miner crashes or becomes unresponsive.
+- **Automatic Overclocking:** Apply overclocking settings to your GPUs to improve performance and efficiency.
 
 ## Requirements
 
@@ -59,6 +60,28 @@ By default, the file is configured for a two-GPU setup. To add more GPUs, you ca
 -   `WALLET_ADDRESS`: Your Ergo wallet address where the mining rewards will be sent.
 -   `WORKER_NAME`: A name for your mining rig to identify it on the pool's dashboard.
 -   `GPU_DEVICES`: The specific GPU device(s) to use for mining. Set to `AUTO` to use all available GPUs, or specify a comma-separated list of device IDs (e.g., `0,1`).
+-   `APPLY_OC`: Set to `true` to enable the automatic overclocking feature.
+-   `GPU_CLOCK_OFFSET`: The desired GPU clock offset in MHz (e.g., `-200` or `200`).
+-   `GPU_MEM_OFFSET`: The desired GPU memory offset in MHz (e.g., `800`).
+-   `GPU_POWER_LIMIT`: The desired GPU power limit in watts (e.g., `250`).
+
+## Overclocking
+
+This image includes a feature to automatically apply overclocking settings to your NVIDIA GPUs on container startup. This can help you improve your hashrate and reduce power consumption.
+
+### **Disclaimer**
+
+Overclocking can be risky and may damage your hardware if not done correctly. The author of this project is not responsible for any damage caused by the use of this feature. Please use it at your own risk and ensure you understand the proper overclocking settings for your specific GPU model.
+
+### **Configuration**
+
+To enable overclocking, set the `APPLY_OC` environment variable to `true` in your `.env` file. You can then use the following variables to configure your desired settings:
+
+-   `GPU_CLOCK_OFFSET`: The desired GPU clock offset in MHz.
+-   `GPU_MEM_OFFSET`: The desired GPU memory offset in MHz.
+-   `GPU_POWER_LIMIT`: The desired GPU power limit in watts.
+
+The overclocking settings will be applied to all GPUs visible within the container.
 
 ## Verifying the Setup
 
