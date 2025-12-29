@@ -36,13 +36,13 @@ RUN apt-get update && \
 COPY --from=builder /app/lolMiner /app/lolMiner
 
 # Copy scripts
-COPY start.sh metrics.sh metrics.py dashboard.py index.html ./
+COPY start.sh metrics.sh metrics.py dashboard.py index.html healthcheck.sh ./
 
-RUN chmod +x start.sh metrics.sh
+RUN chmod +x start.sh metrics.sh healthcheck.sh
 
 EXPOSE 4444 4455 4456
 
 HEALTHCHECK --interval=30s --timeout=3s \
-    CMD curl --fail http://localhost:4444/
+    CMD ./healthcheck.sh
 
 CMD ["./start.sh"]
