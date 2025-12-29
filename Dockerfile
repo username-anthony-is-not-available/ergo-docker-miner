@@ -28,18 +28,23 @@ RUN apt-get update && \
     python3-pip \
     nvidia-utils-525 \
     xserver-xorg && \
-    pip3 install prometheus_client && \
     rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip3 install --no-cache-dir -r requirements.txt
 
 # Copy miner binary from builder stage
 COPY --from=builder /app/lolMiner /app/lolMiner
 
 # Copy scripts
 COPY start.sh metrics.sh metrics.py healthcheck.sh ./
+COPY dashboard.py .
+COPY templates/ templates/
+COPY static/ static/
 
 RUN chmod +x start.sh metrics.sh healthcheck.sh
 
-EXPOSE 4444 4455 4456
+EXPOSE 4444 4455 4456 5000
 
 HEALTHCHECK --interval=30s --timeout=3s \
     CMD ./healthcheck.sh
