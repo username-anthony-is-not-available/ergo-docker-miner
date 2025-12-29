@@ -26,7 +26,6 @@ RUN apt-get update && \
     jq \
     python3 \
     python3-pip \
-    python3-flask \
     nvidia-utils-525 \
     xserver-xorg && \
     pip3 install prometheus_client && \
@@ -36,7 +35,7 @@ RUN apt-get update && \
 COPY --from=builder /app/lolMiner /app/lolMiner
 
 # Copy scripts
-COPY start.sh metrics.sh metrics.py dashboard.py index.html healthcheck.sh ./
+COPY start.sh metrics.sh metrics.py healthcheck.sh ./
 
 RUN chmod +x start.sh metrics.sh healthcheck.sh
 
