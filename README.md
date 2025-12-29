@@ -8,8 +8,8 @@ This project provides a Dockerized solution for mining Ergo (ERG) using lolMiner
 
 - **Automated Failover:** Automatically switches to a backup pool if the primary one is unavailable.
 - **Health Monitoring:** Includes a Docker health check to ensure the miner is running correctly.
-- **Performance Metrics:** Exposes a JSON endpoint for easy integration with monitoring tools.
-- **Web Dashboard:** Provides a simple web interface to view real-time mining statistics.
+- **Prometheus Exporter:** Exposes a Prometheus endpoint for easy integration with monitoring tools.
+- **Grafana Dashboard:** Includes a pre-configured Grafana dashboard to visualize your mining performance.
 - **Auto-Restart:** Automatically restarts the container if the miner crashes or becomes unresponsive.
 - **Automatic Overclocking:** Apply overclocking settings to your GPUs to improve performance and efficiency.
 
@@ -104,49 +104,25 @@ This Docker image includes built-in health checks and a metrics exporter to help
 
 The container has a Docker health check that verifies the lolMiner API is running and responsive. If the miner crashes or the API becomes unavailable, the container will be marked as "unhealthy" and automatically restarted.
 
-### Web Dashboard
+### Prometheus Exporter
 
-The image includes a web dashboard to view real-time mining statistics.
+The image includes a built-in Prometheus exporter that provides key performance indicators.
 
--   **URL:** `http://<your-docker-host>:4456`
+-   **URL:** `http://<your-docker-host>:4455/metrics`
+-   **Format:** Prometheus Text-Based
 
-### Metrics Endpoint
+This endpoint can be scraped by a Prometheus server to collect and store the metrics over time.
 
-The image also includes a lightweight metrics exporter that provides key performance indicators in a simple JSON format.
+### Grafana Dashboard
 
--   **URL:** `http://<your-docker-host>:4455`
--   **Method:** `GET`
+A pre-configured Grafana dashboard is available in the `grafana-dashboard.json` file. You can import this dashboard into your Grafana instance to get a visual representation of your miner's performance. The dashboard includes panels for:
 
-**Example Output:**
-
-```json
-{
-  "hashrate": "246.90 MH/s",
-  "avg_temperature": "65",
-  "avg_fan_speed": "80",
-  "gpus": [
-    {
-      "hashrate": "123.45 MH/s"
-    },
-    {
-      "hashrate": "123.45 MH/s"
-    }
-  ]
-}
-```
-
-If the miner is not running or the API is unavailable, the endpoint will return "N/A" for all values:
-
-```json
-{
-  "hashrate": "N/A",
-  "avg_temperature": "N/A",
-  "avg_fan_speed": "N/A",
-  "gpus": []
-}
-```
-
-You can use this endpoint to integrate with monitoring systems like Prometheus (with a simple exporter), Grafana, or your own custom scripts.
+-   Total Hashrate
+-   Individual GPU Hashrate
+-   GPU Temperatures
+-   GPU Power Draw
+-   GPU Fan Speeds
+-   Accepted and Rejected Shares
 
 ## Profitability Estimation
 

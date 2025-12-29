@@ -51,9 +51,6 @@ if [ "$APPLY_OC" = "true" ]; then
   echo "Overclocking settings applied."
 fi
 
-# Start the dashboard in the background
-python3 dashboard.py &
-
 # Base miner configuration
 MINER_CONFIG="--algo AUTOLYKOS2 --pool ${POOL_ADDRESS} --user ${WALLET_ADDRESS}.${WORKER_NAME} --devices ${GPU_DEVICES} --apiport 4444 --json-read-only"
 
