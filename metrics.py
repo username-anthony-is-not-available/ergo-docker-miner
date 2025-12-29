@@ -42,30 +42,45 @@ def update_metrics():
         smi_cmd = ""
         gpu_stats = []
 
+        # Get nvidia-smi or rocm-smi stats if available
+        smi_output = ""
+        smi_cmd = ""
+        gpu_stats = []
+        is_nvidia = False
+
         # Detect GPU type
         try:
-            subprocess.check_output(['which', 'nvidia-smi'])
+            subprocess.check_output(['which', 'nvidia-smi'], stderr=subprocess.DEVNULL)
             smi_cmd = "nvidia-smi --query-gpu=temperature.gpu,power.draw --format=csv,noheader,nounits"
+            is_nvidia = True
         except (subprocess.CalledProcessError, FileNotFoundError):
             try:
-                subprocess.check_output(['which', 'rocm-smi'])
+                subprocess.check_output(['which', 'rocm-smi'], stderr=subprocess.DEVNULL)
+                # rocm-smi's csv output includes a header, so we skip it with tail
                 smi_cmd = "rocm-smi --showtemp --showpower --csv | tail -n +2"
             except (subprocess.CalledProcessError, FileNotFoundError):
-                pass
+                # No SMI tool found
+                smi_cmd = ""
 
         if smi_cmd:
             try:
-                smi_output = subprocess.check_output(smi_cmd, shell=True).decode()
-                for line in smi_output.strip().split('\n'):
-                    if "nvidia-smi" in smi_cmd:
-                        temp, power = line.split(', ')
-                        gpu_stats.append({'temperature': float(temp), 'power_draw': float(power)})
-                    elif "rocm-smi" in smi_cmd:
-                        parts = line.split(',')
-                        temp = float(parts[1])
-                        power = float(parts[2].replace('W', ''))
-                        gpu_stats.append({'temperature': temp, 'power_draw': power})
-            except (subprocess.CalledProcessError, FileNotFoundError):
+                smi_output = subprocess.check_output(smi_cmd, shell=True, stderr=subprocess.DEVNULL).decode()
+                for i, line in enumerate(smi_output.strip().split('\n')):
+                    try:
+                        if is_nvidia:
+                            temp, power = map(float, line.split(', '))
+                            gpu_stats.append({'temperature': temp, 'power_draw': power})
+                        else: # AMD
+                            parts = line.split(',')
+                            temp = float(parts[1])
+                            power = float(parts[2].replace('W', '').strip())
+                            gpu_stats.append({'temperature': temp, 'power_draw': power})
+                    except (ValueError, IndexError) as e:
+                        print(f"Error parsing SMI data for GPU {i}: {e}")
+                        gpu_stats.append({'temperature': 0, 'power_draw': 0})
+
+            except (subprocess.CalledProcessError, FileNotFoundError) as e:
+                print(f"Error executing SMI command: {e}")
                 pass
 
         gpus = lolminer_gpus

@@ -3,7 +3,7 @@
 # Start the metrics exporter in the background
 ./metrics.sh &
 
-# Start GPU monitoring in the background if nvidia-smi is available
+# Start GPU monitoring in the background based on available tools
 if command -v nvidia-smi &> /dev/null; then
   (
     # Add a small delay to prevent log interleaving at startup
@@ -22,10 +22,28 @@ if command -v nvidia-smi &> /dev/null; then
       sleep 10
     done
   ) &
+elif command -v rocm-smi &> /dev/null; then
+  (
+    sleep 5
+    while true; do
+      echo "--- GPU Stats ---"
+      # The rocm-smi csv output has a header, so we skip it with tail
+      rocm-smi --showtemp --showpower --showfan --csv | tail -n +2 | while IFS=, read -r card temp power fan; do
+        # Trim leading/trailing whitespace
+        card=$(echo "$card" | xargs)
+        temp=$(echo "$temp" | xargs)
+        power=$(echo "$power" | xargs)
+        fan=$(echo "$fan" | xargs)
+        echo "GPU ${card}: Temp: ${temp}°C, Power: ${power}W, Fan: ${fan}%"
+      done
+      echo "-----------------"
+      sleep 10
+    done
+  ) &
 fi
 
-# Apply overclocking settings if enabled
-if [ "$APPLY_OC" = "true" ]; then
+# Apply overclocking settings if enabled and nvidia-smi is present
+if [ "$APPLY_OC" = "true" ] && command -v nvidia-smi &> /dev/null; then
   echo "Applying overclocking settings..."
   # Start a virtual X server for nvidia-settings
   export DISPLAY=:0

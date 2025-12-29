@@ -1,5 +1,4 @@
 #!/bin/bash
-
 if pgrep -x "lolMiner" > /dev/null
 then
     exit 0
