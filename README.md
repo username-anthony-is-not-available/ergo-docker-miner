@@ -32,11 +32,11 @@ This project provides a Dockerized solution for mining Ergo (ERG) using lolMiner
 2.  **Build and run the Docker container:**
     - For NVIDIA GPUs, run the following command:
     ```bash
-    sudo docker-compose up -d --build nvidia
+    sudo docker compose up -d --build nvidia
     ```
     - For AMD GPUs, run the following command:
     ```bash
-    sudo docker-compose up -d --build amd
+    sudo docker compose up -d --build amd
     ```
 
 ## Multi-GPU Setup
@@ -46,7 +46,7 @@ For multi-GPU setups, a separate Docker Compose file is provided to simplify the
 To use this configuration, run the following command:
 
 ```bash
-sudo docker-compose -f docker-compose.multi-gpu.yml up -d --build
+sudo docker compose -f docker-compose.multi-gpu.yml up -d --build
 ```
 
 By default, the file is configured for a two-GPU setup. To add more GPUs, you can duplicate the `ergo-miner-gpu1` service and update the following fields:
@@ -93,7 +93,7 @@ The overclocking settings will be applied to all GPUs visible within the contain
 You can monitor the miner's output and view logs using the following command:
 
 ```bash
-sudo docker-compose logs -f
+sudo docker compose logs -f
 ```
 
 ## Monitoring
@@ -165,7 +165,7 @@ There are several online profitability calculators that can help you with this c
 
 ## Troubleshooting
 
--   **Container exits immediately:** Check the container logs for errors using `docker-compose logs`. This is often due to an incorrect `.env` file or NVIDIA driver issues.
+-   **Container exits immediately:** Check the container logs for errors using `docker compose logs`. This is often due to an incorrect `.env` file or NVIDIA driver issues.
 -   **`nvidia-container-cli: initialization error`:** This indicates a problem with the NVIDIA Container Toolkit installation. Ensure it's properly installed and configured.
 -   **Low hashrate:** This could be due to a number of factors, including GPU overheating, incorrect drivers, or suboptimal lolMiner settings.
 
