@@ -3,6 +3,27 @@
 # Start the metrics exporter in the background
 ./metrics.sh &
 
+# Start GPU monitoring in the background if nvidia-smi is available
+if command -v nvidia-smi &> /dev/null; then
+  (
+    # Add a small delay to prevent log interleaving at startup
+    sleep 5
+    while true; do
+      echo "--- GPU Stats ---"
+      nvidia-smi --query-gpu=index,temperature.gpu,power.draw,fan.speed --format=csv,noheader,nounits | while IFS=, read -r index temp power fan; do
+        # Trim leading/trailing whitespace
+        index=$(echo "$index" | xargs)
+        temp=$(echo "$temp" | xargs)
+        power=$(echo "$power" | xargs)
+        fan=$(echo "$fan" | xargs)
+        echo "GPU $index: Temp: ${temp}°C, Power: ${power}W, Fan: ${fan}%"
+      done
+      echo "-----------------"
+      sleep 10
+    done
+  ) &
+fi
+
 # Apply overclocking settings if enabled
 if [ "$APPLY_OC" = "true" ]; then
   echo "Applying overclocking settings..."
