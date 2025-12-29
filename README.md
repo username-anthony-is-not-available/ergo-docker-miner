@@ -17,9 +17,17 @@ This project provides a Dockerized solution for mining Ergo (ERG) using lolMiner
 
 - [Docker](https.docs.docker.com/engine/install/)
 - [Docker Compose](https://docs.docker.com/compose/install/)
+
+### For NVIDIA Users
+
 - [NVIDIA Drivers](https://www.nvidia.com/Download/index.aspx)
 - [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
 - CUDA-enabled NVIDIA GPU
+
+### For AMD Users
+
+- [ROCm Drivers](https://rocm.docs.amd.com/en/latest/deploy/linux/index.html)
+- AMD GPU
 
 ## Setup
 
@@ -38,6 +46,7 @@ This project provides a Dockerized solution for mining Ergo (ERG) using lolMiner
     ```bash
     sudo docker compose up -d --build amd
     ```
+    **Note:** The `docker-compose.yml` file is pre-configured to pass the necessary AMD GPU devices (`/dev/kfd` and `/dev/dri`) to the container. Ensure these devices exist on your host system.
 
 ## Multi-GPU Setup
 
@@ -73,6 +82,8 @@ By default, the file is configured for a two-GPU setup. To add more GPUs, you ca
 ## Overclocking
 
 This image includes a feature to automatically apply overclocking settings to your NVIDIA GPUs on container startup. This can help you improve your hashrate and reduce power consumption.
+
+**Note:** This feature is currently only supported for NVIDIA GPUs.
 
 ### **Disclaimer**
 
