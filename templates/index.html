@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>lolMiner Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.2/socket.io.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>lolMiner Dashboard</h1>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h2>Total Hashrate</h2>
+                <p id="total-hashrate">-- MH/s</p>
+            </div>
+            <div class="stat-card">
+                <h2>Uptime</h2>
+                <p id="uptime">--</p>
+            </div>
+        </div>
+        <h2>GPUs</h2>
+        <div id="gpu-container">
+        </div>
+    </div>
+    <script>
+        const socket = io();
+
+        socket.on('update', function(data) {
+            document.getElementById('total-hashrate').innerText = `${data.Total_Performance[0].toFixed(2)} MH/s`;
+
+            const uptimeSeconds = data.Session.Uptime;
+            const hours = Math.floor(uptimeSeconds / 3600);
+            const minutes = Math.floor((uptimeSeconds % 3600) / 60);
+            const seconds = uptimeSeconds % 60;
+            document.getElementById('uptime').innerText = `${hours}h ${minutes}m ${seconds}s`;
+
+            const gpuContainer = document.getElementById('gpu-container');
+            data.GPUs.forEach((gpu, index) => {
+                let gpuCard = document.getElementById(`gpu-${index}`);
+                if (!gpuCard) {
+                    gpuCard = document.createElement('div');
+                    gpuCard.className = 'gpu-card';
+                    gpuCard.id = `gpu-${index}`;
+                    gpuCard.innerHTML = `
+                        <h3>GPU ${index}</h3>
+                        <p><strong>Hashrate:</strong> <span class="hashrate">--</span> MH/s</p>
+                        <p><strong>Fan Speed:</strong> <span class="fan-speed">--</span>%</p>
+                        <p><strong>Accepted Shares:</strong> <span class="accepted-shares">--</span></p>
+                        <p><strong>Rejected Shares:</strong> <span class="rejected-shares">--</span></p>
+                    `;
+                    gpuContainer.appendChild(gpuCard);
+                }
+
+                gpuCard.querySelector('.hashrate').innerText = gpu.Performance.toFixed(2);
+                gpuCard.querySelector('.fan-speed').innerText = gpu.Fan_Speed;
+                gpuCard.querySelector('.accepted-shares').innerText = gpu.Accepted_Shares;
+                gpuCard.querySelector('.rejected-shares').innerText = gpu.Rejected_Shares;
+            });
+        });
+    </script>
+</body>
+</html>

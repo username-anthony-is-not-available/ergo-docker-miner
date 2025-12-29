@@ -3,6 +3,9 @@
 # Start the metrics exporter in the background
 ./metrics.sh &
 
+# Start the dashboard in the background
+python3 dashboard.py &
+
 # Start GPU monitoring in the background based on available tools
 if command -v nvidia-smi &> /dev/null; then
   (
