@@ -143,17 +143,37 @@ Mining profitability can vary significantly based on your hardware, electricity 
 
 The following table lists the approximate hashrate and power consumption for popular NVIDIA GPUs when mining Ergo. These values can vary depending on your specific GPU model, overclocking settings, and the mining software you use.
 
-| GPU Model        | Hashrate (MH/s) | Power Consumption (Watts) |
-| ---------------- | --------------- | ------------------------- |
-| NVIDIA RTX 3080  | 200 - 235       | 230 - 250                 |
-| NVIDIA RTX 3070  | 170 - 180       | 120 - 140                 |
-| NVIDIA RTX 3060  | 120 - 130       | 110 - 120                 |
+| GPU Model | Hashrate (MH/s) | Power Consumption (Watts) |
+|---|---|---|
+| NVIDIA RTX 3090 | 273 | 269 |
+| NVIDIA RTX 3080 | 219 | 180 |
+| NVIDIA RTX 3070 Ti | 173 | 160 |
+| NVIDIA RTX 3070 | 173 | 130 |
+| NVIDIA RTX 3060 Ti | 132 | 120 |
+| NVIDIA RTX 3060 | 108 | 109 |
+| NVIDIA GTX 1660 Ti | 48 | 93 |
+| NVIDIA GTX 1660 | 42 | 73 |
+| AMD RX Vega 64 | 162 | 134 |
+| AMD RX Vega 56 | 163 | 120 |
+| AMD RX 6800 XT | 117 | 206 |
+| AMD RX 6800 | 115 | 134 |
+| AMD RX 5700 XT | 90 | 108 |
 
 *Note: These are estimates. Your actual performance may vary.*
 
 ### Pool Fees
 
-Most mining pools charge a fee for their services, which is typically a percentage of your mining rewards. This fee can range from **1% to 2%**. Be sure to check the fee structure of your chosen pool.
+Most mining pools charge a fee for their services, which is typically a percentage of your mining rewards. This fee can range from **0.9% to 2.5%**, depending on the pool and the payout scheme you choose. Below is a comparison of some popular Ergo mining pools:
+
+| Pool | Fee (PPLNS) | Fee (SOLO) |
+|---|---|---|
+| Nanopool | 1% | - |
+| WoolyPooly | 0.9% | 0.9% |
+| 2Miners | 1% | 1.5% |
+| HeroMiners | 0% (PROP) | 0% (SOLO) |
+| 666pool | 1% | - |
+
+*Note: Pool fees and payout schemes are subject to change. Always verify the latest information on the pool's official website.*
 
 ### Break-Even Calculator
 
@@ -166,7 +186,24 @@ To calculate your break-even point, you need to consider the following:
 *   **Ergo Price:** The current market price of ERG.
 *   **Network Difficulty:** The current difficulty of the Ergo network.
 
-There are several online profitability calculators that can help you with this calculation. Here are a few popular options:
+You can also calculate your break-even point manually using the following formula:
+
+**Daily Revenue = (Your Hashrate / Network Hashrate) * Block Reward * Blocks per Day * Ergo Price**
+
+**Daily Costs = (Total Power Consumption / 1000) * 24 * Electricity Cost**
+
+**Daily Profit = Daily Revenue - (Daily Revenue * Pool Fee) - Daily Costs**
+
+*   **Your Hashrate:** Your total mining hashrate in MH/s.
+*   **Network Hashrate:** The current Ergo network hashrate in MH/s.
+*   **Block Reward:** The number of ERG awarded per block (currently 9 ERG).
+*   **Blocks per Day:** The average number of blocks mined per day (approximately 720).
+*   **Ergo Price:** The current market price of one ERG.
+*   **Total Power Consumption:** The total power draw of your mining rig in watts.
+*   **Electricity Cost:** Your cost per kilowatt-hour (kWh).
+*   **Pool Fee:** The fee charged by your mining pool (e.g., 0.01 for 1%).
+
+For your convenience, here are a few popular online calculators that can help you with this calculation:
 
 *   [WhatToMine](https://whattomine.com/coins/345-erg-autolykos2)
 *   [2CryptoCalc](https://2cryptocalc.com/erg-mining-calculator)
