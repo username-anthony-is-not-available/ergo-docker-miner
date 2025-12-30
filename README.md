@@ -143,17 +143,31 @@ Mining profitability can vary significantly based on your hardware, electricity 
 
 The following table lists the approximate hashrate and power consumption for popular NVIDIA GPUs when mining Ergo. These values can vary depending on your specific GPU model, overclocking settings, and the mining software you use.
 
-| GPU Model        | Hashrate (MH/s) | Power Consumption (Watts) |
-| ---------------- | --------------- | ------------------------- |
-| NVIDIA RTX 3080  | 200 - 235       | 230 - 250                 |
-| NVIDIA RTX 3070  | 170 - 180       | 120 - 140                 |
-| NVIDIA RTX 3060  | 120 - 130       | 110 - 120                 |
+| GPU Model          | Hashrate (MH/s) | Power Consumption (Watts) |
+| ------------------ | --------------- | ------------------------- |
+| NVIDIA RTX 3090    | 280 - 300       | 300 - 320                 |
+| NVIDIA RTX 3080    | 200 - 235       | 230 - 250                 |
+| NVIDIA RTX 3070    | 170 - 180       | 120 - 140                 |
+| NVIDIA RTX 3060 Ti | 160 - 170       | 120 - 130                 |
+| NVIDIA RTX 3060    | 120 - 130       | 110 - 120                 |
+| AMD RX 6800 XT     | 180 - 200       | 170 - 190                 |
+| AMD RX 6600 XT     | 90 - 100        | 70 - 80                   |
 
 *Note: These are estimates. Your actual performance may vary.*
 
 ### Pool Fees
 
-Most mining pools charge a fee for their services, which is typically a percentage of your mining rewards. This fee can range from **1% to 2%**. Be sure to check the fee structure of your chosen pool.
+Most mining pools charge a fee for their services, which is typically a percentage of your mining rewards. This fee can range from **0.9% to 2%**. Here is a comparison of a few popular pools:
+
+| Pool        | Fee    | Payout Scheme |
+| ----------- | ------ | ------------- |
+| Nanopool    | 1%     | PPLNS         |
+| K1Pool      | 1%     | PPLNS         |
+| Cruxpool    | 1%     | PPS+          |
+| 2Miners     | 1%     | PPLNS         |
+| HeroMiners  | 0.9%   | PPLNS         |
+
+*Note: PPLNS (Pay Per Last N Shares) and PPS+ (Pay Per Share Plus) are different payout schemes with their own pros and cons. Be sure to research which one is right for you.*
 
 ### Break-Even Calculator
 
@@ -166,7 +180,23 @@ To calculate your break-even point, you need to consider the following:
 *   **Ergo Price:** The current market price of ERG.
 *   **Network Difficulty:** The current difficulty of the Ergo network.
 
-There are several online profitability calculators that can help you with this calculation. Here are a few popular options:
+There are several online profitability calculators that can help you with this calculation, but you can also perform a rough estimation using the following formula:
+
+**Gross Revenue per Day** = (`Your Hashrate (MH/s)` / `Network Hashrate (MH/s)`) * `Block Reward` * `ERG Price` * 720
+
+-   **Your Hashrate (MH/s):** The total hashrate of your mining rig in megahashes per second.
+-   **Network Hashrate (MH/s):** The current hashrate of the entire Ergo network. You can find this on a pool website or a block explorer.
+-   **Block Reward:** The number of ERG rewarded for mining a new block (currently 67.5 ERG).
+-   **ERG Price:** The current price of one Ergo coin.
+
+**Daily Electricity Cost** = (`Total Power Consumption (Watts)` / 1000) * `Electricity Cost ($/kWh)` * 24
+
+-   **Total Power Consumption (Watts):** The total power consumption of your mining rig in watts.
+-   **Electricity Cost ($/kWh):** Your electricity rate in dollars per kilowatt-hour.
+
+**Estimated Daily Profit** = `Gross Revenue per Day` - `Daily Electricity Cost`
+
+Here are a few popular online calculators that can help you with this calculation:
 
 *   [WhatToMine](https://whattomine.com/coins/345-erg-autolykos2)
 *   [2CryptoCalc](https://2cryptocalc.com/erg-mining-calculator)
