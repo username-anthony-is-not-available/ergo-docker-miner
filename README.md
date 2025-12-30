@@ -151,28 +151,44 @@ The following table lists the approximate hashrate and power consumption for pop
 
 *Note: These are estimates. Your actual performance may vary.*
 
-### Pool Fees
+### Pool Fee Comparison
 
-Most mining pools charge a fee for their services, which is typically a percentage of your mining rewards. This fee can range from **1% to 2%**. Be sure to check the fee structure of your chosen pool.
+| Pool Name        | Fee   |
+| ---------------- | ----- |
+| F2Pool           | 2.5%  |
+| 666 POOL         | 1%    |
+| HEROMINERS       | 0%    |
+| NANOPOOL         | 1%    |
+| WOOLYPOOLY       | 0.9%  |
+| 2MINERS          | 1%    |
+| KRYPTEX          | 1%    |
+| K1POOL           | 1%    |
+| Sigmanauts Pool  | 0.9%  |
+
+*Note: Fees are subject to change. Please verify the current fee on the pool's website.*
 
 ### Break-Even Calculator
 
-To calculate your break-even point, you need to consider the following:
+Calculating your break-even point is crucial to determine if mining Ergo will be profitable for you. This calculation depends on several constantly changing factors:
 
-*   **Total Hashrate:** The combined hashrate of all your GPUs.
-*   **Total Power Consumption:** The total power draw of your mining rig in watts.
-*   **Electricity Cost:** Your cost per kilowatt-hour (kWh).
-*   **Pool Fee:** The fee charged by your mining pool.
-*   **Ergo Price:** The current market price of ERG.
-*   **Network Difficulty:** The current difficulty of the Ergo network.
+*   **Total Hashrate:** This is the speed at which your mining hardware can perform calculations, measured in megahashes per second (MH/s) or gigahashes per second (GH/s). A higher hashrate means you can solve more blocks and earn more rewards.
+*   **Total Power Consumption:** Your mining rig consumes a significant amount of electricity. This is measured in watts (W) and is a major operational cost.
+*   **Electricity Cost:** The price you pay for electricity, usually measured in dollars per kilowatt-hour ($/kWh). This varies greatly by location and is a critical factor in your profitability.
+*   **Pool Fee:** The percentage of your mining rewards that you pay to the mining pool for their services.
+*   **Ergo (ERG) Price:** The current market price of Ergo. Since your rewards are paid in ERG, its value directly impacts your earnings in fiat currency (like USD).
+*   **Network Difficulty:** This is a measure of how difficult it is to find a new block. As more miners join the network, the difficulty increases, which means your share of the rewards will decrease if your hashrate stays the same.
 
-There are several online profitability calculators that can help you with this calculation. Here are a few popular options:
+**Using an Online Calculator**
+
+Instead of performing complex manual calculations, it's highly recommended to use an online profitability calculator. These tools automatically fetch the latest Ergo price and network difficulty, allowing you to get a more accurate estimate. Simply input your hashrate, power consumption, electricity cost, and pool fee.
+
+Here are a few popular options:
 
 *   [WhatToMine](https://whattomine.com/coins/345-erg-autolykos2)
 *   [2CryptoCalc](https://2cryptocalc.com/erg-mining-calculator)
 *   [MinerStat](https://minerstat.com/coin/ERG)
 
-**Disclaimer:** The information provided in this guide is for estimation purposes only. Your actual profitability may vary. Always do your own research and calculations before making any investment decisions.
+**Disclaimer:** The profitability estimates provided by these calculators are not guarantees. They are based on current market conditions and can change rapidly. It is essential to do your own research and understand the risks involved before investing in mining hardware.
 
 ## Troubleshooting
 
