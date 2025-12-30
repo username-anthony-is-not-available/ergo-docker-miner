@@ -141,38 +141,91 @@ Mining profitability can vary significantly based on your hardware, electricity 
 
 ### Expected Hashrate & Power Consumption
 
-The following table lists the approximate hashrate and power consumption for popular NVIDIA GPUs when mining Ergo. These values can vary depending on your specific GPU model, overclocking settings, and the mining software you use.
+The following tables list the approximate hashrate and power consumption for popular NVIDIA and AMD GPUs when mining Ergo. These values can vary depending on your specific GPU model, overclocking settings, and the mining software you use.
 
-| GPU Model        | Hashrate (MH/s) | Power Consumption (Watts) |
-| ---------------- | --------------- | ------------------------- |
-| NVIDIA RTX 3080  | 200 - 235       | 230 - 250                 |
-| NVIDIA RTX 3070  | 170 - 180       | 120 - 140                 |
-| NVIDIA RTX 3060  | 120 - 130       | 110 - 120                 |
+**NVIDIA**
+
+| GPU Model             | Hashrate (MH/s) | Power Consumption (Watts) |
+| --------------------- | --------------- | ------------------------- |
+| NVIDIA RTX 3090       | 270 - 275       | 260 - 270                 |
+| NVIDIA RTX 3080       | 215 - 220       | 175 - 185                 |
+| NVIDIA RTX 3070 Ti    | 170 - 175       | 155 - 165                 |
+| NVIDIA RTX 3070       | 170 - 175       | 125 - 135                 |
+| NVIDIA RTX 3060 Ti    | 130 - 135       | 115 - 125                 |
+| NVIDIA RTX 3060       | 105 - 110       | 105 - 115                 |
+| NVIDIA GTX 1660 Ti    | 48 - 50         | 90 - 95                   |
+| NVIDIA GTX 1660       | 40 - 42         | 70 - 75                   |
+
+**AMD**
+
+| GPU Model       | Hashrate (MH/s) | Power Consumption (Watts) |
+| --------------- | --------------- | ------------------------- |
+| AMD RX Vega 56  | 160 - 165       | 115 - 125                 |
+| AMD RX Vega 64  | 160 - 165       | 130 - 135                 |
+| AMD RX 5700 XT  | 90 - 95         | 105 - 110                 |
+| AMD RX 6800     | 110 - 115       | 130 - 135                 |
+| AMD RX 6800 XT  | 115 - 120       | 200 - 210                 |
 
 *Note: These are estimates. Your actual performance may vary.*
 
-### Pool Fees
+### Pool Fee Comparison
 
-Most mining pools charge a fee for their services, which is typically a percentage of your mining rewards. This fee can range from **1% to 2%**. Be sure to check the fee structure of your chosen pool.
+Most mining pools charge a fee for their services, which is typically a percentage of your mining rewards. The table below compares the fees and payout schemes for some of the most popular Ergo mining pools.
 
-### Break-Even Calculator
+| Pool          | Fee       | Payout Scheme | Minimum Payout |
+| ------------- | --------- | ------------- | -------------- |
+| Nanopool      | 1%        | PPLNS         | 1 ERG          |
+| WoolyPooly    | 0.9%      | PPLNS         | 1 ERG          |
+| 2Miners       | 1%        | PPLNS         | 1 ERG          |
+| HeroMiners    | 0%        | PROP          | 0.5 ERG        |
+| Cruxpool      | 1%        | PPS+          | 1 ERG          |
 
-To calculate your break-even point, you need to consider the following:
+*Note: Pool fees and payout schemes are subject to change. Always verify the latest information on the pool's website.*
 
-*   **Total Hashrate:** The combined hashrate of all your GPUs.
-*   **Total Power Consumption:** The total power draw of your mining rig in watts.
-*   **Electricity Cost:** Your cost per kilowatt-hour (kWh).
-*   **Pool Fee:** The fee charged by your mining pool.
+### Break-Even and Profitability Calculator
+
+Calculating your break-even point and potential profitability is crucial for a successful mining operation. This section provides a more detailed guide to help you understand the key factors and perform your own calculations.
+
+**Key Factors:**
+
+*   **Hardware Cost:** The initial investment in your mining rig, including GPUs, motherboard, CPU, RAM, and power supply.
+*   **Total Hashrate:** The combined hashrate of all your GPUs in MH/s. You can use the tables above as a starting point.
+*   **Total Power Consumption:** The total power draw of your mining rig in watts. This can be measured with a wattmeter for the most accurate reading.
+*   **Electricity Cost:** Your cost per kilowatt-hour (kWh). This can be found on your utility bill.
+*   **Pool Fee:** The fee charged by your chosen mining pool (e.g., 1%).
 *   **Ergo Price:** The current market price of ERG.
-*   **Network Difficulty:** The current difficulty of the Ergo network.
+*   **Network Difficulty:** The current difficulty of the Ergo network. A higher difficulty means it's harder to find a block, which can impact your earnings.
 
-There are several online profitability calculators that can help you with this calculation. Here are a few popular options:
+**Step-by-Step Calculation:**
+
+1.  **Calculate your daily electricity cost:**
+    ```
+    (Total Power Consumption (Watts) / 1000) * 24 * Electricity Cost ($/kWh)
+    ```
+
+2.  **Estimate your daily ERG earnings:**
+    This is best done using an online calculator, as it takes into account the current network difficulty and block reward.
+
+3.  **Calculate your daily profit:**
+    ```
+    (Daily ERG Earnings * ERG Price) - Daily Electricity Cost
+    ```
+
+4.  **Calculate your break-even point:**
+    ```
+    Hardware Cost / Daily Profit
+    ```
+    This will give you the number of days it will take to pay off your initial hardware investment.
+
+**Online Calculators:**
+
+While it's helpful to understand the manual calculation process, online profitability calculators can simplify the process by automatically fetching the latest Ergo price and network difficulty. Here are a few popular options:
 
 *   [WhatToMine](https://whattomine.com/coins/345-erg-autolykos2)
 *   [2CryptoCalc](https://2cryptocalc.com/erg-mining-calculator)
 *   [MinerStat](https://minerstat.com/coin/ERG)
 
-**Disclaimer:** The information provided in this guide is for estimation purposes only. Your actual profitability may vary. Always do your own research and calculations before making any investment decisions.
+**Disclaimer:** The information provided in this guide is for estimation purposes only. Your actual profitability may vary due to market volatility and changes in network difficulty. Always do your own research and calculations before making any investment decisions.
 
 ## Troubleshooting
 
