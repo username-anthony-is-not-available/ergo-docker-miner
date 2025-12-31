@@ -143,36 +143,65 @@ Mining profitability can vary significantly based on your hardware, electricity 
 
 The following table lists the approximate hashrate and power consumption for popular NVIDIA GPUs when mining Ergo. These values can vary depending on your specific GPU model, overclocking settings, and the mining software you use.
 
-| GPU Model        | Hashrate (MH/s) | Power Consumption (Watts) |
-| ---------------- | --------------- | ------------------------- |
-| NVIDIA RTX 3080  | 200 - 235       | 230 - 250                 |
-| NVIDIA RTX 3070  | 170 - 180       | 120 - 140                 |
-| NVIDIA RTX 3060  | 120 - 130       | 110 - 120                 |
+| GPU Model         | Hashrate (MH/s) | Power Consumption (Watts) |
+| ----------------- | --------------- | ------------------------- |
+| NVIDIA RTX 3080   | 200 - 235       | 230 - 250                 |
+| NVIDIA RTX 3070   | 170 - 180       | 120 - 140                 |
+| NVIDIA RTX 3060   | 120 - 130       | 110 - 120                 |
+| AMD RX 6800       | 160 - 170       | 110 - 130                 |
+| AMD RX 6700 XT    | 110 - 120       | 95 - 110                  |
 
-*Note: These are estimates. Your actual performance may vary.*
+*Note: These are estimates based on community-reported data. Your actual performance may vary depending on your specific hardware, driver versions, and overclocking settings.*
 
 ### Pool Fees
 
 Most mining pools charge a fee for their services, which is typically a percentage of your mining rewards. This fee can range from **1% to 2%**. Be sure to check the fee structure of your chosen pool.
 
+Here's a comparison of some popular Ergo mining pools:
+
+| Pool           | Fee Structure     | Minimum Payout |
+| -------------- | ----------------- | -------------- |
+| Nanopool       | 1% PPLNS          | 1 ERG          |
+| WoolyPooly     | 0.9% PPLNS or SOLO | 1 ERG          |
+| 2Miners        | 1% PPLNS or 1.5% SOLO | 1 ERG          |
+| HeroMiners     | 0% PROP           | 0.5 ERG        |
+
+*Note: PPLNS (Pay Per Last N Shares) and PROP (Proportional) are different reward distribution methods. Your choice of pool may also depend on factors like server location, hashrate, and community.*
+
 ### Break-Even Calculator
 
-To calculate your break-even point, you need to consider the following:
+To calculate your break-even point and estimate your profitability, you need to consider the following factors:
 
-*   **Total Hashrate:** The combined hashrate of all your GPUs.
-*   **Total Power Consumption:** The total power draw of your mining rig in watts.
-*   **Electricity Cost:** Your cost per kilowatt-hour (kWh).
-*   **Pool Fee:** The fee charged by your mining pool.
-*   **Ergo Price:** The current market price of ERG.
-*   **Network Difficulty:** The current difficulty of the Ergo network.
+*   **Total Hashrate (H):** The combined hashrate of all your GPUs in MH/s.
+*   **Total Power Consumption (P):** The total power draw of your mining rig in watts.
+*   **Electricity Cost (C):** Your cost per kilowatt-hour (kWh).
+*   **Pool Fee (F):** The fee charged by your mining pool (e.g., 1% = 0.01).
+*   **Ergo Price (ERG_P):** The current market price of ERG.
+*   **Network Difficulty (D):** The current difficulty of the Ergo network.
+*   **Block Reward (R):** The number of ERG coins awarded for solving a block.
 
-There are several online profitability calculators that can help you with this calculation. Here are a few popular options:
+#### Profitability Formula
+
+You can use the following formula to estimate your daily earnings:
+
+**Daily Earnings (ERG) = (H * 10^6 * R * 86400) / (D * 2^32)**
+
+*   **86400** is the number of seconds in a day.
+*   **2^32** is a constant used in the Ergo mining algorithm.
+
+To calculate your daily profit in USD, you can use this formula:
+
+**Daily Profit (USD) = (Daily Earnings (ERG) * ERG_P) - ((P / 1000) * 24 * C) - (Daily Earnings (ERG) * ERG_P * F)**
+
+#### Online Calculators
+
+For a more straightforward approach, you can use an online profitability calculator. These tools automatically fetch the latest network difficulty and Ergo price, making it easier to get an accurate estimate.
 
 *   [WhatToMine](https://whattomine.com/coins/345-erg-autolykos2)
 *   [2CryptoCalc](https://2cryptocalc.com/erg-mining-calculator)
 *   [MinerStat](https://minerstat.com/coin/ERG)
 
-**Disclaimer:** The information provided in this guide is for estimation purposes only. Your actual profitability may vary. Always do your own research and calculations before making any investment decisions.
+**Disclaimer:** The information provided in this guide is for estimation purposes only. Your actual profitability may vary due to fluctuations in network difficulty, coin price, and other factors. Always do your own research and calculations before making any investment decisions.
 
 ## Troubleshooting
 
