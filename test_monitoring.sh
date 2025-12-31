@@ -10,7 +10,7 @@ docker build -t ergo-miner-test .
 
 # Run the container in detached mode
 echo "Running the container..."
-docker run --name ergo-miner-test-container -d -e TEST_MODE=1 --env-file .env.test ergo-miner-test
+docker run --name ergo-miner-test-container -d --restart unless-stopped -e TEST_MODE=1 --env-file .env.test ergo-miner-test
 
 # Wait for the container to initialize
 echo "Waiting for the container to start..."
@@ -35,6 +35,22 @@ else
     echo "Container not running, skipping metrics test."
 fi
 echo "Metrics endpoint test passed!"
+
+# Test crash recovery
+echo "Testing crash recovery..."
+if docker inspect -f '{{.State.Running}}' ergo-miner-test-container | grep -q "true"; then
+    echo "Killing the main process inside the container..."
+    docker exec ergo-miner-test-container pkill tail
+    sleep 10 # Wait for the container to restart
+    if ! docker inspect -f '{{.State.Running}}' ergo-miner-test-container | grep -q "true"; then
+        echo "Crash recovery test failed: Container did not restart."
+        docker rm -f ergo-miner-test-container
+        exit 1
+    fi
+    echo "Crash recovery test passed!"
+else
+    echo "Container not running, skipping crash recovery test."
+fi
 
 # Cleanup
 echo "Cleaning up..."
