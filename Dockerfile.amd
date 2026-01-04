@@ -26,7 +26,8 @@ RUN apt-get update && \
     jq \
     python3 \
     python3-pip \
-    rocm-smi && \
+    rocm-smi \
+    procps && \
     pip3 install prometheus_client && \
     rm -rf /var/lib/apt/lists/*
 
@@ -35,6 +36,9 @@ COPY --from=builder /app/lolMiner /app/lolMiner
 
 # Copy scripts
 COPY start.sh metrics.sh metrics.py healthcheck.sh ./
+COPY dashboard.py .
+COPY templates/ templates/
+COPY static/ static/
 
 RUN chmod +x start.sh metrics.sh healthcheck.sh
 

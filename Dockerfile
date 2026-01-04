@@ -27,7 +27,8 @@ RUN apt-get update && \
     python3 \
     python3-pip \
     nvidia-utils-525 \
-    xserver-xorg && \
+    xserver-xorg \
+    procps && \
     rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
