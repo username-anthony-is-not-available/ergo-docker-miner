@@ -2,6 +2,8 @@ from prometheus_client import start_http_server, Gauge
 import json
 import subprocess
 import time
+import csv
+from datetime import datetime
 
 PORT = 4455
 
@@ -33,6 +35,12 @@ def update_metrics():
             avg_fan_speed = 0
 
         HASHRATE.set(hashrate)
+
+        # Log hashrate to CSV
+        with open('hashrate_history.csv', 'a', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow([datetime.now().isoformat(), hashrate])
+
         AVG_FAN_SPEED.set(avg_fan_speed)
 
         lolminer_gpus = [{'hashrate': gpu.get('Performance'), 'fan_speed': gpu.get('Fan_Speed'), 'shares_accepted': gpu.get('Accepted_Shares'), 'shares_rejected': gpu.get('Rejected_Shares')} for gpu in gpus_data]

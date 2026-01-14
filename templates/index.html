@@ -6,6 +6,7 @@
     <title>lolMiner Dashboard</title>
     <link rel="stylesheet" href="/static/style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.2/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="container">
@@ -22,6 +23,10 @@
         </div>
         <h2>GPUs</h2>
         <div id="gpu-container">
+        </div>
+        <h2>Hashrate History</h2>
+        <div class="chart-container">
+            <canvas id="hashrate-chart"></canvas>
         </div>
     </div>
     <script>
@@ -59,6 +64,31 @@
                 gpuCard.querySelector('.rejected-shares').innerText = gpu.Rejected_Shares;
             });
         });
+
+        async function fetchHashrateHistory() {
+            const response = await fetch('/hashrate-history');
+            const data = await response.json();
+            return data;
+        }
+
+        async function renderHashrateChart() {
+            const history = await fetchHashrateHistory();
+            const ctx = document.getElementById('hashrate-chart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: history.map(d => new Date(d.timestamp).toLocaleTimeString()),
+                    datasets: [{
+                        label: 'Total Hashrate (MH/s)',
+                        data: history.map(d => d.hashrate),
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        tension: 0.1
+                    }]
+                }
+            });
+        }
+
+        renderHashrateChart();
     </script>
 </body>
 </html>
