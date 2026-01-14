@@ -1,7 +1,7 @@
 # Builder Stage
 FROM nvidia/cuda:11.8.0-base-ubuntu22.04 AS builder
 
-ARG LOLMINER_VERSION=1.92
+ARG LOLMINER_VERSION=1.98a
 ARG LOLMINER_URL=https://github.com/Lolliedieb/lolMiner-releases/releases/download/${LOLMINER_VERSION}/lolMiner_v${LOLMINER_VERSION}_Lin64.tar.gz
 
 WORKDIR /app
