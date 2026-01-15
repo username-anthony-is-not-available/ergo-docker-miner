@@ -1,6 +1,7 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, jsonify
 from flask_socketio import SocketIO, emit
 import requests
+import csv
 import time
 from threading import Thread
 
@@ -32,6 +33,18 @@ def background_thread():
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/hashrate-history')
+def hashrate_history():
+    history = []
+    try:
+        with open('hashrate_history.csv', 'r') as f:
+            reader = csv.reader(f)
+            for row in reader:
+                history.append({'timestamp': row[0], 'hashrate': float(row[1])})
+    except FileNotFoundError:
+        pass
+    return jsonify(history)
 
 @socketio.on('connect')
 def handle_connect():
