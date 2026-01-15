@@ -99,6 +99,31 @@ To enable overclocking, set the `APPLY_OC` environment variable to `true` in you
 
 The overclocking settings will be applied to all GPUs visible within the container.
 
+
+### GPU Tuning Profiles
+
+To simplify overclocking for different GPU models, this image supports tuning profiles. By setting the `GPU_PROFILE` environment variable to the name of a profile defined in `gpu_profiles.json`, you can apply pre-configured tuning settings.
+
+**Example `gpu_profiles.json`:**
+```json
+{
+  "RTX 3060": {
+    "GPU_CLOCK_OFFSET": -200,
+    "GPU_MEM_OFFSET": 1200,
+    "GPU_POWER_LIMIT": 120
+  },
+  "RTX 3070": {
+    "GPU_CLOCK_OFFSET": -200,
+    "GPU_MEM_OFFSET": 1300,
+    "GPU_POWER_LIMIT": 130
+  }
+}
+```
+
+To use the "RTX 3070" profile, set `GPU_PROFILE=RTX 3070` in your `.env` file.
+
+If `GPU_PROFILE` is set, it will override any values set for `GPU_CLOCK_OFFSET`, `GPU_MEM_OFFSET`, and `GPU_POWER_LIMIT`. If the specified profile is not found in `gpu_profiles.json`, the script will fall back to using the individual environment variables.
+
 ## Verifying the Setup
 
 You can monitor the miner's output and view logs using the following command:
