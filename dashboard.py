@@ -1,9 +1,12 @@
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request
 from flask_socketio import SocketIO, emit
 import requests
 import csv
 import time
 from threading import Thread
+import os
+import os
+import os
 
 app = Flask(__name__)
 socketio = SocketIO(app)
@@ -33,6 +36,100 @@ def background_thread():
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/config')
+def config():
+    return render_template('config.html')
+
+def read_env_file():
+    env_vars = {}
+    if os.path.exists('.env'):
+        with open('.env', 'r') as f:
+            for line in f:
+                if '=' in line:
+                    key, value = line.strip().split('=', 1)
+                    env_vars[key] = value
+    return env_vars
+
+def write_env_file(env_vars):
+    with open('.env', 'w') as f:
+        for key, value in env_vars.items():
+            f.write(f"{key}={value}\n")
+
+@app.route('/api/config', methods=['GET', 'POST'])
+def manage_config():
+    if request.method == 'POST':
+        data = request.json
+        env_vars = read_env_file()
+        for key, value in data.items():
+            env_vars[key] = value
+        write_env_file(env_vars)
+        return jsonify({'message': 'Configuration saved successfully!'})
+    else:
+        return jsonify(read_env_file())
+
+@app.route('/api/restart', methods=['POST'])
+def restart():
+    os.system('./restart.sh')
+    return jsonify({'message': 'Restarting...'})
+
+@app.route('/config')
+def config():
+    return render_template('config.html')
+
+def read_env_file():
+    env_vars = {}
+    if os.path.exists('.env'):
+        with open('.env', 'r') as f:
+            for line in f:
+                if '=' in line:
+                    key, value = line.strip().split('=', 1)
+                    env_vars[key] = value
+    return env_vars
+
+def write_env_file(env_vars):
+    with open('.env', 'w') as f:
+        for key, value in env_vars.items():
+            f.write(f"{key}={value}\n")
+
+@app.route('/api/config', methods=['GET', 'POST'])
+def manage_config():
+    if request.method == 'POST':
+        data = request.json
+        env_vars = read_env_file()
+        for key, value in data.items():
+            env_vars[key] = value
+        write_env_file(env_vars)
+        return jsonify({'message': 'Configuration saved successfully!'})
+    else:
+        return jsonify(read_env_file())
+
+def read_env_file():
+    env_vars = {}
+    if os.path.exists('.env'):
+        with open('.env', 'r') as f:
+            for line in f:
+                if '=' in line:
+                    key, value = line.strip().split('=', 1)
+                    env_vars[key] = value
+    return env_vars
+
+def write_env_file(env_vars):
+    with open('.env', 'w') as f:
+        for key, value in env_vars.items():
+            f.write(f"{key}={value}\n")
+
+@app.route('/api/config', methods=['GET', 'POST'])
+def manage_config():
+    if request.method == 'POST':
+        data = request.json
+        env_vars = read_env_file()
+        for key, value in data.items():
+            env_vars[key] = value
+        write_env_file(env_vars)
+        return jsonify({'message': 'Configuration saved successfully!'})
+    else:
+        return jsonify(read_env_file())
 
 @app.route('/hashrate-history')
 def hashrate_history():

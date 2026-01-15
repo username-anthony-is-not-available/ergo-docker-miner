@@ -1,4 +1,6 @@
+__pycache__/
 .env
 node_modules/
 playwright-report/
 test-results/
+*.log
