@@ -48,6 +48,7 @@ fi
 # Apply overclocking settings if enabled and nvidia-smi is present
 if [ "$APPLY_OC" = "true" ] && command -v nvidia-smi &> /dev/null; then
   echo "Applying overclocking settings..."
+
   # Start a virtual X server for nvidia-settings
   export DISPLAY=:0
   Xorg -core :0 &
@@ -56,6 +57,24 @@ if [ "$APPLY_OC" = "true" ] && command -v nvidia-smi &> /dev/null; then
 
   # Enable persistence mode
   nvidia-smi -pm 1
+
+  # Determine which OC settings to use
+  if [ -n "$GPU_PROFILE" ] && [ -f "gpu_profiles.json" ]; then
+    echo "Using GPU profile: $GPU_PROFILE"
+    PROFILE_SETTINGS=$(jq -r ".[\"$GPU_PROFILE\"]" gpu_profiles.json)
+
+    if [ "$PROFILE_SETTINGS" != "null" ]; then
+      # Extract settings from JSON
+      GPU_CLOCK_OFFSET=$(echo "$PROFILE_SETTINGS" | jq -r ".GPU_CLOCK_OFFSET // \"\"")
+      GPU_MEM_OFFSET=$(echo "$PROFILE_SETTINGS" | jq -r ".GPU_MEM_OFFSET // \"\"")
+      GPU_POWER_LIMIT=$(echo "$PROFILE_SETTINGS" | jq -r ".GPU_POWER_LIMIT // \"\"")
+      echo "Applying profile settings: CLOCK=${GPU_CLOCK_OFFSET}, MEM=${GPU_MEM_OFFSET}, PL=${GPU_POWER_LIMIT}"
+    else
+      echo "Warning: GPU profile '$GPU_PROFILE' not found in gpu_profiles.json. Falling back to environment variables."
+    fi
+  else
+    echo "Using overclock settings from environment variables."
+  fi
 
   # Apply settings to all GPUs visible in the container
   for GPU_INDEX in $(nvidia-smi --query-gpu=index --format=csv,noheader); do
