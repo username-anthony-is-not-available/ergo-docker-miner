@@ -50,9 +50,11 @@ This project provides a Dockerized solution for mining Ergo (ERG) using lolMiner
 
 ## Multi-GPU Setup
 
-For multi-GPU setups, a separate Docker Compose file is provided to simplify the configuration. This file (`docker-compose.multi-gpu.yml`) creates a separate container for each GPU, allowing you to customize the worker name and other settings for each one.
+For multi-GPU setups, separate Docker Compose files are provided to simplify the configuration. These files create a separate container for each GPU, allowing you to customize the worker name and other settings for each one.
 
-To use this configuration, run the following command:
+### NVIDIA
+
+To use this configuration for NVIDIA GPUs, run the following command:
 
 ```bash
 sudo docker compose -f docker-compose.multi-gpu.yml up -d --build
@@ -66,6 +68,22 @@ By default, the file is configured for a two-GPU setup. To add more GPUs, you ca
 -   **`GPU_DEVICES`:** (e.g., `2`)
 -   **Host ports:** (e.g., `4446:4444`, `4459:4455`, `4460:4456`)
 -   **`device_ids`:** (e.g., `['2']`)
+
+### AMD
+
+To use this configuration for AMD GPUs, run the following command:
+
+```bash
+sudo docker compose -f docker-compose.multi-gpu.amd.yml up -d --build
+```
+
+By default, the file is configured for a two-GPU setup. To add more GPUs, you can duplicate the `ergo-miner-gpu1` service and update the following fields:
+
+-   **Service name:** (e.g., `ergo-miner-gpu2`)
+-   **Container name:** (e.g., `ergo-miner-gpu2`)
+-   **`WORKER_NAME`:** (e.g., `ergo-miner-gpu2`)
+-   **`GPU_DEVICES`:** (e.g., `2`)
+-   **Host ports:** (e.g., `4446:4444`, `4459:4455`, `4460:4456`)
 
 ## Environment Variable Reference
 
