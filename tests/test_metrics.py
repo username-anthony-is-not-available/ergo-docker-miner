@@ -19,6 +19,24 @@ mock_lolminer_api_data = {
     ]
 }
 
+# Mock data for T-Rex API
+mock_trex_api_data = {
+    "hashrate": 125000000,
+    "gpus": [
+        {
+            "hashrate": 62000000,
+            "fan_speed": 65,
+            "shares": {"accepted_count": 200, "rejected_count": 5}
+        },
+        {
+            "hashrate": 63000000,
+            "fan_speed": 70,
+            "shares": {"accepted_count": 220, "rejected_count": 6}
+        }
+    ]
+}
+
+
 # Mock data for nvidia-smi
 mock_nvidia_smi_output = "35, 120.5\n40, 125.0\n"
 
@@ -28,7 +46,8 @@ mock_rocm_smi_output = "card1,65,150.0W\ncard2,70,155.0W\n"
 class TestMetrics(unittest.TestCase):
     @patch('subprocess.check_output')
     @patch('metrics.open', new_callable=mock_open)
-    def test_update_metrics_nvidia(self, mock_open_file, mock_subprocess):
+    @patch.dict(os.environ, {"MINER": "lolminer"})
+    def test_update_metrics_nvidia_lolminer(self, mock_open_file, mock_subprocess):
         # Configure the mock to simulate the NVIDIA environment
         mock_subprocess.side_effect = [
             json.dumps(mock_lolminer_api_data).encode(),  # lolMiner API
@@ -58,6 +77,41 @@ class TestMetrics(unittest.TestCase):
         self.assertEqual(GPU_FAN_SPEED.labels(gpu=1)._value.get(), 60)
         self.assertEqual(GPU_SHARES_ACCEPTED.labels(gpu=1)._value.get(), 110)
         self.assertEqual(GPU_SHARES_REJECTED.labels(gpu=1)._value.get(), 3)
+
+    @patch('subprocess.check_output')
+    @patch('metrics.open', new_callable=mock_open)
+    @patch.dict(os.environ, {"MINER": "t-rex"})
+    def test_update_metrics_nvidia_trex(self, mock_open_file, mock_subprocess):
+        # Configure the mock to simulate the NVIDIA environment
+        mock_subprocess.side_effect = [
+            json.dumps(mock_trex_api_data).encode(),  # T-Rex API
+            b'/usr/bin/nvidia-smi',  # which nvidia-smi
+            mock_nvidia_smi_output.encode()  # nvidia-smi command
+        ]
+
+        update_metrics()
+
+        # Assertions for global metrics
+        self.assertEqual(HASHRATE._value.get(), 125)
+        self.assertAlmostEqual(AVG_FAN_SPEED._value.get(), 67.5)
+        self.assertEqual(TOTAL_POWER_DRAW._value.get(), 245.5)
+
+        # Assertions for GPU 0
+        self.assertEqual(GPU_HASHRATE.labels(gpu=0)._value.get(), 62)
+        self.assertEqual(GPU_TEMPERATURE.labels(gpu=0)._value.get(), 35.0)
+        self.assertEqual(GPU_POWER_DRAW.labels(gpu=0)._value.get(), 120.5)
+        self.assertEqual(GPU_FAN_SPEED.labels(gpu=0)._value.get(), 65)
+        self.assertEqual(GPU_SHARES_ACCEPTED.labels(gpu=0)._value.get(), 200)
+        self.assertEqual(GPU_SHARES_REJECTED.labels(gpu=0)._value.get(), 5)
+
+        # Assertions for GPU 1
+        self.assertEqual(GPU_HASHRATE.labels(gpu=1)._value.get(), 63)
+        self.assertEqual(GPU_TEMPERATURE.labels(gpu=1)._value.get(), 40.0)
+        self.assertEqual(GPU_POWER_DRAW.labels(gpu=1)._value.get(), 125.0)
+        self.assertEqual(GPU_FAN_SPEED.labels(gpu=1)._value.get(), 70)
+        self.assertEqual(GPU_SHARES_ACCEPTED.labels(gpu=1)._value.get(), 220)
+        self.assertEqual(GPU_SHARES_REJECTED.labels(gpu=1)._value.get(), 6)
+
 
     @patch('subprocess.check_output')
     @patch('metrics.open', new_callable=mock_open)
