@@ -7,6 +7,8 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      - MINER=${MINER:-lolminer}
     ports:
       - "4444:4444"
       - "4455:4455"
