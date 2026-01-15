@@ -38,12 +38,12 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 COPY --from=builder /app/lolMiner /app/lolMiner
 
 # Copy scripts
-COPY start.sh metrics.sh metrics.py healthcheck.sh ./
+COPY start.sh metrics.sh metrics.py healthcheck.sh restart.sh ./
 COPY dashboard.py .
 COPY templates/ templates/
 COPY static/ static/
 
-RUN chmod +x start.sh metrics.sh healthcheck.sh
+RUN chmod +x start.sh metrics.sh healthcheck.sh restart.sh
 
 EXPOSE 4444 4455 4456 5000
 
