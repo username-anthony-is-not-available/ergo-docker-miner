@@ -6,6 +6,7 @@ import csv
 from datetime import datetime
 import os
 import database
+from miner_api import get_gpu_smi_data, get_normalized_miner_data
 
 PORT = 4455
 
@@ -27,139 +28,44 @@ GPU_SHARES_REJECTED = Gauge('miner_gpu_shares_rejected', 'Number of rejected sha
 
 last_prune_time = 0
 
-def get_lolminer_data():
-    """Fetches and parses data from the lolMiner API."""
-    print("Fetching lolminer data...")
-    api_data_raw = subprocess.check_output(['curl', '-s', 'http://localhost:4444/'])
-    api_data = json.loads(api_data_raw)
-    print(f"lolminer api_data: {api_data}")
-
-    total_performance = api_data.get('Total_Performance', [0])
-    hashrate = total_performance[0]
-    dual_hashrate = total_performance[1] if len(total_performance) > 1 else 0
-
-    gpus_data = api_data.get('GPUs', [])
-    num_gpus = len(gpus_data)
-
-    if num_gpus > 0:
-        avg_fan_speed = sum(gpu.get('Fan_Speed', 0) for gpu in gpus_data) / num_gpus
-    else:
-        avg_fan_speed = 0
-
-    miner_gpus = []
-    for gpu in gpus_data:
-        perf = gpu.get('Performance', [0])
-        gpu_hashrate = perf[0] if isinstance(perf, list) else perf
-        gpu_dual_hashrate = perf[1] if isinstance(perf, list) and len(perf) > 1 else 0
-
-        miner_gpus.append({
-            'hashrate': gpu_hashrate,
-            'dual_hashrate': gpu_dual_hashrate,
-            'fan_speed': gpu.get('Fan_Speed'),
-            'shares_accepted': gpu.get('Accepted_Shares'),
-            'shares_rejected': gpu.get('Rejected_Shares')
-        })
-
-    return {'hashrate': hashrate, 'dual_hashrate': dual_hashrate, 'avg_fan_speed': avg_fan_speed, 'gpus': miner_gpus}
-
-def get_trex_data():
-    """Fetches and parses data from the T-Rex API."""
-    print("Fetching t-rex data...")
-    api_data_raw = subprocess.check_output(['curl', '-s', 'http://localhost:4444/summary'])
-    api_data = json.loads(api_data_raw)
-    print(f"t-rex api_data: {api_data}")
-
-    # T-Rex reports hashrate in H/s, convert to MH/s
-    hashrate = api_data.get('hashrate', 0) / 1000000
-    gpus_data = api_data.get('gpus', [])
-    num_gpus = len(gpus_data)
-
-    if num_gpus > 0:
-        avg_fan_speed = sum(gpu.get('fan_speed', 0) for gpu in gpus_data) / num_gpus
-    else:
-        avg_fan_speed = 0
-
-    miner_gpus = []
-    for gpu in gpus_data:
-        shares = gpu.get('shares', {})
-        miner_gpus.append({
-            'hashrate': gpu.get('hashrate', 0) / 1000000,
-            'dual_hashrate': 0, # T-Rex dual mining not implemented here
-            'fan_speed': gpu.get('fan_speed', 0),
-            'shares_accepted': shares.get('accepted_count', 0),
-            'shares_rejected': shares.get('rejected_count', 0)
-        })
-
-    return {'hashrate': hashrate, 'dual_hashrate': 0, 'avg_fan_speed': avg_fan_speed, 'gpus': miner_gpus}
-
-
 def update_metrics():
     global last_prune_time
     try:
-        miner = os.getenv('MINER', 'lolminer')
-        print(f"MINER is set to: {miner}")
-
-        if miner == 'lolminer':
-            miner_data = get_lolminer_data()
-        elif miner == 't-rex':
-            miner_data = get_trex_data()
-        else:
-            print(f"Unsupported miner: {miner}")
+        miner_data = get_normalized_miner_data()
+        if not miner_data:
+            print("Failed to fetch miner data")
+            HASHRATE.set(0)
+            DUAL_HASHRATE.set(0)
+            AVG_FAN_SPEED.set(0)
+            TOTAL_POWER_DRAW.set(0)
             return
 
-        hashrate = miner_data.get('hashrate', 0)
-        dual_hashrate = miner_data.get('dual_hashrate', 0)
-        avg_fan_speed = miner_data.get('avg_fan_speed', 0)
+        hashrate = miner_data.get('total_hashrate', 0)
+        dual_hashrate = miner_data.get('total_dual_hashrate', 0)
+        avg_fan_speed = 0
         miner_gpus = miner_data.get('gpus', [])
+        num_gpus = len(miner_gpus)
+
+        if num_gpus > 0:
+            avg_fan_speed = sum(gpu.get('fan_speed', 0) for gpu in miner_gpus) / num_gpus
 
         HASHRATE.set(hashrate)
         DUAL_HASHRATE.set(dual_hashrate)
         AVG_FAN_SPEED.set(avg_fan_speed)
 
-        # Get nvidia-smi or rocm-smi stats if available
-        smi_output = ""
-        smi_cmd = ""
-        gpu_stats = []
-        is_nvidia = False
-
-        # Detect GPU type
-        try:
-            subprocess.check_output(['which', 'nvidia-smi'], stderr=subprocess.DEVNULL)
-            smi_cmd = "nvidia-smi --query-gpu=temperature.gpu,power.draw --format=csv,noheader,nounits"
-            is_nvidia = True
-        except (subprocess.CalledProcessError, FileNotFoundError):
-            try:
-                subprocess.check_output(['which', 'rocm-smi'], stderr=subprocess.DEVNULL)
-                # rocm-smi's csv output includes a header, so we skip it with tail
-                smi_cmd = "rocm-smi --showtemp --showpower --csv | tail -n +2"
-            except (subprocess.CalledProcessError, FileNotFoundError):
-                # No SMI tool found
-                smi_cmd = ""
-
-        if smi_cmd:
-            try:
-                smi_output = subprocess.check_output(smi_cmd, shell=True, stderr=subprocess.DEVNULL).decode()
-                for i, line in enumerate(smi_output.strip().split('\n')):
-                    try:
-                        if is_nvidia:
-                            temp, power = map(float, line.split(', '))
-                            gpu_stats.append({'temperature': temp, 'power_draw': power})
-                        else: # AMD
-                            parts = line.split(',')
-                            temp = float(parts[1])
-                            power = float(parts[2].replace('W', '').strip())
-                            gpu_stats.append({'temperature': temp, 'power_draw': power})
-                    except (ValueError, IndexError) as e:
-                        print(f"Error parsing SMI data for GPU {i}: {e}")
-                        gpu_stats.append({'temperature': 0, 'power_draw': 0})
-
-            except (subprocess.CalledProcessError, FileNotFoundError) as e:
-                print(f"Error executing SMI command: {e}")
-                pass
+        # Get SMI stats
+        gpu_stats = get_gpu_smi_data()
 
         gpus = miner_gpus
         if gpu_stats:
-            gpus = [dict(lol, **stats) for lol, stats in zip(miner_gpus, gpu_stats)]
+            # Merge SMI stats into miner_gpus
+            for i, gpu in enumerate(miner_gpus):
+                if i < len(gpu_stats):
+                    # Only overwrite if SMI data is non-zero
+                    if gpu_stats[i]['temperature'] > 0:
+                        gpu['temperature'] = gpu_stats[i]['temperature']
+                    if gpu_stats[i]['power_draw'] > 0:
+                        gpu['power_draw'] = gpu_stats[i]['power_draw']
 
         total_power_draw = sum(gpu.get('power_draw', 0) for gpu in gpus)
         TOTAL_POWER_DRAW.set(total_power_draw)
@@ -167,7 +73,6 @@ def update_metrics():
         total_accepted = 0
         total_rejected = 0
         total_temp = 0
-        num_gpus = len(gpus)
 
         for i, gpu in enumerate(gpus):
             gpu_hashrate = gpu.get('hashrate', 0)
@@ -175,8 +80,8 @@ def update_metrics():
             gpu_temp = gpu.get('temperature', 0)
             gpu_power = gpu.get('power_draw', 0)
             gpu_fan = gpu.get('fan_speed', 0)
-            gpu_accepted = gpu.get('shares_accepted', 0)
-            gpu_rejected = gpu.get('shares_rejected', 0)
+            gpu_accepted = gpu.get('accepted_shares', 0)
+            gpu_rejected = gpu.get('rejected_shares', 0)
 
             GPU_HASHRATE.labels(gpu=str(i)).set(gpu_hashrate)
             GPU_DUAL_HASHRATE.labels(gpu=str(i)).set(gpu_dual_hashrate)
@@ -203,7 +108,7 @@ def update_metrics():
             database.prune_history()
             last_prune_time = time.time()
 
-    except (subprocess.CalledProcessError, json.JSONDecodeError, IndexError) as e:
+    except Exception as e:
         print(f"Error updating metrics: {e}")
         HASHRATE.set(0)
         DUAL_HASHRATE.set(0)

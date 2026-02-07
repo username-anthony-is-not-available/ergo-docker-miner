@@ -10,7 +10,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>Miner Dashboard (<span id="miner-type">--</span>)</h1>
+        <h1>Miner Dashboard (<span id="miner-type">--</span>) - <span id="miner-status">Starting...</span></h1>
         <div class="header-info">
             <span id="last-updated">Last Updated: Never</span>
         </div>
@@ -57,10 +57,30 @@
         const socket = io();
 
         socket.on('update', function(data) {
-            document.getElementById('miner-type').innerText = data.miner;
-            document.getElementById('total-hashrate').innerText = `${data.total_hashrate.toFixed(2)} MH/s`;
-            document.getElementById('total-power').innerText = `${data.total_power_draw.toFixed(1)} W`;
-            document.getElementById('avg-temp').innerText = `${data.avg_temperature.toFixed(1)} °C`;
+            if (data.miner) {
+                document.getElementById('miner-type').innerText = data.miner;
+            }
+            if (data.status) {
+                document.getElementById('miner-status').innerText = data.status;
+                // Add color based on status
+                if (data.status === 'Mining') {
+                    document.getElementById('miner-status').style.color = '#4caf50';
+                } else if (data.status.includes('Error')) {
+                    document.getElementById('miner-status').style.color = '#f44336';
+                } else {
+                    document.getElementById('miner-status').style.color = '#ff9800';
+                }
+            }
+
+            if (data.total_hashrate !== undefined) {
+                document.getElementById('total-hashrate').innerText = `${data.total_hashrate.toFixed(2)} MH/s`;
+            }
+            if (data.total_power_draw !== undefined) {
+                document.getElementById('total-power').innerText = `${data.total_power_draw.toFixed(1)} W`;
+            }
+            if (data.avg_temperature !== undefined) {
+                document.getElementById('avg-temp').innerText = `${data.avg_temperature.toFixed(1)} °C`;
+            }
             document.getElementById('last-updated').innerText = `Last Updated: ${new Date().toLocaleTimeString()}`;
 
             if (data.total_dual_hashrate > 0) {
@@ -70,45 +90,49 @@
                 document.getElementById('dual-hashrate-card').style.display = 'none';
             }
 
-            const uptimeSeconds = data.uptime;
-            const hours = Math.floor(uptimeSeconds / 3600);
-            const minutes = Math.floor((uptimeSeconds % 3600) / 60);
-            const seconds = uptimeSeconds % 60;
-            document.getElementById('uptime').innerText = `${hours}h ${minutes}m ${seconds}s`;
+            if (data.uptime !== undefined) {
+                const uptimeSeconds = data.uptime;
+                const hours = Math.floor(uptimeSeconds / 3600);
+                const minutes = Math.floor((uptimeSeconds % 3600) / 60);
+                const seconds = uptimeSeconds % 60;
+                document.getElementById('uptime').innerText = `${hours}h ${minutes}m ${seconds}s`;
+            }
 
-            const gpuContainer = document.getElementById('gpu-container');
-            data.gpus.forEach((gpu) => {
-                let gpuCard = document.getElementById(`gpu-${gpu.index}`);
-                if (!gpuCard) {
-                    gpuCard = document.createElement('div');
-                    gpuCard.className = 'gpu-card';
-                    gpuCard.id = `gpu-${gpu.index}`;
-                    gpuCard.innerHTML = `
-                        <h3>GPU ${gpu.index}</h3>
-                        <p><strong>Hashrate:</strong> <span class="hashrate">--</span> MH/s</p>
-                        <p class="dual-hashrate-container" style="display: none;"><strong>Dual Hashrate:</strong> <span class="dual-hashrate">--</span> MH/s</p>
-                        <p><strong>Temp:</strong> <span class="temp">--</span>°C</p>
-                        <p><strong>Power:</strong> <span class="power">--</span>W</p>
-                        <p><strong>Fan Speed:</strong> <span class="fan-speed">--</span>%</p>
-                        <p><strong>Shares:</strong> <span class="accepted">0</span> / <span class="rejected">0</span></p>
-                    `;
-                    gpuContainer.appendChild(gpuCard);
-                }
+            if (data.gpus) {
+                const gpuContainer = document.getElementById('gpu-container');
+                data.gpus.forEach((gpu) => {
+                    let gpuCard = document.getElementById(`gpu-${gpu.index}`);
+                    if (!gpuCard) {
+                        gpuCard = document.createElement('div');
+                        gpuCard.className = 'gpu-card';
+                        gpuCard.id = `gpu-${gpu.index}`;
+                        gpuCard.innerHTML = `
+                            <h3>GPU ${gpu.index}</h3>
+                            <p><strong>Hashrate:</strong> <span class="hashrate">--</span> MH/s</p>
+                            <p class="dual-hashrate-container" style="display: none;"><strong>Dual Hashrate:</strong> <span class="dual-hashrate">--</span> MH/s</p>
+                            <p><strong>Temp:</strong> <span class="temp">--</span>°C</p>
+                            <p><strong>Power:</strong> <span class="power">--</span>W</p>
+                            <p><strong>Fan Speed:</strong> <span class="fan-speed">--</span>%</p>
+                            <p><strong>Shares:</strong> <span class="accepted">0</span> / <span class="rejected">0</span></p>
+                        `;
+                        gpuContainer.appendChild(gpuCard);
+                    }
 
-                gpuCard.querySelector('.hashrate').innerText = gpu.hashrate.toFixed(2);
-                if (gpu.dual_hashrate > 0) {
-                    gpuCard.querySelector('.dual-hashrate-container').style.display = 'block';
-                    gpuCard.querySelector('.dual-hashrate').innerText = gpu.dual_hashrate.toFixed(2);
-                } else {
-                    gpuCard.querySelector('.dual-hashrate-container').style.display = 'none';
-                }
+                    gpuCard.querySelector('.hashrate').innerText = gpu.hashrate.toFixed(2);
+                    if (gpu.dual_hashrate > 0) {
+                        gpuCard.querySelector('.dual-hashrate-container').style.display = 'block';
+                        gpuCard.querySelector('.dual-hashrate').innerText = gpu.dual_hashrate.toFixed(2);
+                    } else {
+                        gpuCard.querySelector('.dual-hashrate-container').style.display = 'none';
+                    }
 
-                gpuCard.querySelector('.temp').innerText = gpu.temperature;
-                gpuCard.querySelector('.power').innerText = gpu.power_draw;
-                gpuCard.querySelector('.fan-speed').innerText = gpu.fan_speed;
-                gpuCard.querySelector('.accepted').innerText = gpu.accepted_shares;
-                gpuCard.querySelector('.rejected').innerText = gpu.rejected_shares;
-            });
+                    gpuCard.querySelector('.temp').innerText = gpu.temperature;
+                    gpuCard.querySelector('.power').innerText = gpu.power_draw;
+                    gpuCard.querySelector('.fan-speed').innerText = gpu.fan_speed;
+                    gpuCard.querySelector('.accepted').innerText = gpu.accepted_shares;
+                    gpuCard.querySelector('.rejected').innerText = gpu.rejected_shares;
+                });
+            }
         });
 
         async function restartMiner() {

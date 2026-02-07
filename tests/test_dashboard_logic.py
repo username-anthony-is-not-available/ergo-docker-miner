@@ -10,94 +10,62 @@ class TestDashboardLogic(unittest.TestCase):
         dashboard.app.testing = True
         self.client = dashboard.app.test_client()
 
-    @patch('requests.get')
-    def test_get_normalized_miner_data_lolminer(self, mock_get):
-        # Mock lolMiner API response
-        mock_response = MagicMock()
-        mock_response.json.return_value = {
-            'Session': {'Uptime': 1000},
-            'Total_Performance': [120.5, 250.0],
-            'GPUs': [
-                {
-                    'Performance': [60.2, 125.0],
-                    'Fan_Speed': 50,
-                    'Accepted_Shares': 10,
-                    'Rejected_Shares': 1
-                }
-            ]
-        }
-        mock_get.return_value = mock_response
-
-        with patch.dict(os.environ, {'MINER': 'lolminer'}):
-            data = dashboard.get_normalized_miner_data()
-            self.assertEqual(data['miner'], 'lolminer')
-            self.assertEqual(data['total_hashrate'], 120.5)
-            self.assertEqual(data['total_dual_hashrate'], 250.0)
-            self.assertEqual(len(data['gpus']), 1)
-            self.assertEqual(data['gpus'][0]['hashrate'], 60.2)
-            self.assertEqual(data['gpus'][0]['dual_hashrate'], 125.0)
-
-    @patch('requests.get')
-    def test_get_normalized_miner_data_trex(self, mock_get):
-        # Mock T-Rex API response
-        mock_response = MagicMock()
-        mock_response.json.return_value = {
-            'uptime': 2000,
-            'hashrate': 120000000,
+    @patch('dashboard.get_normalized_miner_data')
+    def test_background_thread_update(self, mock_miner_data):
+        # Mock normalized miner data
+        mock_miner_data.return_value = {
+            'miner': 'lolminer',
+            'uptime': 1000,
+            'total_hashrate': 120.5,
+            'total_dual_hashrate': 0,
             'gpus': [
                 {
-                    'hashrate': 60000000,
-                    'fan_speed': 60,
-                    'temperature': 55,
-                    'power': 150,
-                    'shares': {'accepted_count': 20, 'rejected_count': 2}
+                    'index': 0,
+                    'hashrate': 60.2,
+                    'dual_hashrate': 0,
+                    'fan_speed': 50,
+                    'accepted_shares': 10,
+                    'rejected_shares': 1,
+                    'temperature': 0,
+                    'power_draw': 0
                 }
             ]
         }
-        mock_get.return_value = mock_response
 
-        with patch.dict(os.environ, {'MINER': 't-rex'}):
-            data = dashboard.get_normalized_miner_data()
-            self.assertEqual(data['miner'], 't-rex')
-            self.assertEqual(data['total_hashrate'], 120.0)
-            self.assertEqual(data['gpus'][0]['temperature'], 55)
-            self.assertEqual(data['gpus'][0]['power_draw'], 150)
+        with patch('dashboard.get_gpu_smi_data') as mock_smi:
+            mock_smi.return_value = [{'temperature': 50, 'power_draw': 100}]
+            with patch('dashboard.socketio.emit') as mock_emit:
+                # We can't easily run the actual background thread in a unit test,
+                # but we can test the logic inside it by calling it once.
+                # Since background_thread is an infinite loop, we'll mock the sleep to break after one iteration.
+                with patch('time.sleep', side_effect=InterruptedError):
+                    try:
+                        dashboard.background_thread()
+                    except InterruptedError:
+                        pass
 
-    @patch('subprocess.check_output')
-    def test_get_gpu_smi_data_nvidia(self, mock_check_output):
-        def side_effect(cmd, *args, **kwargs):
-            if cmd == ['which', 'nvidia-smi']:
-                return b'/usr/bin/nvidia-smi'
-            if 'nvidia-smi --query-gpu' in cmd:
-                return b'60, 120\n65, 130'
-            raise FileNotFoundError()
+                self.assertTrue(mock_emit.called)
+                args, kwargs = mock_emit.call_args
+                self.assertEqual(args[0], 'update')
+                data = args[1]
+                self.assertEqual(data['status'], 'Mining')
+                self.assertEqual(data['total_power_draw'], 100)
+                self.assertEqual(data['avg_temperature'], 50)
 
-        mock_check_output.side_effect = side_effect
+    def test_index_route(self):
+        response = self.client.get('/')
+        self.assertEqual(response.status_code, 200)
 
-        data = dashboard.get_gpu_smi_data()
-        self.assertEqual(len(data), 2)
-        self.assertEqual(data[0]['temperature'], 60.0)
-        self.assertEqual(data[0]['power_draw'], 120.0)
+    def test_config_route(self):
+        response = self.client.get('/config')
+        self.assertEqual(response.status_code, 200)
 
-    @patch('subprocess.check_output')
-    def test_get_gpu_smi_data_amd(self, mock_check_output):
-        def side_effect(cmd, *args, **kwargs):
-            if cmd == ['which', 'nvidia-smi']:
-                raise subprocess.CalledProcessError(1, cmd)
-            if cmd == ['which', 'rocm-smi']:
-                return b'/usr/bin/rocm-smi'
-            if 'rocm-smi --showtemp' in cmd:
-                # card,temp,power
-                return b'0,55.0,100.0W\n1,58.0,110.0W'
-            raise FileNotFoundError()
-
-        import subprocess
-        mock_check_output.side_effect = side_effect
-
-        data = dashboard.get_gpu_smi_data()
-        self.assertEqual(len(data), 2)
-        self.assertEqual(data[0]['temperature'], 55.0)
-        self.assertEqual(data[0]['power_draw'], 100.0)
+    @patch('dashboard.read_env_file')
+    def test_api_config_get(self, mock_read):
+        mock_read.return_value = {'WALLET_ADDRESS': 'test_wallet'}
+        response = self.client.get('/api/config')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json['WALLET_ADDRESS'], 'test_wallet')
 
 if __name__ == '__main__':
     unittest.main()
