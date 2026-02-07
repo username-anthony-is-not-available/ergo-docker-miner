@@ -14,21 +14,27 @@ def init_db():
             CREATE TABLE IF NOT EXISTS history (
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
                 hashrate REAL,
+                dual_hashrate REAL DEFAULT 0,
                 avg_temp REAL,
                 avg_fan_speed REAL,
                 accepted_shares INTEGER,
                 rejected_shares INTEGER
             )
         ''')
+        # Check if dual_hashrate column exists (for existing databases)
+        cursor.execute("PRAGMA table_info(history)")
+        columns = [column[1] for column in cursor.fetchall()]
+        if 'dual_hashrate' not in columns:
+            cursor.execute('ALTER TABLE history ADD COLUMN dual_hashrate REAL DEFAULT 0')
         conn.commit()
 
-def log_history(hashrate, avg_temp, avg_fan_speed, accepted_shares, rejected_shares):
+def log_history(hashrate, avg_temp, avg_fan_speed, accepted_shares, rejected_shares, dual_hashrate=0):
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute('''
-            INSERT INTO history (timestamp, hashrate, avg_temp, avg_fan_speed, accepted_shares, rejected_shares)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (datetime.now().isoformat(), hashrate, avg_temp, avg_fan_speed, accepted_shares, rejected_shares))
+            INSERT INTO history (timestamp, hashrate, dual_hashrate, avg_temp, avg_fan_speed, accepted_shares, rejected_shares)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (datetime.now().isoformat(), hashrate, dual_hashrate, avg_temp, avg_fan_speed, accepted_shares, rejected_shares))
         conn.commit()
 
 def get_history(days=30):
@@ -37,7 +43,7 @@ def get_history(days=30):
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute('''
-            SELECT timestamp, hashrate, avg_temp, avg_fan_speed, accepted_shares, rejected_shares
+            SELECT timestamp, hashrate, dual_hashrate, avg_temp, avg_fan_speed, accepted_shares, rejected_shares
             FROM history
             WHERE timestamp >= ?
             ORDER BY timestamp ASC

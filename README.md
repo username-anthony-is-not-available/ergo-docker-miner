@@ -96,6 +96,22 @@ By default, the file is configured for a two-GPU setup. To add more GPUs, you ca
 -   `GPU_CLOCK_OFFSET`: The desired GPU clock offset in MHz (e.g., `-200` or `200`).
 -   `GPU_MEM_OFFSET`: The desired GPU memory offset in MHz (e.g., `800`).
 -   `GPU_POWER_LIMIT`: The desired GPU power limit in watts (e.g., `250`).
+-   `DUAL_ALGO`: (lolMiner only) The algorithm for dual mining (e.g., `KASPADUAL` for Kaspa, `ALEPHDUAL` for Alephium).
+-   `DUAL_POOL`: (lolMiner only) The address of the dual mining pool.
+-   `DUAL_WALLET`: (lolMiner only) Your wallet address for the second coin.
+-   `DUAL_WORKER`: (lolMiner only) Optional worker name for the dual mining pool (defaults to `WORKER_NAME`).
+
+## Dual Mining
+
+This image supports dual mining with lolMiner. This allows you to mine Ergo and another coin (like Kaspa or Alephium) simultaneously to maximize your hardware's profitability.
+
+To enable dual mining, set the following environment variables in your `.env` file:
+
+- `DUAL_ALGO`: Set this to `KASPADUAL` for Kaspa or `ALEPHDUAL` for Alephium.
+- `DUAL_POOL`: The pool address for the second coin.
+- `DUAL_WALLET`: Your wallet address for the second coin.
+
+The dashboard will automatically detect dual mining and display the hashrates for both algorithms.
 
 ## Overclocking
 

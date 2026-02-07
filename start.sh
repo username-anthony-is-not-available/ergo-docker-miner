@@ -105,6 +105,11 @@ case "$MINER" in
     if [ -n "$BACKUP_POOL_ADDRESS" ]; then
       MINER_CONFIG="$MINER_CONFIG --pool ${BACKUP_POOL_ADDRESS}"
     fi
+    # Add dual mining parameters if DUAL_ALGO is set
+    if [ -n "$DUAL_ALGO" ]; then
+      echo "Configuring dual mining: ERGO + $DUAL_ALGO"
+      MINER_CONFIG="$MINER_CONFIG --dualmode ${DUAL_ALGO} --dualpool ${DUAL_POOL} --dualuser ${DUAL_WALLET}.${DUAL_WORKER:-$WORKER_NAME}"
+    fi
     ;;
   t-rex)
     MINER_BIN="/app/t-rex"

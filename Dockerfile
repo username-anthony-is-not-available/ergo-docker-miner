@@ -4,7 +4,7 @@ FROM nvidia/cuda:11.8.0-base-ubuntu22.04 AS builder
 ARG LOLMINER_VERSION=1.98a
 ARG T_REX_VERSION=0.26.8
 ARG LOLMINER_URL=https://github.com/Lolliedieb/lolMiner-releases/releases/download/${LOLMINER_VERSION}/lolMiner_v${LOLMINER_VERSION}_Lin64.tar.gz
-ARG T_REX_URL=https://github.com/trexminer/T-Rex/releases/download/v${T_REX_VERSION}/t-rex-${T_REX_VERSION}-linux.tar.gz
+ARG T_REX_URL=https://github.com/trexminer/T-Rex/releases/download/${T_REX_VERSION}/t-rex-${T_REX_VERSION}-linux.tar.gz
 
 WORKDIR /app
 
