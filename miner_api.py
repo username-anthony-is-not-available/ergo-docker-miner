@@ -2,10 +2,33 @@ import requests
 import subprocess
 import os
 import logging
+from typing import List, Dict, Any, Optional
+import time
 
 logger = logging.getLogger(__name__)
 
-def get_gpu_smi_data():
+def get_gpu_names() -> List[str]:
+    """Fetches GPU names from nvidia-smi or rocm-smi."""
+    gpu_names = []
+    try:
+        subprocess.check_output(['which', 'nvidia-smi'], stderr=subprocess.DEVNULL)
+        output = subprocess.check_output(['nvidia-smi', '--query-gpu=name', '--format=csv,noheader'], stderr=subprocess.DEVNULL).decode()
+        gpu_names = [line.strip() for line in output.strip().split('\n') if line.strip()]
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        try:
+            subprocess.check_output(['which', 'rocm-smi'], stderr=subprocess.DEVNULL)
+            # rocm-smi --showname --csv
+            output = subprocess.check_output("rocm-smi --showname --csv | tail -n +2", shell=True, stderr=subprocess.DEVNULL).decode()
+            for line in output.strip().split('\n'):
+                if not line.strip(): continue
+                parts = line.split(',')
+                if len(parts) >= 2:
+                    gpu_names.append(parts[1].strip())
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            pass
+    return gpu_names
+
+def get_gpu_smi_data() -> List[Dict[str, float]]:
     """Fetches GPU stats from nvidia-smi or rocm-smi."""
     gpu_stats = []
     is_nvidia = False
@@ -44,10 +67,10 @@ def get_gpu_smi_data():
             pass
     return gpu_stats
 
-def get_normalized_miner_data():
+def get_normalized_miner_data() -> Optional[Dict[str, Any]]:
     """Fetches data from the miner API and normalizes it."""
     miner = os.getenv('MINER', 'lolminer')
-    api_port = 4444
+    api_port = int(os.getenv('API_PORT', 4444))
 
     # Try with retries
     max_retries = 3
@@ -118,3 +141,49 @@ def get_normalized_miner_data():
                 logger.error(f"Failed to fetch miner data after {max_retries} attempts: {e}")
                 return None
     return None
+
+def get_full_miner_data() -> Optional[Dict[str, Any]]:
+    """Fetches miner and SMI data, merges them, and calculates aggregates."""
+    data = get_normalized_miner_data()
+    if not data:
+        return None
+
+    smi_data = get_gpu_smi_data()
+    if smi_data:
+        for i, gpu in enumerate(data['gpus']):
+            if i < len(smi_data):
+                # Only overwrite if SMI data is non-zero (SMI is more reliable for temp/power)
+                if smi_data[i]['temperature'] > 0:
+                    gpu['temperature'] = smi_data[i]['temperature']
+                if smi_data[i]['power_draw'] > 0:
+                    gpu['power_draw'] = smi_data[i]['power_draw']
+
+    # Calculate aggregates
+    total_power = 0
+    total_temp = 0
+    total_accepted = 0
+    total_rejected = 0
+    total_fan = 0
+    gpu_count = len(data['gpus'])
+
+    for gpu in data['gpus']:
+        total_power += gpu.get('power_draw', 0)
+        total_temp += gpu.get('temperature', 0)
+        total_accepted += gpu.get('accepted_shares', 0)
+        total_rejected += gpu.get('rejected_shares', 0)
+        total_fan += gpu.get('fan_speed', 0)
+
+    data['total_power_draw'] = total_power
+    data['avg_temperature'] = total_temp / gpu_count if gpu_count > 0 else 0
+    data['total_accepted_shares'] = total_accepted
+    data['total_rejected_shares'] = total_rejected
+    data['avg_fan_speed'] = total_fan / gpu_count if gpu_count > 0 else 0
+    data['timestamp'] = time.time()
+
+    # Determine status
+    if data['total_hashrate'] > 0:
+        data['status'] = 'Mining'
+    else:
+        data['status'] = 'Idle'
+
+    return data

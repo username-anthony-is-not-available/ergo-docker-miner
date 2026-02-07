@@ -59,7 +59,33 @@ if [ "$APPLY_OC" = "true" ] && command -v nvidia-smi &> /dev/null; then
   nvidia-smi -pm 1
 
   # Determine which OC settings to use
-  if [ -n "$GPU_PROFILE" ] && [ -f "gpu_profiles.json" ]; then
+  if [ -f "gpu_profiles.json" ]; then
+    if [ -z "$GPU_PROFILE" ] || [ "$GPU_PROFILE" == "AUTO" ]; then
+      echo "Attempting to auto-detect GPU profile..."
+      DETECTED_GPU=$(nvidia-smi --query-gpu=name --format=csv,noheader | head -n 1)
+      echo "Detected GPU: $DETECTED_GPU"
+
+      # Use python for robust substring matching against profile keys
+      GPU_PROFILE=$(DETECTED_GPU="$DETECTED_GPU" python3 -c "
+import json, os
+try:
+    with open('gpu_profiles.json') as f:
+        profiles = json.load(f)
+    detected = os.getenv('DETECTED_GPU', '').lower()
+    match = next((p for p in profiles if p.lower() in detected), '')
+    print(match)
+except Exception:
+    print('')
+")
+      if [ -n "$GPU_PROFILE" ]; then
+        echo "Auto-detected matching profile: $GPU_PROFILE"
+      else
+        echo "No matching profile found for $DETECTED_GPU"
+      fi
+    fi
+  fi
+
+  if [ -n "$GPU_PROFILE" ] && [ "$GPU_PROFILE" != "null" ] && [ -f "gpu_profiles.json" ]; then
     echo "Using GPU profile: $GPU_PROFILE"
     PROFILE_SETTINGS=$(jq -r ".[\"$GPU_PROFILE\"]" gpu_profiles.json)
 

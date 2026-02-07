@@ -1,62 +1,36 @@
 from flask import Flask, render_template, jsonify, request, send_file
 from flask_socketio import SocketIO, emit
-import requests
 import time
 from threading import Thread
 import os
 import subprocess
-import database
 import logging
-from miner_api import get_gpu_smi_data, get_normalized_miner_data
+from typing import Dict, Any, Optional
+import database
+from miner_api import get_full_miner_data, get_gpu_names
 
 app = Flask(__name__)
 socketio = SocketIO(app)
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = app.logger
 
 # Global variable to store the latest miner data
-miner_data = {
+miner_data: Dict[str, Any] = {
     'status': 'Starting...'
 }
 
-def background_thread():
+def background_thread() -> None:
     """Continuously fetches and broadcasts miner data."""
     while True:
         global miner_data
         try:
-            data = get_normalized_miner_data()
+            data = get_full_miner_data()
             if data:
-                # Merge with SMI data
-                smi_data = get_gpu_smi_data()
-                if smi_data:
-                    for i, gpu in enumerate(data['gpus']):
-                        if i < len(smi_data):
-                            # Only overwrite if SMI data is non-zero (SMI is more reliable for temp/power)
-                            if smi_data[i]['temperature'] > 0:
-                                gpu['temperature'] = smi_data[i]['temperature']
-                            if smi_data[i]['power_draw'] > 0:
-                                gpu['power_draw'] = smi_data[i]['power_draw']
-
-                # Calculate total power and average temperature
-                total_power = 0
-                total_temp = 0
-                gpu_count = len(data['gpus'])
-
-                for gpu in data['gpus']:
-                    total_power += gpu.get('power_draw', 0)
-                    total_temp += gpu.get('temperature', 0)
-
-                data['total_power_draw'] = total_power
-                data['avg_temperature'] = total_temp / gpu_count if gpu_count > 0 else 0
-
-                # Determine status based on hashrate
-                if data['total_hashrate'] > 0:
-                    data['status'] = 'Mining'
-                else:
-                    data['status'] = 'Idle/Connecting'
-
                 miner_data = data
                 socketio.emit('update', miner_data)
             else:
@@ -77,7 +51,7 @@ def index():
 def config():
     return render_template('config.html')
 
-def read_env_file():
+def read_env_file() -> Dict[str, str]:
     env_vars = {}
     if os.path.exists('.env'):
         with open('.env', 'r') as f:
@@ -90,9 +64,7 @@ def read_env_file():
                         env_vars[key] = value
     return env_vars
 
-def write_env_file(env_vars):
-    # Keep comments if possible, but for simplicity we'll just rewrite it
-    # A better approach would be to read all lines and replace matching keys
+def write_env_file(env_vars: Dict[str, str]) -> None:
     lines = []
     if os.path.exists('.env'):
         with open('.env', 'r') as f:
@@ -123,10 +95,9 @@ def manage_config():
         data = request.json
         env_vars = read_env_file()
         for key, value in data.items():
-            # Handle boolean checkbox from frontend if necessary
             if value is True: value = 'true'
             if value is False: value = 'false'
-            env_vars[key] = value
+            env_vars[key] = str(value)
         write_env_file(env_vars)
         return jsonify({'message': 'Configuration saved successfully!'})
     else:
@@ -150,7 +121,7 @@ def hashrate_history():
 def get_logs():
     try:
         if os.path.exists('miner.log'):
-            # Return last 100 lines using tail-like logic for efficiency
+            # Return last 100 lines
             with open('miner.log', 'r') as f:
                 lines = f.readlines()
                 return jsonify({'logs': ''.join(lines[-100:])})
@@ -170,6 +141,16 @@ def download_logs():
     except Exception as e:
         logger.error(f"Error downloading log file: {e}")
         return str(e), 500
+
+@app.route('/api/gpu-models')
+def get_gpu_models():
+    """Returns the detected GPU models."""
+    try:
+        models = get_gpu_names()
+        return jsonify({'models': models})
+    except Exception as e:
+        logger.error(f"Error fetching GPU models: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @socketio.on('connect')
 def handle_connect():
