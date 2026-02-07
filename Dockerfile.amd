@@ -13,7 +13,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Runtime Stage
-FROM rocm/rocm-core:6.1.1-runtime-ubuntu-22.04
+FROM rocm/rocm-core:6.1.1-runtime-ubuntu22.04
 
 WORKDIR /app
 
@@ -35,16 +35,16 @@ RUN apt-get update && \
 COPY --from=builder /app/lolMiner /app/lolMiner
 
 # Copy scripts
-COPY start.sh metrics.sh metrics.py healthcheck.sh ./
+COPY start.sh metrics.sh metrics.py healthcheck.sh restart.sh ./
 COPY dashboard.py .
 COPY templates/ templates/
 COPY static/ static/
 
-RUN chmod +x start.sh metrics.sh healthcheck.sh
+RUN chmod +x start.sh metrics.sh healthcheck.sh restart.sh
 
 EXPOSE 4444 4455 4456
 
-HEALTHCHECK --interval=30s --timeout=3s \
+HEALTHCHECK --interval=30s --timeout=3s --start-period=60s \
     CMD ./healthcheck.sh
 
 CMD ["./start.sh"]

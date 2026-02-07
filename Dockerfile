@@ -51,7 +51,7 @@ RUN chmod +x start.sh metrics.sh healthcheck.sh restart.sh
 
 EXPOSE 4444 4455 4456 5000
 
-HEALTHCHECK --interval=30s --timeout=3s \
+HEALTHCHECK --interval=30s --timeout=3s --start-period=60s \
     CMD ./healthcheck.sh
 
 CMD ["./start.sh"]
