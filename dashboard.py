@@ -7,6 +7,7 @@ import os
 import subprocess
 import database
 import logging
+from miner_api import get_gpu_smi_data, get_normalized_miner_data
 
 app = Flask(__name__)
 socketio = SocketIO(app)
@@ -16,147 +17,56 @@ logging.basicConfig(level=logging.INFO)
 logger = app.logger
 
 # Global variable to store the latest miner data
-miner_data = {}
-
-def get_gpu_smi_data():
-    """Fetches GPU stats from nvidia-smi or rocm-smi."""
-    gpu_stats = []
-    is_nvidia = False
-    smi_cmd = ""
-
-    try:
-        subprocess.check_output(['which', 'nvidia-smi'], stderr=subprocess.DEVNULL)
-        smi_cmd = "nvidia-smi --query-gpu=temperature.gpu,power.draw --format=csv,noheader,nounits"
-        is_nvidia = True
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        try:
-            subprocess.check_output(['which', 'rocm-smi'], stderr=subprocess.DEVNULL)
-            smi_cmd = "rocm-smi --showtemp --showpower --csv | tail -n +2"
-        except (subprocess.CalledProcessError, FileNotFoundError):
-            return []
-
-    if smi_cmd:
-        try:
-            smi_output = subprocess.check_output(smi_cmd, shell=True, stderr=subprocess.DEVNULL).decode()
-            for line in smi_output.strip().split('\n'):
-                if not line.strip(): continue
-                try:
-                    if is_nvidia:
-                        temp, power = map(float, line.split(', '))
-                        gpu_stats.append({'temperature': temp, 'power_draw': power})
-                    else: # AMD
-                        parts = line.split(',')
-                        # rocm-smi csv: card,temp,power
-                        temp = float(parts[1])
-                        power = float(parts[2].replace('W', '').strip())
-                        gpu_stats.append({'temperature': temp, 'power_draw': power})
-                except (ValueError, IndexError):
-                    gpu_stats.append({'temperature': 0, 'power_draw': 0})
-        except subprocess.CalledProcessError:
-            pass
-    return gpu_stats
-
-def get_normalized_miner_data():
-    """Fetches data from the miner API and normalizes it."""
-    miner = os.getenv('MINER', 'lolminer')
-    api_port = 4444
-
-    try:
-        if miner == 'lolminer':
-            response = requests.get(f'http://localhost:{api_port}/', timeout=2)
-            response.raise_for_status()
-            data = response.json()
-
-            total_perf = data.get('Total_Performance', [0])
-            normalized = {
-                'miner': 'lolminer',
-                'uptime': data.get('Session', {}).get('Uptime', 0),
-                'total_hashrate': total_perf[0],
-                'total_dual_hashrate': total_perf[1] if len(total_perf) > 1 else 0,
-                'gpus': []
-            }
-
-            for i, gpu in enumerate(data.get('GPUs', [])):
-                perf = gpu.get('Performance', [0])
-                gpu_hashrate = perf[0] if isinstance(perf, list) else perf
-                gpu_dual_hashrate = perf[1] if isinstance(perf, list) and len(perf) > 1 else 0
-
-                normalized['gpus'].append({
-                    'index': i,
-                    'hashrate': gpu_hashrate,
-                    'dual_hashrate': gpu_dual_hashrate,
-                    'fan_speed': gpu.get('Fan_Speed', 0),
-                    'accepted_shares': gpu.get('Accepted_Shares', 0),
-                    'rejected_shares': gpu.get('Rejected_Shares', 0),
-                    'temperature': 0, # To be filled by SMI
-                    'power_draw': 0   # To be filled by SMI
-                })
-            return normalized
-
-        elif miner == 't-rex':
-            response = requests.get(f'http://localhost:{api_port}/summary', timeout=2)
-            response.raise_for_status()
-            data = response.json()
-
-            normalized = {
-                'miner': 't-rex',
-                'uptime': data.get('uptime', 0),
-                'total_hashrate': data.get('hashrate', 0) / 1000000,
-                'total_dual_hashrate': 0, # T-Rex dual not supported in this dashboard yet
-                'gpus': []
-            }
-
-            for i, gpu in enumerate(data.get('gpus', [])):
-                shares = gpu.get('shares', {})
-                normalized['gpus'].append({
-                    'index': i,
-                    'hashrate': gpu.get('hashrate', 0) / 1000000,
-                    'dual_hashrate': 0,
-                    'fan_speed': gpu.get('fan_speed', 0),
-                    'accepted_shares': shares.get('accepted_count', 0),
-                    'rejected_shares': shares.get('rejected_count', 0),
-                    'temperature': gpu.get('temperature', 0),
-                    'power_draw': gpu.get('power', 0)
-                })
-            return normalized
-
-    except (requests.exceptions.RequestException, ValueError) as e:
-        logger.error(f"Error fetching miner data: {e}")
-        return None
-
-    return None
+miner_data = {
+    'status': 'Starting...'
+}
 
 def background_thread():
     """Continuously fetches and broadcasts miner data."""
     while True:
         global miner_data
-        data = get_normalized_miner_data()
-        if data:
-            # Merge with SMI data
-            smi_data = get_gpu_smi_data()
-            if smi_data:
-                for i, gpu in enumerate(data['gpus']):
-                    if i < len(smi_data):
-                        # Only overwrite if SMI data is non-zero (SMI is more reliable for temp/power)
-                        if smi_data[i]['temperature'] > 0:
-                            gpu['temperature'] = smi_data[i]['temperature']
-                        if smi_data[i]['power_draw'] > 0:
-                            gpu['power_draw'] = smi_data[i]['power_draw']
+        try:
+            data = get_normalized_miner_data()
+            if data:
+                # Merge with SMI data
+                smi_data = get_gpu_smi_data()
+                if smi_data:
+                    for i, gpu in enumerate(data['gpus']):
+                        if i < len(smi_data):
+                            # Only overwrite if SMI data is non-zero (SMI is more reliable for temp/power)
+                            if smi_data[i]['temperature'] > 0:
+                                gpu['temperature'] = smi_data[i]['temperature']
+                            if smi_data[i]['power_draw'] > 0:
+                                gpu['power_draw'] = smi_data[i]['power_draw']
 
-            # Calculate total power and average temperature
-            total_power = 0
-            total_temp = 0
-            gpu_count = len(data['gpus'])
+                # Calculate total power and average temperature
+                total_power = 0
+                total_temp = 0
+                gpu_count = len(data['gpus'])
 
-            for gpu in data['gpus']:
-                total_power += gpu.get('power_draw', 0)
-                total_temp += gpu.get('temperature', 0)
+                for gpu in data['gpus']:
+                    total_power += gpu.get('power_draw', 0)
+                    total_temp += gpu.get('temperature', 0)
 
-            data['total_power_draw'] = total_power
-            data['avg_temperature'] = total_temp / gpu_count if gpu_count > 0 else 0
+                data['total_power_draw'] = total_power
+                data['avg_temperature'] = total_temp / gpu_count if gpu_count > 0 else 0
 
-            miner_data = data
+                # Determine status based on hashrate
+                if data['total_hashrate'] > 0:
+                    data['status'] = 'Mining'
+                else:
+                    data['status'] = 'Idle/Connecting'
+
+                miner_data = data
+                socketio.emit('update', miner_data)
+            else:
+                miner_data['status'] = 'Error: Miner API unreachable'
+                socketio.emit('update', miner_data)
+        except Exception as e:
+            logger.error(f"Error in background thread: {e}")
+            miner_data['status'] = f"Error: {str(e)}"
             socketio.emit('update', miner_data)
+
         time.sleep(5)
 
 @app.route('/')

@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- New `miner_api.py` module to centralize and de-duplicate miner and GPU data fetching logic.
+- Dynamic "Miner Status" indicator in the web dashboard (Mining, Idle, Error).
+- Retry logic and improved error handling for miner API calls.
 - Integrated miner log viewer in the web dashboard with a new `/api/logs` endpoint.
 - Rig-wide metrics (Total Power Draw, Average Temperature) in the web dashboard.
 - Automated T-Rex version discovery in `setup.sh`.
@@ -25,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Detailed per-GPU timeseries for Dual Hashrate, Fan Speed, and Power Draw in Grafana.
 
 ### Changed
+- Refactored `dashboard.py` and `metrics.py` to use the centralized `miner_api.py`.
+- Generalized dashboard title from "lolMiner Dashboard" to "Miner Dashboard".
 - Configured miners to log to `miner.log` for persistent access in the dashboard.
 - Refactored `dashboard.py` to use `subprocess` for improved security and error handling.
 - Enhanced `dashboard.py` with comprehensive logging and error handling for API and SMI calls.
