@@ -4,6 +4,17 @@
 
 This project provides a Dockerized solution for mining Ergo (ERG) using lolMiner. It simplifies the setup process and ensures a consistent mining environment.
 
+## Quick Start
+
+The easiest way to get started is to use our interactive setup script:
+
+```bash
+chmod +x setup.sh
+./setup.sh
+```
+
+This script will guide you through configuring your wallet, pool, and GPU settings, and can even start the miner for you!
+
 ## Features
 
 - **Automated Failover:** Automatically switches to a backup pool if the primary one is unavailable.
@@ -30,6 +41,17 @@ This project provides a Dockerized solution for mining Ergo (ERG) using lolMiner
 - AMD GPU
 
 ## Setup
+
+### Interactive Setup (Recommended)
+
+Run the interactive setup script:
+
+```bash
+chmod +x setup.sh
+./setup.sh
+```
+
+### Manual Setup
 
 1.  **Configure your environment.** Copy the example `.env.example` file to `.env` and edit it with your wallet address and pool information.
     ```bash
