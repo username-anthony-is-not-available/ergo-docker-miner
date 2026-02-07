@@ -294,7 +294,15 @@ For a more straightforward approach, you can use an online profitability calcula
 
 ## Building from Source
 
-To use a different version of lolMiner, you can modify the `LOLMINER_URL` in the `Dockerfile` and rebuild the image. For advanced configurations, you can edit the `start.sh` script to pass additional command-line arguments to the miner.
+To use a different version of lolMiner, you can pass the `LOLMINER_VERSION` build argument during the build process. For example:
+
+```bash
+docker compose build --build-arg LOLMINER_VERSION=1.92
+```
+
+The interactive `setup.sh` script automatically fetches the latest lolMiner version and configures it in your `.env` file, which is then passed as a build argument by Docker Compose.
+
+For advanced configurations, you can edit the `start.sh` script to pass additional command-line arguments to the miner.
 
 ## License
 

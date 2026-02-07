@@ -18,6 +18,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.amd
+      args:
+        - LOLMINER_VERSION=${LOLMINER_VERSION:-1.98a}
     container_name: ergo-miner-gpu0
     restart: unless-stopped
     env_file:
@@ -37,6 +39,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.amd
+      args:
+        - LOLMINER_VERSION=${LOLMINER_VERSION:-1.98a}
     container_name: ergo-miner-gpu1
     restart: unless-stopped
     env_file:

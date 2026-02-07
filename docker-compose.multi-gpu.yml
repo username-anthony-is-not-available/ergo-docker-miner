@@ -16,7 +16,10 @@
 
 services:
   ergo-miner-gpu0:
-    build: .
+    build:
+      context: .
+      args:
+        - LOLMINER_VERSION=${LOLMINER_VERSION:-1.98a}
     container_name: ergo-miner-gpu0
     restart: unless-stopped
     env_file:
@@ -37,7 +40,10 @@ services:
               capabilities: [gpu]
 
   ergo-miner-gpu1:
-    build: .
+    build:
+      context: .
+      args:
+        - LOLMINER_VERSION=${LOLMINER_VERSION:-1.98a}
     container_name: ergo-miner-gpu1
     restart: unless-stopped
     env_file:
