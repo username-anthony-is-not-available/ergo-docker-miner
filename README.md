@@ -211,14 +211,12 @@ This endpoint can be scraped by a Prometheus server to collect and store the met
 
 ### Grafana Dashboard
 
-A pre-configured Grafana dashboard is available in the `grafana-dashboard.json` file. You can import this dashboard into your Grafana instance to get a visual representation of your miner's performance. The dashboard includes panels for:
+A pre-configured Grafana dashboard is available in the `grafana-dashboard.json` file. You can import this dashboard into your Grafana instance to get a visual representation of your miner's performance. The dashboard is designed for multi-GPU setups (supporting up to 6+ GPUs on one screen) and includes:
 
--   Total Hashrate
--   Individual GPU Hashrate
--   GPU Temperatures
--   GPU Power Draw
--   GPU Fan Speeds
--   Accepted and Rejected Shares
+-   **GPU Current Status Table:** An at-a-glance overview of hashrate, dual hashrate, temperature, fan speed, and power draw for all GPUs.
+-   **Total Metrics:** Timeseries for Total Hashrate, Total Dual Hashrate, Total Power Draw, and Average Fan Speed.
+-   **Per-GPU Metrics:** Detailed timeseries for Hashrate, Dual Hashrate, Temperature, Power Draw, and Fan Speed for each individual GPU.
+-   **Share Tracking:** Accepted and Rejected shares per GPU.
 
 ## Profitability Estimation
 

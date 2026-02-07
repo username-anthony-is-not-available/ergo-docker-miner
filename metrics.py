@@ -176,13 +176,13 @@ def update_metrics():
             gpu_accepted = gpu.get('shares_accepted', 0)
             gpu_rejected = gpu.get('shares_rejected', 0)
 
-            GPU_HASHRATE.labels(gpu=i).set(gpu_hashrate)
-            GPU_DUAL_HASHRATE.labels(gpu=i).set(gpu_dual_hashrate)
-            GPU_TEMPERATURE.labels(gpu=i).set(gpu_temp)
-            GPU_POWER_DRAW.labels(gpu=i).set(gpu_power)
-            GPU_FAN_SPEED.labels(gpu=i).set(gpu_fan)
-            GPU_SHARES_ACCEPTED.labels(gpu=i).set(gpu_accepted)
-            GPU_SHARES_REJECTED.labels(gpu=i).set(gpu_rejected)
+            GPU_HASHRATE.labels(gpu=str(i)).set(gpu_hashrate)
+            GPU_DUAL_HASHRATE.labels(gpu=str(i)).set(gpu_dual_hashrate)
+            GPU_TEMPERATURE.labels(gpu=str(i)).set(gpu_temp)
+            GPU_POWER_DRAW.labels(gpu=str(i)).set(gpu_power)
+            GPU_FAN_SPEED.labels(gpu=str(i)).set(gpu_fan)
+            GPU_SHARES_ACCEPTED.labels(gpu=str(i)).set(gpu_accepted)
+            GPU_SHARES_REJECTED.labels(gpu=str(i)).set(gpu_rejected)
 
             total_accepted += gpu_accepted
             total_rejected += gpu_rejected
