@@ -21,7 +21,44 @@ h1, h2 {
 
 h1 {
     text-align: center;
+    margin-bottom: 0.5rem;
+}
+
+.header-info {
+    text-align: center;
+    margin-bottom: 1rem;
+    color: #65676b;
+    font-size: 0.9rem;
+}
+
+nav {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
     margin-bottom: 2rem;
+}
+
+nav a, nav button {
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+nav a {
+    background: #e4e6eb;
+    color: #050505;
+}
+
+nav button {
+    background: #1877f2;
+    color: #fff;
+    border: none;
+}
+
+nav button:hover {
+    background: #166fe5;
 }
 
 .stats-grid {
@@ -61,4 +98,23 @@ h1 {
     position: relative;
     height: 400px;
     width: 100%;
+    margin-bottom: 2rem;
+}
+
+.log-container {
+    background: #1c1e21;
+    color: #f0f2f5;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-top: 1rem;
+}
+
+#miner-logs {
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.85rem;
+    max-height: 400px;
+    overflow-y: auto;
 }

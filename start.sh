@@ -100,7 +100,7 @@ echo "Starting miner: $MINER"
 case "$MINER" in
   lolminer)
     MINER_BIN="/app/lolMiner"
-    MINER_CONFIG="--algo AUTOLYKOS2 --pool ${POOL_ADDRESS} --user ${WALLET_ADDRESS}.${WORKER_NAME} --devices ${GPU_DEVICES} --apiport 4444 --json-read-only"
+    MINER_CONFIG="--algo AUTOLYKOS2 --pool ${POOL_ADDRESS} --user ${WALLET_ADDRESS}.${WORKER_NAME} --devices ${GPU_DEVICES} --apiport 4444 --json-read-only --logfile miner.log"
     # Add backup pool if it's defined
     if [ -n "$BACKUP_POOL_ADDRESS" ]; then
       MINER_CONFIG="$MINER_CONFIG --pool ${BACKUP_POOL_ADDRESS}"
@@ -113,7 +113,7 @@ case "$MINER" in
     ;;
   t-rex)
     MINER_BIN="/app/t-rex"
-    MINER_CONFIG="-a AUTOLYKOS2 -o ${POOL_ADDRESS} -u ${WALLET_ADDRESS}.${WORKER_NAME} -d ${GPU_DEVICES} --api-bind-http 127.0.0.1:4444"
+    MINER_CONFIG="-a AUTOLYKOS2 -o ${POOL_ADDRESS} -u ${WALLET_ADDRESS}.${WORKER_NAME} -d ${GPU_DEVICES} --api-bind-http 127.0.0.1:4444 --log-path miner.log"
     # Add backup pool if it's defined
     if [ -n "$BACKUP_POOL_ADDRESS" ]; then
       MINER_CONFIG="$MINER_CONFIG -o2 ${BACKUP_POOL_ADDRESS} -u2 ${WALLET_ADDRESS}.${WORKER_NAME}"

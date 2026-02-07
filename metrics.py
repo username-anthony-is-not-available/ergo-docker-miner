@@ -14,6 +14,8 @@ HASHRATE = Gauge('miner_hashrate', 'Total hashrate in MH/s')
 DUAL_HASHRATE = Gauge('miner_dual_hashrate', 'Total dual hashrate in MH/s')
 AVG_FAN_SPEED = Gauge('miner_avg_fan_speed', 'Average fan speed of all GPUs in %')
 TOTAL_POWER_DRAW = Gauge('miner_total_power_draw', 'Total power draw of all GPUs in W')
+TOTAL_SHARES_ACCEPTED = Gauge('miner_total_shares_accepted', 'Total number of accepted shares')
+TOTAL_SHARES_REJECTED = Gauge('miner_total_shares_rejected', 'Total number of rejected shares')
 
 GPU_HASHRATE = Gauge('miner_gpu_hashrate', 'Hashrate of a single GPU in MH/s', ['gpu'])
 GPU_DUAL_HASHRATE = Gauge('miner_gpu_dual_hashrate', 'Dual hashrate of a single GPU in MH/s', ['gpu'])
@@ -189,6 +191,9 @@ def update_metrics():
             total_temp += gpu_temp
 
         avg_temp = total_temp / num_gpus if num_gpus > 0 else 0
+
+        TOTAL_SHARES_ACCEPTED.set(total_accepted)
+        TOTAL_SHARES_REJECTED.set(total_rejected)
 
         # Log history to SQLite
         database.log_history(hashrate, avg_temp, avg_fan_speed, total_accepted, total_rejected, dual_hashrate)
