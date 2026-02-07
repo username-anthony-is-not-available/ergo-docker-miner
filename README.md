@@ -18,10 +18,10 @@ This script will guide you through configuring your wallet, pool, and GPU settin
 ## Features
 
 - **Automated Failover:** Automatically switches to a backup pool if the primary one is unavailable.
-- **Health Monitoring:** Includes a Docker health check to ensure the miner is running correctly.
+- **Health Monitoring:** Includes a robust health check script that monitors both process status and hashrate.
 - **Prometheus Exporter:** Exposes a Prometheus endpoint for easy integration with monitoring tools.
 - **Grafana Dashboard:** Includes a pre-configured Grafana dashboard to visualize your mining performance.
-- **Auto-Restart:** Automatically restarts the container if the miner crashes or becomes unresponsive.
+- **Auto-Restart:** Automatically restarts the container if the miner crashes or stops submitting shares for more than 5 minutes.
 - **Automatic Overclocking:** Apply overclocking settings to your GPUs to improve performance and efficiency.
 
 ## Requirements
@@ -194,7 +194,11 @@ This Docker image includes built-in health checks and a metrics exporter to help
 
 ### Health Check
 
-The container has a Docker health check that verifies the lolMiner API is running and responsive. If the miner crashes or the API becomes unavailable, the container will be marked as "unhealthy" and automatically restarted.
+The container has a Docker health check that verifies:
+1.  The miner process (lolMiner or T-Rex) is running.
+2.  The miner is submitting hashrate.
+
+If the miner process stops, the container will be restarted immediately. If the hashrate remains at 0 for more than 5 minutes (e.g., due to a hung API or driver issue), the health check will also trigger a restart. This ensures maximum uptime and prevents "zombie" mining sessions.
 
 ### Prometheus Exporter
 
