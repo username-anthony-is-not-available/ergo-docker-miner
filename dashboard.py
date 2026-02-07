@@ -143,6 +143,18 @@ def background_thread():
                         if smi_data[i]['power_draw'] > 0:
                             gpu['power_draw'] = smi_data[i]['power_draw']
 
+            # Calculate total power and average temperature
+            total_power = 0
+            total_temp = 0
+            gpu_count = len(data['gpus'])
+
+            for gpu in data['gpus']:
+                total_power += gpu.get('power_draw', 0)
+                total_temp += gpu.get('temperature', 0)
+
+            data['total_power_draw'] = total_power
+            data['avg_temperature'] = total_temp / gpu_count if gpu_count > 0 else 0
+
             miner_data = data
             socketio.emit('update', miner_data)
         time.sleep(5)
@@ -197,6 +209,22 @@ def restart():
 def hashrate_history():
     history = database.get_history()
     return jsonify(history)
+
+@app.route('/api/logs')
+def get_logs():
+    try:
+        if os.path.exists('miner.log'):
+            # Return last 100 lines using tail-like logic for efficiency
+            with open('miner.log', 'r') as f:
+                # For simplicity with small files, we can just readlines.
+                # For very large logs, this might be slow, but miner.log is usually rotated or small in Docker.
+                lines = f.readlines()
+                return jsonify({'logs': ''.join(lines[-100:])})
+        else:
+            return jsonify({'logs': 'Miner log file not found. Waiting for miner to start...'})
+    except Exception as e:
+        logger.error(f"Error reading log file: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @socketio.on('connect')
 def handle_connect():

@@ -13,5 +13,25 @@
     "GPU_CLOCK_OFFSET": -200,
     "GPU_MEM_OFFSET": 1500,
     "GPU_POWER_LIMIT": 240
+  },
+  "RTX 3060 Ti": {
+    "GPU_CLOCK_OFFSET": -200,
+    "GPU_MEM_OFFSET": 1200,
+    "GPU_POWER_LIMIT": 130
+  },
+  "RTX 3090": {
+    "GPU_CLOCK_OFFSET": -200,
+    "GPU_MEM_OFFSET": 1000,
+    "GPU_POWER_LIMIT": 300
+  },
+  "RTX 4070": {
+    "GPU_CLOCK_OFFSET": -200,
+    "GPU_MEM_OFFSET": 1300,
+    "GPU_POWER_LIMIT": 150
+  },
+  "RTX 4090": {
+    "GPU_CLOCK_OFFSET": -200,
+    "GPU_MEM_OFFSET": 1500,
+    "GPU_POWER_LIMIT": 350
   }
 }

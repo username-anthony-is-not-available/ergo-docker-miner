@@ -37,12 +37,14 @@ echo "Choose a Mining Pool:"
 echo "1) 2Miners (stratum+tcp://erg.2miners.com:8080)"
 echo "2) HeroMiners (stratum+tcp://herominers.com:1180)"
 echo "3) Nanopool (stratum+tcp://erg-eu1.nanopool.org:11111)"
-echo "4) Custom"
+echo "4) WoolyPooly (stratum+tcp://pool.woolypooly.com:3100)"
+echo "5) Custom"
 read -p "Selection [1]: " POOL_CHOICE
 case $POOL_CHOICE in
     2) POOL_ADDRESS="stratum+tcp://herominers.com:1180" ;;
     3) POOL_ADDRESS="stratum+tcp://erg-eu1.nanopool.org:11111" ;;
-    4) read -p "Enter custom pool address: " POOL_ADDRESS ;;
+    4) POOL_ADDRESS="stratum+tcp://pool.woolypooly.com:3100" ;;
+    5) read -p "Enter custom pool address: " POOL_ADDRESS ;;
     *) POOL_ADDRESS="stratum+tcp://erg.2miners.com:8080" ;;
 esac
 
@@ -57,22 +59,31 @@ else
     MINER="lolminer"
 fi
 
-# Fetch latest lolMiner version if selected
-LOLMINER_VERSION=""
-if [ "$MINER" == "lolminer" ]; then
-    echo -e "\n${BLUE}Fetching latest lolMiner version...${NC}"
-    if [ -f "./scripts/fetch_latest_release.sh" ]; then
-        LATEST_LOLMINER=$(./scripts/fetch_latest_release.sh "Lolliedieb/lolMiner-releases" 2>/dev/null)
-        if [ $? -eq 0 ] && [ -n "$LATEST_LOLMINER" ]; then
-            echo -e "Found latest version: ${GREEN}${LATEST_LOLMINER}${NC}"
-            LOLMINER_VERSION=$LATEST_LOLMINER
-        else
-            echo -e "${YELLOW}Warning: Could not fetch latest lolMiner version. Using default (1.98a).${NC}"
-            LOLMINER_VERSION="1.98a"
-        fi
+# Fetch latest miner versions
+echo -e "\n${BLUE}Fetching latest miner versions...${NC}"
+LOLMINER_VERSION="1.98a"
+T_REX_VERSION="0.26.8"
+
+if [ -f "./scripts/fetch_latest_release.sh" ]; then
+    # lolMiner
+    LATEST_LOLMINER=$(./scripts/fetch_latest_release.sh "Lolliedieb/lolMiner-releases" 2>/dev/null)
+    if [ $? -eq 0 ] && [ -n "$LATEST_LOLMINER" ]; then
+        echo -e "Found latest lolMiner: ${GREEN}${LATEST_LOLMINER}${NC}"
+        LOLMINER_VERSION=$LATEST_LOLMINER
     else
-        LOLMINER_VERSION="1.98a"
+        echo -e "${YELLOW}Warning: Could not fetch latest lolMiner version. Using default.${NC}"
     fi
+
+    # T-Rex
+    LATEST_TREX=$(./scripts/fetch_latest_release.sh "trexminer/T-Rex" 2>/dev/null)
+    if [ $? -eq 0 ] && [ -n "$LATEST_TREX" ]; then
+        echo -e "Found latest T-Rex: ${GREEN}${LATEST_TREX}${NC}"
+        T_REX_VERSION=$LATEST_TREX
+    else
+        echo -e "${YELLOW}Warning: Could not fetch latest T-Rex version. Using default.${NC}"
+    fi
+else
+    echo -e "${YELLOW}Warning: fetch_latest_release.sh not found. Using default versions.${NC}"
 fi
 
 # 5. GPU Type & Count
@@ -159,6 +170,7 @@ WORKER_NAME=${WORKER_NAME}
 # Miner selection
 MINER=${MINER}
 LOLMINER_VERSION=${LOLMINER_VERSION}
+T_REX_VERSION=${T_REX_VERSION}
 
 # GPU Selection
 GPU_DEVICES=${GPU_DEVICES}
