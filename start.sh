@@ -1,5 +1,91 @@
 #!/bin/bash
 
+# Handle privilege dropping if running as root
+if [ "$(id -u)" = '0' ]; then
+  echo "Running as root. Ensuring /app ownership and applying OC settings..."
+  chown -R miner:miner /app
+  if [ -f /app/miner_history.db ]; then
+    chown miner:miner /app/miner_history.db
+  fi
+
+  # Apply overclocking settings if enabled and nvidia-smi is present
+  if [ "$APPLY_OC" = "true" ] && command -v nvidia-smi &> /dev/null; then
+    echo "Applying overclocking settings..."
+
+    # Start a virtual X server for nvidia-settings
+    export DISPLAY=:0
+    Xorg -core :0 &
+    XORG_PID=$!
+    sleep 3
+
+    # Enable persistence mode
+    nvidia-smi -pm 1
+
+    # Determine which OC settings to use
+    if [ -f "gpu_profiles.json" ]; then
+      if [ -z "$GPU_PROFILE" ] || [ "$GPU_PROFILE" == "AUTO" ]; then
+        echo "Attempting to auto-detect GPU profile..."
+        DETECTED_GPU=$(nvidia-smi --query-gpu=name --format=csv,noheader | head -n 1)
+        echo "Detected GPU: $DETECTED_GPU"
+
+        # Use python for robust substring matching against profile keys
+        GPU_PROFILE=$(DETECTED_GPU="$DETECTED_GPU" python3 -c "
+import json, os
+try:
+    with open('gpu_profiles.json') as f:
+        profiles = json.load(f)
+    detected = os.getenv('DETECTED_GPU', '').lower()
+    match = next((p for p in profiles if p.lower() in detected), '')
+    print(match)
+except Exception:
+    print('')
+")
+        if [ -n "$GPU_PROFILE" ]; then
+          echo "Auto-detected matching profile: $GPU_PROFILE"
+        else
+          echo "No matching profile found for $DETECTED_GPU"
+        fi
+      fi
+    fi
+
+    if [ -n "$GPU_PROFILE" ] && [ "$GPU_PROFILE" != "null" ] && [ -f "gpu_profiles.json" ]; then
+      echo "Using GPU profile: $GPU_PROFILE"
+      PROFILE_SETTINGS=$(jq -r ".[\"$GPU_PROFILE\"]" gpu_profiles.json)
+
+      if [ "$PROFILE_SETTINGS" != "null" ]; then
+        # Extract settings from JSON
+        GPU_CLOCK_OFFSET=$(echo "$PROFILE_SETTINGS" | jq -r ".GPU_CLOCK_OFFSET // \"\"")
+        GPU_MEM_OFFSET=$(echo "$PROFILE_SETTINGS" | jq -r ".GPU_MEM_OFFSET // \"\"")
+        GPU_POWER_LIMIT=$(echo "$PROFILE_SETTINGS" | jq -r ".GPU_POWER_LIMIT // \"\"")
+        echo "Applying profile settings: CLOCK=${GPU_CLOCK_OFFSET}, MEM=${GPU_MEM_OFFSET}, PL=${GPU_POWER_LIMIT}"
+      else
+        echo "Warning: GPU profile '$GPU_PROFILE' not found in gpu_profiles.json. Falling back to environment variables."
+      fi
+    else
+      echo "Using overclock settings from environment variables."
+    fi
+
+    # Apply settings to all GPUs visible in the container
+    for GPU_INDEX in $(nvidia-smi --query-gpu=index --format=csv,noheader); do
+      echo "Applying settings to GPU ${GPU_INDEX}..."
+      [ -n "$GPU_POWER_LIMIT" ] && [ "$GPU_POWER_LIMIT" -gt 0 ] && nvidia-smi -i "$GPU_INDEX" -pl "$GPU_POWER_LIMIT"
+      [ -n "$GPU_CLOCK_OFFSET" ] && nvidia-settings -a "[gpu:${GPU_INDEX}]/GPUGraphicsClockOffsetAllPerformanceLevels=${GPU_CLOCK_OFFSET}"
+      [ -n "$GPU_MEM_OFFSET" ] && nvidia-settings -a "[gpu:${GPU_INDEX}]/GPUMemoryTransferRateOffsetAllPerformanceLevels=${GPU_MEM_OFFSET}"
+    done
+
+    # Terminate the virtual X server
+    kill $XORG_PID
+    wait $XORG_PID 2>/dev/null
+
+    echo "Overclocking settings applied."
+  fi
+
+  echo "Dropping privileges to 'miner' user..."
+  exec gosu miner "$0" "$@"
+fi
+
+# -- Below this line runs as non-root (miner) --
+
 # Start the metrics exporter in the background
 ./metrics.sh &
 
@@ -43,78 +129,6 @@ elif command -v rocm-smi &> /dev/null; then
       sleep 10
     done
   ) &
-fi
-
-# Apply overclocking settings if enabled and nvidia-smi is present
-if [ "$APPLY_OC" = "true" ] && command -v nvidia-smi &> /dev/null; then
-  echo "Applying overclocking settings..."
-
-  # Start a virtual X server for nvidia-settings
-  export DISPLAY=:0
-  Xorg -core :0 &
-  XORG_PID=$!
-  sleep 3
-
-  # Enable persistence mode
-  nvidia-smi -pm 1
-
-  # Determine which OC settings to use
-  if [ -f "gpu_profiles.json" ]; then
-    if [ -z "$GPU_PROFILE" ] || [ "$GPU_PROFILE" == "AUTO" ]; then
-      echo "Attempting to auto-detect GPU profile..."
-      DETECTED_GPU=$(nvidia-smi --query-gpu=name --format=csv,noheader | head -n 1)
-      echo "Detected GPU: $DETECTED_GPU"
-
-      # Use python for robust substring matching against profile keys
-      GPU_PROFILE=$(DETECTED_GPU="$DETECTED_GPU" python3 -c "
-import json, os
-try:
-    with open('gpu_profiles.json') as f:
-        profiles = json.load(f)
-    detected = os.getenv('DETECTED_GPU', '').lower()
-    match = next((p for p in profiles if p.lower() in detected), '')
-    print(match)
-except Exception:
-    print('')
-")
-      if [ -n "$GPU_PROFILE" ]; then
-        echo "Auto-detected matching profile: $GPU_PROFILE"
-      else
-        echo "No matching profile found for $DETECTED_GPU"
-      fi
-    fi
-  fi
-
-  if [ -n "$GPU_PROFILE" ] && [ "$GPU_PROFILE" != "null" ] && [ -f "gpu_profiles.json" ]; then
-    echo "Using GPU profile: $GPU_PROFILE"
-    PROFILE_SETTINGS=$(jq -r ".[\"$GPU_PROFILE\"]" gpu_profiles.json)
-
-    if [ "$PROFILE_SETTINGS" != "null" ]; then
-      # Extract settings from JSON
-      GPU_CLOCK_OFFSET=$(echo "$PROFILE_SETTINGS" | jq -r ".GPU_CLOCK_OFFSET // \"\"")
-      GPU_MEM_OFFSET=$(echo "$PROFILE_SETTINGS" | jq -r ".GPU_MEM_OFFSET // \"\"")
-      GPU_POWER_LIMIT=$(echo "$PROFILE_SETTINGS" | jq -r ".GPU_POWER_LIMIT // \"\"")
-      echo "Applying profile settings: CLOCK=${GPU_CLOCK_OFFSET}, MEM=${GPU_MEM_OFFSET}, PL=${GPU_POWER_LIMIT}"
-    else
-      echo "Warning: GPU profile '$GPU_PROFILE' not found in gpu_profiles.json. Falling back to environment variables."
-    fi
-  else
-    echo "Using overclock settings from environment variables."
-  fi
-
-  # Apply settings to all GPUs visible in the container
-  for GPU_INDEX in $(nvidia-smi --query-gpu=index --format=csv,noheader); do
-    echo "Applying settings to GPU ${GPU_INDEX}..."
-    [ -n "$GPU_POWER_LIMIT" ] && [ "$GPU_POWER_LIMIT" -gt 0 ] && nvidia-smi -i "$GPU_INDEX" -pl "$GPU_POWER_LIMIT"
-    [ -n "$GPU_CLOCK_OFFSET" ] && nvidia-settings -a "[gpu:${GPU_INDEX}]/GPUGraphicsClockOffsetAllPerformanceLevels=${GPU_CLOCK_OFFSET}"
-    [ -n "$GPU_MEM_OFFSET" ] && nvidia-settings -a "[gpu:${GPU_INDEX}]/GPUMemoryTransferRateOffsetAllPerformanceLevels=${GPU_MEM_OFFSET}"
-  done
-
-  # Terminate the virtual X server
-  kill $XORG_PID
-  wait $XORG_PID 2>/dev/null
-
-  echo "Overclocking settings applied."
 fi
 
 # Default to lolminer if MINER is not set

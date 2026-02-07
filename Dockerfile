@@ -32,8 +32,17 @@ RUN apt-get update && \
     python3-pip \
     nvidia-utils-525 \
     xserver-xorg \
-    procps && \
+    procps \
+    gosu && \
     rm -rf /var/lib/apt/lists/*
+
+# Create a non-root user
+RUN groupadd -g 1000 miner && \
+    useradd -u 1000 -g miner -m -s /bin/bash miner && \
+    # Add miner to video and render groups for GPU access
+    (groupadd -r video || true) && \
+    (groupadd -r render || true) && \
+    usermod -aG video,render miner
 
 COPY requirements.txt .
 RUN pip3 install --no-cache-dir -r requirements.txt
@@ -48,7 +57,8 @@ COPY dashboard.py .
 COPY templates/ templates/
 COPY static/ static/
 
-RUN chmod +x start.sh metrics.sh healthcheck.sh restart.sh
+RUN chmod +x start.sh metrics.sh healthcheck.sh restart.sh && \
+    chown -R miner:miner /app
 
 EXPOSE 4444 4455 4456 5000
 

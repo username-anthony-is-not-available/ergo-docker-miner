@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Implement 'Rootless Docker' support by running the miner process as a non-root user (`miner`).
 - Support for `EXTRA_ARGS` environment variable to pass custom flags to both lolMiner and T-Rex.
 - Full miner log download feature in the web dashboard.
 - Miner selection (lolMiner vs T-Rex) and `EXTRA_ARGS` configuration in the web dashboard.
@@ -34,6 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Detailed per-GPU timeseries for Dual Hashrate, Fan Speed, and Power Draw in Grafana.
 
 ### Changed
+- Updated Dockerfiles to include `gosu` and a non-root `miner` user (UID 1000).
+- Modified `start.sh` to drop privileges to the `miner` user after performing root-level operations like overclocking.
 - Refactored `dashboard.py` and `metrics.py` to use the centralized `miner_api.py`.
 - Generalized dashboard title from "lolMiner Dashboard" to "Miner Dashboard".
 - Configured miners to log to `miner.log` for persistent access in the dashboard.

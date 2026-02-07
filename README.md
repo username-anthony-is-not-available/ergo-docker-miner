@@ -23,6 +23,7 @@ This script will guide you through configuring your wallet, pool, and GPU settin
 - **Grafana Dashboard:** Includes a pre-configured Grafana dashboard to visualize your mining performance.
 - **Auto-Restart:** Automatically restarts the container if the miner crashes or stops submitting shares for more than 5 minutes.
 - **Automatic Overclocking:** Apply overclocking settings to your GPUs to improve performance and efficiency.
+- **Enhanced Security:** The miner runs as a non-root user (`miner`) inside the container by default. It also supports Rootless Docker environments.
 
 ## Requirements
 
@@ -154,6 +155,28 @@ To enable overclocking, set the `APPLY_OC` environment variable to `true` in you
 -   `GPU_POWER_LIMIT`: The desired GPU power limit in watts.
 
 The overclocking settings will be applied to all GPUs visible within the container.
+
+**Security Note:** Applying overclocking settings requires the container to be started as `root` (UID 0). The `start.sh` script will apply the settings as root and then immediately drop privileges to the non-root `miner` user for the actual mining process.
+
+## Security & Rootless Docker
+
+This project is designed with security in mind.
+
+### Non-Root Execution
+By default, the mining process, dashboard, and metrics exporter run as a non-root user named `miner` (UID 1000) inside the container. This limits the potential impact of any vulnerability in the mining software.
+
+### Rootless Docker Support
+The image is compatible with [Rootless Docker](https://docs.docker.com/engine/security/rootless/). When running in a rootless environment:
+- The container's `root` (UID 0) is mapped to your host user.
+- The `start.sh` script will still function, but applying overclocking settings might require additional host-side configuration or may not be possible depending on your driver setup.
+- Ensure your host user has permissions to access the GPU device nodes (`/dev/nvidia*` or `/dev/kfd`, `/dev/dri`).
+
+### Running without Root Privileges
+If you wish to run the container without *any* root privileges inside (i.e., skipping the initial root-based setup), you can start the container as UID 1000:
+```bash
+docker run --user 1000:1000 ...
+```
+*Note: If started as a non-root user, the automatic overclocking feature will be skipped as it requires root privileges.*
 
 
 ### GPU Tuning Profiles
