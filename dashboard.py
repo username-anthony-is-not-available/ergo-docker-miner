@@ -1,12 +1,10 @@
 from flask import Flask, render_template, jsonify, request
 from flask_socketio import SocketIO, emit
 import requests
-import csv
 import time
 from threading import Thread
 import os
-import os
-import os
+import database
 
 app = Flask(__name__)
 socketio = SocketIO(app)
@@ -73,74 +71,9 @@ def restart():
     os.system('./restart.sh')
     return jsonify({'message': 'Restarting...'})
 
-@app.route('/config')
-def config():
-    return render_template('config.html')
-
-def read_env_file():
-    env_vars = {}
-    if os.path.exists('.env'):
-        with open('.env', 'r') as f:
-            for line in f:
-                if '=' in line:
-                    key, value = line.strip().split('=', 1)
-                    env_vars[key] = value
-    return env_vars
-
-def write_env_file(env_vars):
-    with open('.env', 'w') as f:
-        for key, value in env_vars.items():
-            f.write(f"{key}={value}\n")
-
-@app.route('/api/config', methods=['GET', 'POST'])
-def manage_config():
-    if request.method == 'POST':
-        data = request.json
-        env_vars = read_env_file()
-        for key, value in data.items():
-            env_vars[key] = value
-        write_env_file(env_vars)
-        return jsonify({'message': 'Configuration saved successfully!'})
-    else:
-        return jsonify(read_env_file())
-
-def read_env_file():
-    env_vars = {}
-    if os.path.exists('.env'):
-        with open('.env', 'r') as f:
-            for line in f:
-                if '=' in line:
-                    key, value = line.strip().split('=', 1)
-                    env_vars[key] = value
-    return env_vars
-
-def write_env_file(env_vars):
-    with open('.env', 'w') as f:
-        for key, value in env_vars.items():
-            f.write(f"{key}={value}\n")
-
-@app.route('/api/config', methods=['GET', 'POST'])
-def manage_config():
-    if request.method == 'POST':
-        data = request.json
-        env_vars = read_env_file()
-        for key, value in data.items():
-            env_vars[key] = value
-        write_env_file(env_vars)
-        return jsonify({'message': 'Configuration saved successfully!'})
-    else:
-        return jsonify(read_env_file())
-
 @app.route('/hashrate-history')
 def hashrate_history():
-    history = []
-    try:
-        with open('hashrate_history.csv', 'r') as f:
-            reader = csv.reader(f)
-            for row in reader:
-                history.append({'timestamp': row[0], 'hashrate': float(row[1])})
-    except FileNotFoundError:
-        pass
+    history = database.get_history()
     return jsonify(history)
 
 @socketio.on('connect')
@@ -150,6 +83,7 @@ def handle_connect():
         emit('update', miner_data)
 
 if __name__ == '__main__':
+    database.init_db()
     thread = Thread(target=background_thread)
     thread.daemon = True
     thread.start()

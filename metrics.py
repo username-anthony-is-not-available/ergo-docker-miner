@@ -5,6 +5,7 @@ import time
 import csv
 from datetime import datetime
 import os
+import database
 
 PORT = 4455
 
@@ -19,6 +20,8 @@ GPU_POWER_DRAW = Gauge('miner_gpu_power_draw', 'Power draw of a single GPU in W'
 GPU_FAN_SPEED = Gauge('miner_gpu_fan_speed', 'Fan speed of a single GPU in %', ['gpu'])
 GPU_SHARES_ACCEPTED = Gauge('miner_gpu_shares_accepted', 'Number of accepted shares for a single GPU', ['gpu'])
 GPU_SHARES_REJECTED = Gauge('miner_gpu_shares_rejected', 'Number of rejected shares for a single GPU', ['gpu'])
+
+last_prune_time = 0
 
 def get_lolminer_data():
     """Fetches and parses data from the lolMiner API."""
@@ -71,6 +74,7 @@ def get_trex_data():
 
 
 def update_metrics():
+    global last_prune_time
     try:
         miner = os.getenv('MINER', 'lolminer')
         print(f"MINER is set to: {miner}")
@@ -89,16 +93,6 @@ def update_metrics():
 
         HASHRATE.set(hashrate)
         AVG_FAN_SPEED.set(avg_fan_speed)
-
-        # Log hashrate to CSV
-        with open('hashrate_history.csv', 'a', newline='') as f:
-            writer = csv.writer(f)
-            writer.writerow([datetime.now().isoformat(), hashrate])
-
-        # Get nvidia-smi stats
-        smi_output = ""
-        smi_cmd = ""
-        gpu_stats = []
 
         # Get nvidia-smi or rocm-smi stats if available
         smi_output = ""
@@ -148,13 +142,39 @@ def update_metrics():
         total_power_draw = sum(gpu.get('power_draw', 0) for gpu in gpus)
         TOTAL_POWER_DRAW.set(total_power_draw)
 
+        total_accepted = 0
+        total_rejected = 0
+        total_temp = 0
+        num_gpus = len(gpus)
+
         for i, gpu in enumerate(gpus):
-            GPU_HASHRATE.labels(gpu=i).set(gpu.get('hashrate', 0))
-            GPU_TEMPERATURE.labels(gpu=i).set(gpu.get('temperature', 0))
-            GPU_POWER_DRAW.labels(gpu=i).set(gpu.get('power_draw', 0))
-            GPU_FAN_SPEED.labels(gpu=i).set(gpu.get('fan_speed', 0))
-            GPU_SHARES_ACCEPTED.labels(gpu=i).set(gpu.get('shares_accepted', 0))
-            GPU_SHARES_REJECTED.labels(gpu=i).set(gpu.get('shares_rejected', 0))
+            gpu_hashrate = gpu.get('hashrate', 0)
+            gpu_temp = gpu.get('temperature', 0)
+            gpu_power = gpu.get('power_draw', 0)
+            gpu_fan = gpu.get('fan_speed', 0)
+            gpu_accepted = gpu.get('shares_accepted', 0)
+            gpu_rejected = gpu.get('shares_rejected', 0)
+
+            GPU_HASHRATE.labels(gpu=i).set(gpu_hashrate)
+            GPU_TEMPERATURE.labels(gpu=i).set(gpu_temp)
+            GPU_POWER_DRAW.labels(gpu=i).set(gpu_power)
+            GPU_FAN_SPEED.labels(gpu=i).set(gpu_fan)
+            GPU_SHARES_ACCEPTED.labels(gpu=i).set(gpu_accepted)
+            GPU_SHARES_REJECTED.labels(gpu=i).set(gpu_rejected)
+
+            total_accepted += gpu_accepted
+            total_rejected += gpu_rejected
+            total_temp += gpu_temp
+
+        avg_temp = total_temp / num_gpus if num_gpus > 0 else 0
+
+        # Log history to SQLite
+        database.log_history(hashrate, avg_temp, avg_fan_speed, total_accepted, total_rejected)
+
+        # Prune once per hour
+        if time.time() - last_prune_time > 3600:
+            database.prune_history()
+            last_prune_time = time.time()
 
     except (subprocess.CalledProcessError, json.JSONDecodeError, IndexError) as e:
         print(f"Error updating metrics: {e}")
@@ -163,6 +183,7 @@ def update_metrics():
         TOTAL_POWER_DRAW.set(0)
 
 if __name__ == '__main__':
+    database.init_db()
     start_http_server(PORT)
     print(f"Serving Prometheus metrics at port {PORT}")
     while True:
