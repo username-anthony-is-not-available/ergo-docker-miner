@@ -57,6 +57,24 @@ else
     MINER="lolminer"
 fi
 
+# Fetch latest lolMiner version if selected
+LOLMINER_VERSION=""
+if [ "$MINER" == "lolminer" ]; then
+    echo -e "\n${BLUE}Fetching latest lolMiner version...${NC}"
+    if [ -f "./scripts/fetch_latest_release.sh" ]; then
+        LATEST_LOLMINER=$(./scripts/fetch_latest_release.sh "Lolliedieb/lolMiner-releases" 2>/dev/null)
+        if [ $? -eq 0 ] && [ -n "$LATEST_LOLMINER" ]; then
+            echo -e "Found latest version: ${GREEN}${LATEST_LOLMINER}${NC}"
+            LOLMINER_VERSION=$LATEST_LOLMINER
+        else
+            echo -e "${YELLOW}Warning: Could not fetch latest lolMiner version. Using default (1.98a).${NC}"
+            LOLMINER_VERSION="1.98a"
+        fi
+    else
+        LOLMINER_VERSION="1.98a"
+    fi
+fi
+
 # 5. GPU Type & Count
 echo -e "\n${GREEN}4. GPU Configuration${NC}"
 echo "Select your GPU type:"
@@ -140,6 +158,7 @@ WORKER_NAME=${WORKER_NAME}
 
 # Miner selection
 MINER=${MINER}
+LOLMINER_VERSION=${LOLMINER_VERSION}
 
 # GPU Selection
 GPU_DEVICES=${GPU_DEVICES}
