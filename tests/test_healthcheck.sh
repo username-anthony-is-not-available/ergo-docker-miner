@@ -84,18 +84,19 @@ function cleanup() {
 
 # 1. Healthy lolminer
 export MINER=lolminer
+export GPU_DEVICES=AUTO
 touch /tmp/mock_process_running
-echo '{"Total_Performance": [100.5]}' > /tmp/mock_api_response
+echo '{"Total_Performance": [100.5], "GPUs": [{}, {}]}' > /tmp/mock_api_response
 run_test "Healthy lolminer" 0 "no"
 
 # 2. Healthy t-rex
 export MINER=t-rex
-echo '{"hashrate": 50000000}' > /tmp/mock_api_response
+echo '{"hashrate": 50000000, "gpus": [{}, {}]}' > /tmp/mock_api_response
 run_test "Healthy t-rex" 0 "no"
 
 # 3. lolminer 0 hashrate (Grace period starts)
 export MINER=lolminer
-echo '{"Total_Performance": [0]}' > /tmp/mock_api_response
+echo '{"Total_Performance": [0], "GPUs": [{}, {}]}' > /tmp/mock_api_response
 run_test "lolminer 0 hashrate (start grace)" 0 "no"
 if [ ! -f "$HEALTHCHECK_STATE_FILE" ]; then
     echo "FAILED: State file not created"
@@ -113,7 +114,7 @@ run_test "lolminer 0 hashrate (after grace)" 1 "yes"
 
 # 6. Recovery during grace period
 echo $(($(date +%s) - 120)) > "$HEALTHCHECK_STATE_FILE"
-echo '{"Total_Performance": [100.5]}' > /tmp/mock_api_response
+echo '{"Total_Performance": [100.5], "GPUs": [{}, {}]}' > /tmp/mock_api_response
 run_test "Recovery during grace period" 0 "no"
 if [ -f "$HEALTHCHECK_STATE_FILE" ]; then
     echo "FAILED: State file not removed after recovery"
@@ -124,6 +125,24 @@ fi
 # 7. Process not running (immediate failure)
 rm /tmp/mock_process_running
 run_test "Process not running" 1 "yes"
+touch /tmp/mock_process_running
+
+# 8. GPU count mismatch (lolminer)
+export MINER=lolminer
+export GPU_DEVICES="0,1"
+echo '{"Total_Performance": [100.5], "GPUs": [{}]}' > /tmp/mock_api_response
+run_test "GPU count mismatch (lolminer)" 1 "yes"
+
+# 9. GPU count match (lolminer)
+export GPU_DEVICES="0,1"
+echo '{"Total_Performance": [100.5], "GPUs": [{}, {}]}' > /tmp/mock_api_response
+run_test "GPU count match (lolminer)" 0 "no"
+
+# 10. GPU count mismatch (t-rex)
+export MINER=t-rex
+export GPU_DEVICES="0,1,2"
+echo '{"hashrate": 50000000, "gpus": [{}, {}]}' > /tmp/mock_api_response
+run_test "GPU count mismatch (t-rex)" 1 "yes"
 
 cleanup
 echo "All healthcheck tests passed!"

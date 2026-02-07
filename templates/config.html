@@ -14,6 +14,13 @@
         </nav>
         <form id="config-form">
             <div class="form-group">
+                <label for="miner">Miner</label>
+                <select id="miner" name="MINER">
+                    <option value="lolminer">lolMiner</option>
+                    <option value="t-rex">T-Rex</option>
+                </select>
+            </div>
+            <div class="form-group">
                 <label for="pool_address">Pool Address</label>
                 <input type="text" id="pool_address" name="POOL_ADDRESS">
             </div>
@@ -32,6 +39,10 @@
             <div class="form-group">
                 <label for="gpu_devices">GPU Devices</label>
                 <input type="text" id="gpu_devices" name="GPU_DEVICES">
+            </div>
+            <div class="form-group">
+                <label for="extra_args">Extra Arguments</label>
+                <input type="text" id="extra_args" name="EXTRA_ARGS">
             </div>
             <hr>
             <h2>Overclocking</h2>
@@ -66,11 +77,13 @@
             fetch('/api/config')
                 .then(response => response.json())
                 .then(data => {
+                    if (data.MINER) document.getElementById('miner').value = data.MINER;
                     document.getElementById('pool_address').value = data.POOL_ADDRESS || '';
                     document.getElementById('backup_pool_address').value = data.BACKUP_POOL_ADDRESS || '';
                     document.getElementById('wallet_address').value = data.WALLET_ADDRESS || '';
                     document.getElementById('worker_name').value = data.WORKER_NAME || '';
                     document.getElementById('gpu_devices').value = data.GPU_DEVICES || '';
+                    document.getElementById('extra_args').value = data.EXTRA_ARGS || '';
                     document.getElementById('apply_oc').checked = data.APPLY_OC === 'true';
                     document.getElementById('gpu_profile').value = data.GPU_PROFILE || '';
                     document.getElementById('gpu_clock_offset').value = data.GPU_CLOCK_OFFSET || 0;

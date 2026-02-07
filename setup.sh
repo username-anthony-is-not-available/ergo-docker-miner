@@ -156,6 +156,10 @@ if [ "$MINER" == "lolminer" ]; then
     fi
 fi
 
+# 8. Extra Arguments
+echo -e "\n${GREEN}8. Extra Arguments${NC}"
+read -p "Enter any extra arguments for the miner (optional): " EXTRA_ARGS
+
 # Generate .env file
 echo -e "\n${BLUE}Generating .env file...${NC}"
 cat <<EOF > .env
@@ -181,6 +185,10 @@ EOF
 
 if [ -n "$GPU_PROFILE" ]; then
     echo "GPU_PROFILE=$GPU_PROFILE" >> .env
+fi
+
+if [ -n "$EXTRA_ARGS" ]; then
+    echo "EXTRA_ARGS=${EXTRA_ARGS}" >> .env
 fi
 
 if [ -n "$DUAL_ALGO" ]; then

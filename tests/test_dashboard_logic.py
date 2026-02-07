@@ -67,5 +67,22 @@ class TestDashboardLogic(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json['WALLET_ADDRESS'], 'test_wallet')
 
+    @patch('os.path.exists')
+    @patch('dashboard.send_file')
+    def test_api_logs_download(self, mock_send_file, mock_exists):
+        # Case 1: Log file exists
+        mock_exists.return_value = True
+        mock_send_file.return_value = "file_content"
+        response = self.client.get('/api/logs/download')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data.decode(), "file_content")
+        mock_send_file.assert_called_once_with('miner.log', as_attachment=True)
+
+        # Case 2: Log file does not exist
+        mock_exists.return_value = False
+        response = self.client.get('/api/logs/download')
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.data.decode(), "Log file not found")
+
 if __name__ == '__main__':
     unittest.main()

@@ -125,6 +125,12 @@ case "$MINER" in
     ;;
 esac
 
+# Append extra arguments if defined
+if [ -n "$EXTRA_ARGS" ]; then
+  echo "Appending extra arguments: $EXTRA_ARGS"
+  MINER_CONFIG="$MINER_CONFIG $EXTRA_ARGS"
+fi
+
 # Start the selected miner
 if [ -n "$TEST_MODE" ]; then
   $MINER_BIN $MINER_CONFIG &
