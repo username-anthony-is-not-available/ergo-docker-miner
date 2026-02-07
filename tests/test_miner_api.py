@@ -91,23 +91,49 @@ class TestMinerApi(unittest.TestCase):
         self.assertEqual(data[0]['power_draw'], 120.0)
 
     @patch('subprocess.check_output')
-    def test_get_gpu_smi_data_amd(self, mock_check_output):
+    def test_get_gpu_names_nvidia(self, mock_check_output):
         def side_effect(cmd, *args, **kwargs):
             if cmd == ['which', 'nvidia-smi']:
-                raise subprocess.CalledProcessError(1, cmd)
-            if cmd == ['which', 'rocm-smi']:
-                return b'/usr/bin/rocm-smi'
-            if 'rocm-smi --showtemp' in cmd:
-                # card,temp,power
-                return b'0,55.0,100.0W\n1,58.0,110.0W'
+                return b'/usr/bin/nvidia-smi'
+            if cmd == ['nvidia-smi', '--query-gpu=name', '--format=csv,noheader']:
+                return b'NVIDIA GeForce RTX 3070\nNVIDIA GeForce RTX 3080'
             raise subprocess.CalledProcessError(1, cmd)
 
         mock_check_output.side_effect = side_effect
 
-        data = miner_api.get_gpu_smi_data()
-        self.assertEqual(len(data), 2)
-        self.assertEqual(data[0]['temperature'], 55.0)
-        self.assertEqual(data[0]['power_draw'], 100.0)
+        names = miner_api.get_gpu_names()
+        self.assertEqual(names, ['NVIDIA GeForce RTX 3070', 'NVIDIA GeForce RTX 3080'])
+
+    @patch('miner_api.get_normalized_miner_data')
+    @patch('miner_api.get_gpu_smi_data')
+    def test_get_full_miner_data(self, mock_smi, mock_normalized):
+        mock_normalized.return_value = {
+            'miner': 'lolminer',
+            'total_hashrate': 120.0,
+            'total_dual_hashrate': 0,
+            'gpus': [
+                {
+                    'index': 0,
+                    'hashrate': 60,
+                    'dual_hashrate': 0,
+                    'fan_speed': 50,
+                    'accepted_shares': 10,
+                    'rejected_shares': 1,
+                    'temperature': 0,
+                    'power_draw': 0
+                }
+            ]
+        }
+        mock_smi.return_value = [{'temperature': 60.0, 'power_draw': 150.0}]
+
+        data = miner_api.get_full_miner_data()
+        self.assertIsNotNone(data)
+        self.assertEqual(data['total_power_draw'], 150.0)
+        self.assertEqual(data['avg_temperature'], 60.0)
+        self.assertEqual(data['status'], 'Mining')
+        self.assertEqual(data['gpus'][0]['temperature'], 60.0)
+        self.assertEqual(data['total_accepted_shares'], 10)
+        self.assertEqual(data['avg_fan_speed'], 50.0)
 
 if __name__ == '__main__':
     unittest.main()
