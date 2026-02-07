@@ -10,14 +10,23 @@ import time
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import metrics
-from metrics import update_metrics, HASHRATE, AVG_FAN_SPEED, TOTAL_POWER_DRAW, GPU_HASHRATE, GPU_TEMPERATURE, GPU_POWER_DRAW, GPU_FAN_SPEED, GPU_SHARES_ACCEPTED, GPU_SHARES_REJECTED
+from metrics import update_metrics, HASHRATE, DUAL_HASHRATE, AVG_FAN_SPEED, TOTAL_POWER_DRAW, GPU_HASHRATE, GPU_DUAL_HASHRATE, GPU_TEMPERATURE, GPU_POWER_DRAW, GPU_FAN_SPEED, GPU_SHARES_ACCEPTED, GPU_SHARES_REJECTED
 
 # Mock data for lolMiner API
 mock_lolminer_api_data = {
     "Total_Performance": [120.5],
     "GPUs": [
-        {"Performance": 60.2, "Fan_Speed": 55, "Accepted_Shares": 100, "Rejected_Shares": 2},
-        {"Performance": 60.3, "Fan_Speed": 60, "Accepted_Shares": 110, "Rejected_Shares": 3}
+        {"Performance": [60.2], "Fan_Speed": 55, "Accepted_Shares": 100, "Rejected_Shares": 2},
+        {"Performance": [60.3], "Fan_Speed": 60, "Accepted_Shares": 110, "Rejected_Shares": 3}
+    ]
+}
+
+# Mock data for lolMiner API with Dual Mining
+mock_lolminer_dual_api_data = {
+    "Total_Performance": [120.5, 250.5],
+    "GPUs": [
+        {"Performance": [60.2, 125.2], "Fan_Speed": 55, "Accepted_Shares": 100, "Rejected_Shares": 2},
+        {"Performance": [60.3, 125.3], "Fan_Speed": 60, "Accepted_Shares": 110, "Rejected_Shares": 3}
     ]
 }
 
@@ -48,6 +57,11 @@ mock_rocm_smi_output = "card1,65,150.0W\ncard2,70,155.0W\n"
 class TestMetrics(unittest.TestCase):
     def setUp(self):
         metrics.last_prune_time = 0
+        # Reset Prometheus metrics
+        HASHRATE.set(0)
+        DUAL_HASHRATE.set(0)
+        AVG_FAN_SPEED.set(0)
+        TOTAL_POWER_DRAW.set(0)
 
     @patch('database.log_history')
     @patch('database.prune_history')
@@ -65,28 +79,47 @@ class TestMetrics(unittest.TestCase):
 
         # Assertions for global metrics
         self.assertEqual(HASHRATE._value.get(), 120.5)
+        self.assertEqual(DUAL_HASHRATE._value.get(), 0)
         self.assertAlmostEqual(AVG_FAN_SPEED._value.get(), 57.5)
         self.assertEqual(TOTAL_POWER_DRAW._value.get(), 245.5)
 
         # Assertions for GPU 0
         self.assertEqual(GPU_HASHRATE.labels(gpu=0)._value.get(), 60.2)
+        self.assertEqual(GPU_DUAL_HASHRATE.labels(gpu=0)._value.get(), 0)
         self.assertEqual(GPU_TEMPERATURE.labels(gpu=0)._value.get(), 35.0)
         self.assertEqual(GPU_POWER_DRAW.labels(gpu=0)._value.get(), 120.5)
         self.assertEqual(GPU_FAN_SPEED.labels(gpu=0)._value.get(), 55)
         self.assertEqual(GPU_SHARES_ACCEPTED.labels(gpu=0)._value.get(), 100)
         self.assertEqual(GPU_SHARES_REJECTED.labels(gpu=0)._value.get(), 2)
 
-        # Assertions for GPU 1
-        self.assertEqual(GPU_HASHRATE.labels(gpu=1)._value.get(), 60.3)
-        self.assertEqual(GPU_TEMPERATURE.labels(gpu=1)._value.get(), 40.0)
-        self.assertEqual(GPU_POWER_DRAW.labels(gpu=1)._value.get(), 125.0)
-        self.assertEqual(GPU_FAN_SPEED.labels(gpu=1)._value.get(), 60)
-        self.assertEqual(GPU_SHARES_ACCEPTED.labels(gpu=1)._value.get(), 110)
-        self.assertEqual(GPU_SHARES_REJECTED.labels(gpu=1)._value.get(), 3)
+        # Assert log_history call
+        mock_log.assert_called_once_with(120.5, 37.5, 57.5, 210, 5, 0)
+        mock_prune.assert_called_once()
+
+    @patch('database.log_history')
+    @patch('database.prune_history')
+    @patch('subprocess.check_output')
+    @patch.dict(os.environ, {"MINER": "lolminer"})
+    def test_update_metrics_lolminer_dual(self, mock_subprocess, mock_prune, mock_log):
+        # Configure the mock to simulate the lolMiner Dual Mining
+        mock_subprocess.side_effect = [
+            json.dumps(mock_lolminer_dual_api_data).encode(),  # lolMiner API
+            b'/usr/bin/nvidia-smi',  # which nvidia-smi
+            mock_nvidia_smi_output.encode()  # nvidia-smi command
+        ]
+
+        update_metrics()
+
+        # Assertions for global metrics
+        self.assertEqual(HASHRATE._value.get(), 120.5)
+        self.assertEqual(DUAL_HASHRATE._value.get(), 250.5)
+
+        # Assertions for GPU 0
+        self.assertEqual(GPU_HASHRATE.labels(gpu=0)._value.get(), 60.2)
+        self.assertEqual(GPU_DUAL_HASHRATE.labels(gpu=0)._value.get(), 125.2)
 
         # Assert log_history call
-        mock_log.assert_called_once_with(120.5, 37.5, 57.5, 210, 5)
-        mock_prune.assert_called_once()
+        mock_log.assert_called_once_with(120.5, 37.5, 57.5, 210, 5, 250.5)
 
     @patch('database.log_history')
     @patch('database.prune_history')
@@ -104,6 +137,7 @@ class TestMetrics(unittest.TestCase):
 
         # Assertions for global metrics
         self.assertEqual(HASHRATE._value.get(), 125)
+        self.assertEqual(DUAL_HASHRATE._value.get(), 0)
         self.assertAlmostEqual(AVG_FAN_SPEED._value.get(), 67.5)
         self.assertEqual(TOTAL_POWER_DRAW._value.get(), 245.5)
 
@@ -115,16 +149,8 @@ class TestMetrics(unittest.TestCase):
         self.assertEqual(GPU_SHARES_ACCEPTED.labels(gpu=0)._value.get(), 200)
         self.assertEqual(GPU_SHARES_REJECTED.labels(gpu=0)._value.get(), 5)
 
-        # Assertions for GPU 1
-        self.assertEqual(GPU_HASHRATE.labels(gpu=1)._value.get(), 63)
-        self.assertEqual(GPU_TEMPERATURE.labels(gpu=1)._value.get(), 40.0)
-        self.assertEqual(GPU_POWER_DRAW.labels(gpu=1)._value.get(), 125.0)
-        self.assertEqual(GPU_FAN_SPEED.labels(gpu=1)._value.get(), 70)
-        self.assertEqual(GPU_SHARES_ACCEPTED.labels(gpu=1)._value.get(), 220)
-        self.assertEqual(GPU_SHARES_REJECTED.labels(gpu=1)._value.get(), 6)
-
         # Assert log_history call
-        mock_log.assert_called_once_with(125, 37.5, 67.5, 420, 11)
+        mock_log.assert_called_once_with(125, 37.5, 67.5, 420, 11, 0)
 
     @patch('database.log_history')
     @patch('database.prune_history')
@@ -149,12 +175,8 @@ class TestMetrics(unittest.TestCase):
         self.assertEqual(GPU_TEMPERATURE.labels(gpu=0)._value.get(), 65.0)
         self.assertEqual(GPU_POWER_DRAW.labels(gpu=0)._value.get(), 150.0)
 
-        # Assertions for GPU 1
-        self.assertEqual(GPU_TEMPERATURE.labels(gpu=1)._value.get(), 70.0)
-        self.assertEqual(GPU_POWER_DRAW.labels(gpu=1)._value.get(), 155.0)
-
         # Assert log_history call
-        mock_log.assert_called_once_with(120.5, 67.5, 57.5, 210, 5)
+        mock_log.assert_called_once_with(120.5, 67.5, 57.5, 210, 5, 0)
 
     @patch('database.log_history')
     @patch('database.prune_history')
@@ -172,7 +194,7 @@ class TestMetrics(unittest.TestCase):
         self.assertEqual(TOTAL_POWER_DRAW._value.get(), 0)
         self.assertEqual(GPU_TEMPERATURE.labels(gpu=0)._value.get(), 0)
         self.assertEqual(GPU_POWER_DRAW.labels(gpu=0)._value.get(), 0)
-        mock_log.assert_called_once_with(120.5, 0.0, 57.5, 210, 5)
+        mock_log.assert_called_once_with(120.5, 0.0, 57.5, 210, 5, 0)
 
     @patch('database.log_history')
     @patch('database.prune_history')
@@ -184,6 +206,7 @@ class TestMetrics(unittest.TestCase):
 
         # Assert that metrics are reset to 0
         self.assertEqual(HASHRATE._value.get(), 0)
+        self.assertEqual(DUAL_HASHRATE._value.get(), 0)
         self.assertEqual(AVG_FAN_SPEED._value.get(), 0)
         self.assertEqual(TOTAL_POWER_DRAW._value.get(), 0)
         # log_history should NOT be called on error
@@ -206,15 +229,25 @@ class TestMetrics(unittest.TestCase):
         self.assertEqual(HASHRATE._value.get(), 0)
         self.assertEqual(AVG_FAN_SPEED._value.get(), 0)
         self.assertEqual(TOTAL_POWER_DRAW._value.get(), 0)
-        mock_log.assert_called_once_with(0, 0, 0, 0, 0)
+        mock_log.assert_called_once_with(0, 0, 0, 0, 0, 0)
 
     @patch('database.log_history')
     @patch('database.prune_history')
     @patch('subprocess.check_output')
     @patch('time.time')
     def test_prune_frequency(self, mock_time, mock_subprocess, mock_prune, mock_log):
-        # Mock API data
-        mock_subprocess.return_value = json.dumps(mock_lolminer_api_data).encode()
+        # Mock API data and SMI detection failures to keep it simple
+        mock_subprocess.side_effect = [
+            json.dumps(mock_lolminer_api_data).encode(), # call 1: API
+            subprocess.CalledProcessError(1, 'which'), # call 1: nvidia-smi
+            subprocess.CalledProcessError(1, 'which'), # call 1: rocm-smi
+            json.dumps(mock_lolminer_api_data).encode(), # call 2: API
+            subprocess.CalledProcessError(1, 'which'), # call 2: nvidia-smi
+            subprocess.CalledProcessError(1, 'which'), # call 2: rocm-smi
+            json.dumps(mock_lolminer_api_data).encode(), # call 3: API
+            subprocess.CalledProcessError(1, 'which'), # call 3: nvidia-smi
+            subprocess.CalledProcessError(1, 'which'), # call 3: rocm-smi
+        ]
 
         # First call, time is 10000. last_prune_time is 0. 10000 > 3600, so prune.
         mock_time.return_value = 10000

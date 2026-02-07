@@ -26,11 +26,17 @@ class TestDatabase(unittest.TestCase):
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='history'")
             self.assertIsNotNone(cursor.fetchone())
 
+            # Verify dual_hashrate column exists
+            cursor.execute("PRAGMA table_info(history)")
+            columns = [column[1] for column in cursor.fetchall()]
+            self.assertIn('dual_hashrate', columns)
+
     def test_log_and_get_history(self):
-        database.log_history(120.5, 45.0, 60.0, 100, 2)
+        database.log_history(120.5, 45.0, 60.0, 100, 2, dual_hashrate=50.5)
         history = database.get_history(days=1)
         self.assertEqual(len(history), 1)
         self.assertEqual(history[0]['hashrate'], 120.5)
+        self.assertEqual(history[0]['dual_hashrate'], 50.5)
         self.assertEqual(history[0]['avg_temp'], 45.0)
         self.assertEqual(history[0]['avg_fan_speed'], 60.0)
         self.assertEqual(history[0]['accepted_shares'], 100)
@@ -42,9 +48,9 @@ class TestDatabase(unittest.TestCase):
             cursor = conn.cursor()
             old_time = (datetime.now() - timedelta(days=31)).isoformat()
             cursor.execute('''
-                INSERT INTO history (timestamp, hashrate, avg_temp, avg_fan_speed, accepted_shares, rejected_shares)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', (old_time, 100.0, 40.0, 50.0, 50, 1))
+                INSERT INTO history (timestamp, hashrate, dual_hashrate, avg_temp, avg_fan_speed, accepted_shares, rejected_shares)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (old_time, 100.0, 0.0, 40.0, 50.0, 50, 1))
             conn.commit()
 
         # Insert some new data

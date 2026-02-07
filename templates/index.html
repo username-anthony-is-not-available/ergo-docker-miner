@@ -19,6 +19,10 @@
                 <h2>Total Hashrate</h2>
                 <p id="total-hashrate">-- MH/s</p>
             </div>
+            <div id="dual-hashrate-card" class="stat-card" style="display: none;">
+                <h2>Total Dual Hashrate</h2>
+                <p id="total-dual-hashrate">-- MH/s</p>
+            </div>
             <div class="stat-card">
                 <h2>Uptime</h2>
                 <p id="uptime">--</p>
@@ -36,7 +40,16 @@
         const socket = io();
 
         socket.on('update', function(data) {
-            document.getElementById('total-hashrate').innerText = `${data.Total_Performance[0].toFixed(2)} MH/s`;
+            if (data.Total_Performance) {
+                document.getElementById('total-hashrate').innerText = `${data.Total_Performance[0].toFixed(2)} MH/s`;
+
+                if (data.Total_Performance.length > 1) {
+                    document.getElementById('dual-hashrate-card').style.display = 'block';
+                    document.getElementById('total-dual-hashrate').innerText = `${data.Total_Performance[1].toFixed(2)} MH/s`;
+                } else {
+                    document.getElementById('dual-hashrate-card').style.display = 'none';
+                }
+            }
 
             const uptimeSeconds = data.Session.Uptime;
             const hours = Math.floor(uptimeSeconds / 3600);
@@ -54,6 +67,7 @@
                     gpuCard.innerHTML = `
                         <h3>GPU ${index}</h3>
                         <p><strong>Hashrate:</strong> <span class="hashrate">--</span> MH/s</p>
+                        <p class="dual-hashrate-container" style="display: none;"><strong>Dual Hashrate:</strong> <span class="dual-hashrate">--</span> MH/s</p>
                         <p><strong>Fan Speed:</strong> <span class="fan-speed">--</span>%</p>
                         <p><strong>Accepted Shares:</strong> <span class="accepted-shares">--</span></p>
                         <p><strong>Rejected Shares:</strong> <span class="rejected-shares">--</span></p>
@@ -61,7 +75,19 @@
                     gpuContainer.appendChild(gpuCard);
                 }
 
-                gpuCard.querySelector('.hashrate').innerText = gpu.Performance.toFixed(2);
+                if (Array.isArray(gpu.Performance)) {
+                    gpuCard.querySelector('.hashrate').innerText = gpu.Performance[0].toFixed(2);
+                    if (gpu.Performance.length > 1) {
+                        gpuCard.querySelector('.dual-hashrate-container').style.display = 'block';
+                        gpuCard.querySelector('.dual-hashrate').innerText = gpu.Performance[1].toFixed(2);
+                    } else {
+                        gpuCard.querySelector('.dual-hashrate-container').style.display = 'none';
+                    }
+                } else {
+                    gpuCard.querySelector('.hashrate').innerText = gpu.Performance.toFixed(2);
+                    gpuCard.querySelector('.dual-hashrate-container').style.display = 'none';
+                }
+
                 gpuCard.querySelector('.fan-speed').innerText = gpu.Fan_Speed;
                 gpuCard.querySelector('.accepted-shares').innerText = gpu.Accepted_Shares;
                 gpuCard.querySelector('.rejected-shares').innerText = gpu.Rejected_Shares;
@@ -77,16 +103,28 @@
         async function renderHashrateChart() {
             const history = await fetchHashrateHistory();
             const ctx = document.getElementById('hashrate-chart').getContext('2d');
+
+            const datasets = [{
+                label: 'Primary Hashrate (MH/s)',
+                data: history.map(d => d.hashrate),
+                borderColor: 'rgba(75, 192, 192, 1)',
+                tension: 0.1
+            }];
+
+            if (history.some(d => d.dual_hashrate > 0)) {
+                datasets.push({
+                    label: 'Dual Hashrate (MH/s)',
+                    data: history.map(d => d.dual_hashrate),
+                    borderColor: 'rgba(153, 102, 255, 1)',
+                    tension: 0.1
+                });
+            }
+
             new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: history.map(d => new Date(d.timestamp).toLocaleTimeString()),
-                    datasets: [{
-                        label: 'Total Hashrate (MH/s)',
-                        data: history.map(d => d.hashrate),
-                        borderColor: 'rgba(75, 192, 192, 1)',
-                        tension: 0.1
-                    }]
+                    datasets: datasets
                 }
             });
         }

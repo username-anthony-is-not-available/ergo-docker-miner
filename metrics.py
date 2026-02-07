@@ -11,10 +11,12 @@ PORT = 4455
 
 # Define Prometheus metrics (generic)
 HASHRATE = Gauge('miner_hashrate', 'Total hashrate in MH/s')
+DUAL_HASHRATE = Gauge('miner_dual_hashrate', 'Total dual hashrate in MH/s')
 AVG_FAN_SPEED = Gauge('miner_avg_fan_speed', 'Average fan speed of all GPUs in %')
 TOTAL_POWER_DRAW = Gauge('miner_total_power_draw', 'Total power draw of all GPUs in W')
 
 GPU_HASHRATE = Gauge('miner_gpu_hashrate', 'Hashrate of a single GPU in MH/s', ['gpu'])
+GPU_DUAL_HASHRATE = Gauge('miner_gpu_dual_hashrate', 'Dual hashrate of a single GPU in MH/s', ['gpu'])
 GPU_TEMPERATURE = Gauge('miner_gpu_temperature', 'Temperature of a single GPU in °C', ['gpu'])
 GPU_POWER_DRAW = Gauge('miner_gpu_power_draw', 'Power draw of a single GPU in W', ['gpu'])
 GPU_FAN_SPEED = Gauge('miner_gpu_fan_speed', 'Fan speed of a single GPU in %', ['gpu'])
@@ -30,7 +32,10 @@ def get_lolminer_data():
     api_data = json.loads(api_data_raw)
     print(f"lolminer api_data: {api_data}")
 
-    hashrate = api_data.get('Total_Performance', [0])[0]
+    total_performance = api_data.get('Total_Performance', [0])
+    hashrate = total_performance[0]
+    dual_hashrate = total_performance[1] if len(total_performance) > 1 else 0
+
     gpus_data = api_data.get('GPUs', [])
     num_gpus = len(gpus_data)
 
@@ -39,9 +44,21 @@ def get_lolminer_data():
     else:
         avg_fan_speed = 0
 
-    miner_gpus = [{'hashrate': gpu.get('Performance'), 'fan_speed': gpu.get('Fan_Speed'), 'shares_accepted': gpu.get('Accepted_Shares'), 'shares_rejected': gpu.get('Rejected_Shares')} for gpu in gpus_data]
+    miner_gpus = []
+    for gpu in gpus_data:
+        perf = gpu.get('Performance', [0])
+        gpu_hashrate = perf[0] if isinstance(perf, list) else perf
+        gpu_dual_hashrate = perf[1] if isinstance(perf, list) and len(perf) > 1 else 0
 
-    return {'hashrate': hashrate, 'avg_fan_speed': avg_fan_speed, 'gpus': miner_gpus}
+        miner_gpus.append({
+            'hashrate': gpu_hashrate,
+            'dual_hashrate': gpu_dual_hashrate,
+            'fan_speed': gpu.get('Fan_Speed'),
+            'shares_accepted': gpu.get('Accepted_Shares'),
+            'shares_rejected': gpu.get('Rejected_Shares')
+        })
+
+    return {'hashrate': hashrate, 'dual_hashrate': dual_hashrate, 'avg_fan_speed': avg_fan_speed, 'gpus': miner_gpus}
 
 def get_trex_data():
     """Fetches and parses data from the T-Rex API."""
@@ -65,12 +82,13 @@ def get_trex_data():
         shares = gpu.get('shares', {})
         miner_gpus.append({
             'hashrate': gpu.get('hashrate', 0) / 1000000,
+            'dual_hashrate': 0, # T-Rex dual mining not implemented here
             'fan_speed': gpu.get('fan_speed', 0),
             'shares_accepted': shares.get('accepted_count', 0),
             'shares_rejected': shares.get('rejected_count', 0)
         })
 
-    return {'hashrate': hashrate, 'avg_fan_speed': avg_fan_speed, 'gpus': miner_gpus}
+    return {'hashrate': hashrate, 'dual_hashrate': 0, 'avg_fan_speed': avg_fan_speed, 'gpus': miner_gpus}
 
 
 def update_metrics():
@@ -79,6 +97,7 @@ def update_metrics():
         miner = os.getenv('MINER', 'lolminer')
         print(f"MINER is set to: {miner}")
 
+        miner_data = {}
         if miner == 'lolminer':
             miner_data = get_lolminer_data()
         elif miner == 't-rex':
@@ -88,10 +107,12 @@ def update_metrics():
             return
 
         hashrate = miner_data.get('hashrate', 0)
+        dual_hashrate = miner_data.get('dual_hashrate', 0)
         avg_fan_speed = miner_data.get('avg_fan_speed', 0)
         miner_gpus = miner_data.get('gpus', [])
 
         HASHRATE.set(hashrate)
+        DUAL_HASHRATE.set(dual_hashrate)
         AVG_FAN_SPEED.set(avg_fan_speed)
 
         # Get nvidia-smi or rocm-smi stats if available
@@ -137,6 +158,7 @@ def update_metrics():
 
         gpus = miner_gpus
         if gpu_stats:
+            # Match lengths to avoid zip issues
             gpus = [dict(lol, **stats) for lol, stats in zip(miner_gpus, gpu_stats)]
 
         total_power_draw = sum(gpu.get('power_draw', 0) for gpu in gpus)
@@ -149,6 +171,7 @@ def update_metrics():
 
         for i, gpu in enumerate(gpus):
             gpu_hashrate = gpu.get('hashrate', 0)
+            gpu_dual_hashrate = gpu.get('dual_hashrate', 0)
             gpu_temp = gpu.get('temperature', 0)
             gpu_power = gpu.get('power_draw', 0)
             gpu_fan = gpu.get('fan_speed', 0)
@@ -156,6 +179,7 @@ def update_metrics():
             gpu_rejected = gpu.get('shares_rejected', 0)
 
             GPU_HASHRATE.labels(gpu=i).set(gpu_hashrate)
+            GPU_DUAL_HASHRATE.labels(gpu=i).set(gpu_dual_hashrate)
             GPU_TEMPERATURE.labels(gpu=i).set(gpu_temp)
             GPU_POWER_DRAW.labels(gpu=i).set(gpu_power)
             GPU_FAN_SPEED.labels(gpu=i).set(gpu_fan)
@@ -169,23 +193,31 @@ def update_metrics():
         avg_temp = total_temp / num_gpus if num_gpus > 0 else 0
 
         # Log history to SQLite
-        database.log_history(hashrate, avg_temp, avg_fan_speed, total_accepted, total_rejected)
+        database.log_history(hashrate, avg_temp, avg_fan_speed, total_accepted, total_rejected, dual_hashrate)
 
         # Prune once per hour
         if time.time() - last_prune_time > 3600:
             database.prune_history()
             last_prune_time = time.time()
 
-    except (subprocess.CalledProcessError, json.JSONDecodeError, IndexError) as e:
+    except Exception as e:
         print(f"Error updating metrics: {e}")
         HASHRATE.set(0)
+        DUAL_HASHRATE.set(0)
         AVG_FAN_SPEED.set(0)
         TOTAL_POWER_DRAW.set(0)
 
 if __name__ == '__main__':
+    # Start metrics server first to ensure it's reachable even if DB init is slow
+    try:
+        start_http_server(PORT)
+        print(f"Serving Prometheus metrics at port {PORT}")
+    except Exception as e:
+        print(f"Failed to start Prometheus server: {e}")
+        exit(1)
+
     database.init_db()
-    start_http_server(PORT)
-    print(f"Serving Prometheus metrics at port {PORT}")
+
     while True:
         update_metrics()
         time.sleep(15)
