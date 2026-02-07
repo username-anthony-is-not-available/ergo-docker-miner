@@ -13,6 +13,8 @@ echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}   Ergo Miner Setup Assistant          ${NC}"
 echo -e "${BLUE}========================================${NC}"
 echo "This script will help you configure your Ergo miner."
+echo -e "${GREEN}Security Tip: This miner now runs as a non-root user (UID 1000)${NC}"
+echo -e "${GREEN}inside the container for improved security.${NC}"
 
 # Check for Docker
 if ! command -v docker &> /dev/null; then
