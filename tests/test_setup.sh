@@ -3,7 +3,7 @@
 # Test setup.sh
 # We'll use a heredoc to simulate user input
 
-echo "Running setup.sh test 1 (NVIDIA, Dual, OC)..."
+echo "Running setup.sh test 1 (NVIDIA, Dual, OC, Extra Args)..."
 
 # Back up existing .env if any
 if [ -f .env ]; then
@@ -25,6 +25,7 @@ y
 MyDualWallet
 MyDualPool
 
+--extra-param 1
 n
 EOF
 
@@ -56,6 +57,7 @@ check_var "DUAL_ALGO=KASPADUAL" "DUAL_ALGO"
 check_var "DUAL_WALLET=MyDualWallet" "DUAL_WALLET"
 check_var "DUAL_POOL=MyDualPool" "DUAL_POOL"
 check_var "DUAL_WORKER=test-worker-dual" "DUAL_WORKER"
+check_var "EXTRA_ARGS=--extra-param 1" "EXTRA_ARGS"
 
 if [ $EXIT_CODE -eq 0 ]; then
     echo "setup.sh test 1 PASSED"

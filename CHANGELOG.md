@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Support for `EXTRA_ARGS` environment variable to pass custom flags to both lolMiner and T-Rex.
+- Full miner log download feature in the web dashboard.
+- Miner selection (lolMiner vs T-Rex) and `EXTRA_ARGS` configuration in the web dashboard.
+- GPU count verification in `healthcheck.sh` to ensure all configured GPUs are active.
+- New unit tests for log download endpoint and health check GPU count verification.
+- Integrated `EXTRA_ARGS` prompt in `setup.sh`.
 - New `miner_api.py` module to centralize and de-duplicate miner and GPU data fetching logic.
 - Dynamic "Miner Status" indicator in the web dashboard (Mining, Idle, Error).
 - Retry logic and improved error handling for miner API calls.
@@ -39,9 +45,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Generalized Prometheus metrics prefix from `lolminer_` to `miner_` to support multiple backends.
 - Updated Grafana dashboard to use new `miner_` metric names.
 - Improved Prometheus exporter to use string labels for GPU indices, fixing potential type errors.
+- Enhanced `setup.sh` with better numbering and interactive prompts.
 
 ### Removed
 - Legacy `hashrate_history.csv` file (replaced by SQLite database).
 
 ### Fixed
 - Fixed Prometheus label type error in `metrics.py` by ensuring GPU indices are strings.
+- Fixed setup script numbering in section "8. Extra Arguments".

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, send_file
 from flask_socketio import SocketIO, emit
 import requests
 import time
@@ -82,17 +82,40 @@ def read_env_file():
     if os.path.exists('.env'):
         with open('.env', 'r') as f:
             for line in f:
-                if '=' in line:
-                    parts = line.strip().split('=', 1)
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    parts = line.split('=', 1)
                     if len(parts) == 2:
                         key, value = parts
                         env_vars[key] = value
     return env_vars
 
 def write_env_file(env_vars):
+    # Keep comments if possible, but for simplicity we'll just rewrite it
+    # A better approach would be to read all lines and replace matching keys
+    lines = []
+    if os.path.exists('.env'):
+        with open('.env', 'r') as f:
+            lines = f.readlines()
+
+    new_lines = []
+    keys_written = set()
+    for line in lines:
+        stripped = line.strip()
+        if stripped and not stripped.startswith('#') and '=' in stripped:
+            key = stripped.split('=', 1)[0]
+            if key in env_vars:
+                new_lines.append(f"{key}={env_vars[key]}\n")
+                keys_written.add(key)
+                continue
+        new_lines.append(line)
+
+    for key, value in env_vars.items():
+        if key not in keys_written:
+            new_lines.append(f"{key}={value}\n")
+
     with open('.env', 'w') as f:
-        for key, value in env_vars.items():
-            f.write(f"{key}={value}\n")
+        f.writelines(new_lines)
 
 @app.route('/api/config', methods=['GET', 'POST'])
 def manage_config():
@@ -100,6 +123,9 @@ def manage_config():
         data = request.json
         env_vars = read_env_file()
         for key, value in data.items():
+            # Handle boolean checkbox from frontend if necessary
+            if value is True: value = 'true'
+            if value is False: value = 'false'
             env_vars[key] = value
         write_env_file(env_vars)
         return jsonify({'message': 'Configuration saved successfully!'})
@@ -126,8 +152,6 @@ def get_logs():
         if os.path.exists('miner.log'):
             # Return last 100 lines using tail-like logic for efficiency
             with open('miner.log', 'r') as f:
-                # For simplicity with small files, we can just readlines.
-                # For very large logs, this might be slow, but miner.log is usually rotated or small in Docker.
                 lines = f.readlines()
                 return jsonify({'logs': ''.join(lines[-100:])})
         else:
@@ -135,6 +159,17 @@ def get_logs():
     except Exception as e:
         logger.error(f"Error reading log file: {e}")
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/logs/download')
+def download_logs():
+    try:
+        if os.path.exists('miner.log'):
+            return send_file('miner.log', as_attachment=True)
+        else:
+            return "Log file not found", 404
+    except Exception as e:
+        logger.error(f"Error downloading log file: {e}")
+        return str(e), 500
 
 @socketio.on('connect')
 def handle_connect():

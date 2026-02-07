@@ -5,17 +5,20 @@ MINER=${MINER:-lolminer}
 API_PORT=4444
 STATE_FILE=${HEALTHCHECK_STATE_FILE:-/tmp/miner_unhealthy_since}
 MAX_UNHEALTHY_TIME=300 # 5 minutes in seconds
+GPU_DEVICES=${GPU_DEVICES:-AUTO}
 
 # Determine endpoint and process name based on miner
 if [ "$MINER" = "lolminer" ]; then
     ENDPOINT="/"
     # lolMiner hashrate is in .Total_Performance[0]
-    QUERY=".Total_Performance[0]"
+    QUERY_HASHRATE=".Total_Performance[0]"
+    QUERY_GPU_COUNT=".GPUs | length"
     PROCESS_NAME="lolMiner"
 elif [ "$MINER" = "t-rex" ]; then
     ENDPOINT="/summary"
     # T-Rex hashrate is in .hashrate
-    QUERY=".hashrate"
+    QUERY_HASHRATE=".hashrate"
+    QUERY_GPU_COUNT=".gpus | length"
     PROCESS_NAME="t-rex"
 else
     echo "Unsupported miner: $MINER"
@@ -32,11 +35,21 @@ fi
 # 2. Query the miner's API
 RESPONSE=$(curl -s "http://localhost:${API_PORT}${ENDPOINT}")
 
-# 3. Check if hashrate is > 0
+# 3. Check GPU count if GPU_DEVICES is not AUTO
+if [ "$GPU_DEVICES" != "AUTO" ]; then
+    EXPECTED_GPU_COUNT=$(echo "$GPU_DEVICES" | tr ',' '\n' | grep -v "^$" | wc -l)
+    ACTUAL_GPU_COUNT=$(echo "$RESPONSE" | jq "$QUERY_GPU_COUNT" 2>/dev/null || echo 0)
+
+    if [ "$ACTUAL_GPU_COUNT" -lt "$EXPECTED_GPU_COUNT" ]; then
+        echo "GPU count mismatch! Expected: $EXPECTED_GPU_COUNT, Actual: $ACTUAL_GPU_COUNT"
+        ./restart.sh
+        exit 1
+    fi
+fi
+
+# 4. Check if hashrate is > 0
 # We use jq to handle potential float values and ensure robust parsing.
-# If curl fails or RESPONSE is empty, jq will return false or error.
-# We use -e to set exit code based on the result of the expression.
-if echo "$RESPONSE" | jq -e "$QUERY > 0" >/dev/null 2>&1; then
+if echo "$RESPONSE" | jq -e "$QUERY_HASHRATE > 0" >/dev/null 2>&1; then
     # Miner is producing hashrate
     if [ -f "$STATE_FILE" ]; then
         echo "Miner recovered. Clearing unhealthy state."
