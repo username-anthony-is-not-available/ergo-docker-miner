@@ -42,7 +42,7 @@ COPY --from=builder /app/lolMiner /app/lolMiner
 COPY --from=builder /app/t-rex /app/t-rex
 
 # Copy scripts
-COPY start.sh metrics.sh metrics.py healthcheck.sh restart.sh ./
+COPY start.sh metrics.sh metrics.py healthcheck.sh restart.sh database.py ./
 COPY dashboard.py .
 COPY templates/ templates/
 COPY static/ static/

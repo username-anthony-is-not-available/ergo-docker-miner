@@ -4,10 +4,12 @@ import json
 import sys
 import os
 import subprocess
+import time
 
 # Add the root directory to the Python path to allow importing 'metrics'
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+import metrics
 from metrics import update_metrics, HASHRATE, AVG_FAN_SPEED, TOTAL_POWER_DRAW, GPU_HASHRATE, GPU_TEMPERATURE, GPU_POWER_DRAW, GPU_FAN_SPEED, GPU_SHARES_ACCEPTED, GPU_SHARES_REJECTED
 
 # Mock data for lolMiner API
@@ -44,10 +46,14 @@ mock_nvidia_smi_output = "35, 120.5\n40, 125.0\n"
 mock_rocm_smi_output = "card1,65,150.0W\ncard2,70,155.0W\n"
 
 class TestMetrics(unittest.TestCase):
+    def setUp(self):
+        metrics.last_prune_time = 0
+
+    @patch('database.log_history')
+    @patch('database.prune_history')
     @patch('subprocess.check_output')
-    @patch('metrics.open', new_callable=mock_open)
     @patch.dict(os.environ, {"MINER": "lolminer"})
-    def test_update_metrics_nvidia_lolminer(self, mock_open_file, mock_subprocess):
+    def test_update_metrics_nvidia_lolminer(self, mock_subprocess, mock_prune, mock_log):
         # Configure the mock to simulate the NVIDIA environment
         mock_subprocess.side_effect = [
             json.dumps(mock_lolminer_api_data).encode(),  # lolMiner API
@@ -78,10 +84,15 @@ class TestMetrics(unittest.TestCase):
         self.assertEqual(GPU_SHARES_ACCEPTED.labels(gpu=1)._value.get(), 110)
         self.assertEqual(GPU_SHARES_REJECTED.labels(gpu=1)._value.get(), 3)
 
+        # Assert log_history call
+        mock_log.assert_called_once_with(120.5, 37.5, 57.5, 210, 5)
+        mock_prune.assert_called_once()
+
+    @patch('database.log_history')
+    @patch('database.prune_history')
     @patch('subprocess.check_output')
-    @patch('metrics.open', new_callable=mock_open)
     @patch.dict(os.environ, {"MINER": "t-rex"})
-    def test_update_metrics_nvidia_trex(self, mock_open_file, mock_subprocess):
+    def test_update_metrics_nvidia_trex(self, mock_subprocess, mock_prune, mock_log):
         # Configure the mock to simulate the NVIDIA environment
         mock_subprocess.side_effect = [
             json.dumps(mock_trex_api_data).encode(),  # T-Rex API
@@ -112,10 +123,13 @@ class TestMetrics(unittest.TestCase):
         self.assertEqual(GPU_SHARES_ACCEPTED.labels(gpu=1)._value.get(), 220)
         self.assertEqual(GPU_SHARES_REJECTED.labels(gpu=1)._value.get(), 6)
 
+        # Assert log_history call
+        mock_log.assert_called_once_with(125, 37.5, 67.5, 420, 11)
 
+    @patch('database.log_history')
+    @patch('database.prune_history')
     @patch('subprocess.check_output')
-    @patch('metrics.open', new_callable=mock_open)
-    def test_update_metrics_amd(self, mock_open_file, mock_subprocess):
+    def test_update_metrics_amd(self, mock_subprocess, mock_prune, mock_log):
         # Configure the mock to simulate the AMD environment
         mock_subprocess.side_effect = [
             json.dumps(mock_lolminer_api_data).encode(),  # lolMiner API
@@ -139,9 +153,13 @@ class TestMetrics(unittest.TestCase):
         self.assertEqual(GPU_TEMPERATURE.labels(gpu=1)._value.get(), 70.0)
         self.assertEqual(GPU_POWER_DRAW.labels(gpu=1)._value.get(), 155.0)
 
+        # Assert log_history call
+        mock_log.assert_called_once_with(120.5, 67.5, 57.5, 210, 5)
+
+    @patch('database.log_history')
+    @patch('database.prune_history')
     @patch('subprocess.check_output')
-    @patch('metrics.open', new_callable=mock_open)
-    def test_no_smi_tool(self, mock_open_file, mock_subprocess):
+    def test_no_smi_tool(self, mock_subprocess, mock_prune, mock_log):
         mock_subprocess.side_effect = [
             json.dumps(mock_lolminer_api_data).encode(), # lolMiner API call
             subprocess.CalledProcessError(1, 'which'), # nvidia-smi fails
@@ -154,9 +172,12 @@ class TestMetrics(unittest.TestCase):
         self.assertEqual(TOTAL_POWER_DRAW._value.get(), 0)
         self.assertEqual(GPU_TEMPERATURE.labels(gpu=0)._value.get(), 0)
         self.assertEqual(GPU_POWER_DRAW.labels(gpu=0)._value.get(), 0)
+        mock_log.assert_called_once_with(120.5, 0.0, 57.5, 210, 5)
 
+    @patch('database.log_history')
+    @patch('database.prune_history')
     @patch('subprocess.check_output')
-    def test_api_error(self, mock_subprocess):
+    def test_api_error(self, mock_subprocess, mock_prune, mock_log):
         mock_subprocess.side_effect = subprocess.CalledProcessError(1, 'curl')
 
         update_metrics()
@@ -165,10 +186,13 @@ class TestMetrics(unittest.TestCase):
         self.assertEqual(HASHRATE._value.get(), 0)
         self.assertEqual(AVG_FAN_SPEED._value.get(), 0)
         self.assertEqual(TOTAL_POWER_DRAW._value.get(), 0)
+        # log_history should NOT be called on error
+        mock_log.assert_not_called()
 
+    @patch('database.log_history')
+    @patch('database.prune_history')
     @patch('subprocess.check_output')
-    @patch('metrics.open', new_callable=mock_open)
-    def test_no_gpus(self, mock_open_file, mock_subprocess):
+    def test_no_gpus(self, mock_subprocess, mock_prune, mock_log):
         # Mock API data with no GPUs
         mock_api_no_gpus = {"Total_Performance": [0], "GPUs": []}
         mock_subprocess.side_effect = [
@@ -182,6 +206,30 @@ class TestMetrics(unittest.TestCase):
         self.assertEqual(HASHRATE._value.get(), 0)
         self.assertEqual(AVG_FAN_SPEED._value.get(), 0)
         self.assertEqual(TOTAL_POWER_DRAW._value.get(), 0)
+        mock_log.assert_called_once_with(0, 0, 0, 0, 0)
+
+    @patch('database.log_history')
+    @patch('database.prune_history')
+    @patch('subprocess.check_output')
+    @patch('time.time')
+    def test_prune_frequency(self, mock_time, mock_subprocess, mock_prune, mock_log):
+        # Mock API data
+        mock_subprocess.return_value = json.dumps(mock_lolminer_api_data).encode()
+
+        # First call, time is 10000. last_prune_time is 0. 10000 > 3600, so prune.
+        mock_time.return_value = 10000
+        update_metrics()
+        self.assertEqual(mock_prune.call_count, 1)
+
+        # Second call, time is 11000. 11000 - 10000 = 1000 < 3600, so NO prune.
+        mock_time.return_value = 11000
+        update_metrics()
+        self.assertEqual(mock_prune.call_count, 1)
+
+        # Third call, time is 14000. 14000 - 10000 = 4000 > 3600, so prune.
+        mock_time.return_value = 14000
+        update_metrics()
+        self.assertEqual(mock_prune.call_count, 2)
 
 if __name__ == '__main__':
     unittest.main()
