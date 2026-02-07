@@ -4,3 +4,5 @@ node_modules/
 playwright-report/
 test-results/
 *.log
+*.db
+miner_history.db
