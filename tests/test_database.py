@@ -99,5 +99,24 @@ class TestDatabase(unittest.TestCase):
         history_after = database.get_history(days=1)
         self.assertEqual(len(history_after), 0)
 
+    def test_export_history_to_csv(self):
+        # Insert some data
+        database.log_history(120.5, 45.0, 60.0, 100, 2, total_power_draw=250.0)
+
+        csv_file = 'test_history.csv'
+        result = database.export_history_to_csv(csv_file, days=1)
+        self.assertTrue(result)
+        self.assertTrue(os.path.exists(csv_file))
+
+        import csv
+        with open(csv_file, 'r') as f:
+            reader = csv.DictReader(f)
+            rows = list(reader)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(float(rows[0]['hashrate']), 120.5)
+            self.assertEqual(float(rows[0]['total_power_draw']), 250.0)
+
+        os.remove(csv_file)
+
 if __name__ == '__main__':
     unittest.main()
