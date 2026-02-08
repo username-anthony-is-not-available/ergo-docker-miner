@@ -76,5 +76,12 @@ class TestDashboardLogic(unittest.TestCase):
             self.assertEqual(response.status_code, 200)
             mock_file.assert_called_once()
 
+    def test_gpu_history(self):
+        with patch('database.get_gpu_history', return_value=[]) as mock_get:
+            response = self.client.get('/gpu-history/0')
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json(), [])
+            mock_get.assert_called_once_with(gpu_index=0)
+
 if __name__ == '__main__':
     unittest.main()

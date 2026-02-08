@@ -64,9 +64,15 @@
         <h2>GPUs</h2>
         <div id="gpu-container">
         </div>
-        <h2>Hashrate History</h2>
-        <div class="chart-container">
-            <canvas id="hashrate-chart"></canvas>
+        <div class="stats-grid">
+            <div class="chart-container">
+                <h2>Hashrate History</h2>
+                <canvas id="hashrate-chart"></canvas>
+            </div>
+            <div class="chart-container">
+                <h2>Power Draw History</h2>
+                <canvas id="power-chart"></canvas>
+            </div>
         </div>
 
         <h2>Pool Profitability</h2>
@@ -97,6 +103,7 @@
     </div>
     <script>
         const socket = io();
+        let hashrateChart, powerChart;
 
         socket.on('update', function(data) {
             if (data.miner) {
@@ -167,7 +174,7 @@
                             <p><strong>Temp:</strong> <span class="temp">--</span>°C</p>
                             <p><strong>Power:</strong> <span class="power">--</span>W</p>
                             <p><strong>Fan Speed:</strong> <span class="fan-speed">--</span>%</p>
-                            <p><strong>Shares:</strong> <span class="accepted">0</span> / <span class="rejected">0</span></p>
+                            <p><strong>Shares:</strong> <span class="accepted">0</span> / <span class="rejected">0</span> <span class="share-alert" style="color: #f44336; display: none;">⚠️ High Rejects!</span></p>
                         `;
                         gpuContainer.appendChild(gpuCard);
                     }
@@ -185,7 +192,41 @@
                     gpuCard.querySelector('.fan-speed').innerText = gpu.fan_speed;
                     gpuCard.querySelector('.accepted').innerText = gpu.accepted_shares;
                     gpuCard.querySelector('.rejected').innerText = gpu.rejected_shares;
+
+                    const totalShares = gpu.accepted_shares + gpu.rejected_shares;
+                    if (totalShares >= 10 && (gpu.rejected_shares / totalShares) > 0.1) {
+                        gpuCard.querySelector('.share-alert').style.display = 'inline';
+                    } else {
+                        gpuCard.querySelector('.share-alert').style.display = 'none';
+                    }
                 });
+            }
+
+            if (data.history_point && hashrateChart && powerChart) {
+                const point = data.history_point;
+                const label = new Date(point.timestamp).toLocaleTimeString();
+
+                hashrateChart.data.labels.push(label);
+                hashrateChart.data.datasets[0].data.push(point.hashrate);
+                if (hashrateChart.data.datasets.length > 1) {
+                    hashrateChart.data.datasets[1].data.push(point.dual_hashrate);
+                }
+
+                powerChart.data.labels.push(label);
+                powerChart.data.datasets[0].data.push(point.total_power_draw);
+
+                // Keep only last 100 points
+                if (hashrateChart.data.labels.length > 100) {
+                    hashrateChart.data.labels.shift();
+                    hashrateChart.data.datasets[0].data.shift();
+                    if (hashrateChart.data.datasets.length > 1) hashrateChart.data.datasets[1].data.shift();
+
+                    powerChart.data.labels.shift();
+                    powerChart.data.datasets[0].data.shift();
+                }
+
+                hashrateChart.update('none');
+                powerChart.update('none');
             }
         });
 
@@ -215,36 +256,63 @@
             return data;
         }
 
-        async function renderHashrateChart() {
+        async function renderCharts() {
             const history = await fetchHashrateHistory();
-            const ctx = document.getElementById('hashrate-chart').getContext('2d');
+            const hashrateCtx = document.getElementById('hashrate-chart').getContext('2d');
+            const powerCtx = document.getElementById('power-chart').getContext('2d');
 
-            const datasets = [{
+            const hashrateDatasets = [{
                 label: 'Primary Hashrate (MH/s)',
                 data: history.map(d => d.hashrate),
                 borderColor: 'rgba(75, 192, 192, 1)',
-                tension: 0.1
+                tension: 0.1,
+                fill: false
             }];
 
             if (history.some(d => d.dual_hashrate > 0)) {
-                datasets.push({
+                hashrateDatasets.push({
                     label: 'Dual Hashrate (MH/s)',
                     data: history.map(d => d.dual_hashrate),
                     borderColor: 'rgba(153, 102, 255, 1)',
-                    tension: 0.1
+                    tension: 0.1,
+                    fill: false
                 });
             }
 
-            new Chart(ctx, {
+            hashrateChart = new Chart(hashrateCtx, {
                 type: 'line',
                 data: {
                     labels: history.map(d => new Date(d.timestamp).toLocaleTimeString()),
-                    datasets: datasets
+                    datasets: hashrateDatasets
+                },
+                options: {
+                    responsive: true,
+                    animation: false,
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+
+            powerChart = new Chart(powerCtx, {
+                type: 'line',
+                data: {
+                    labels: history.map(d => new Date(d.timestamp).toLocaleTimeString()),
+                    datasets: [{
+                        label: 'Total Power Draw (W)',
+                        data: history.map(d => d.total_power_draw),
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        tension: 0.1,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    animation: false,
+                    scales: { y: { beginAtZero: true } }
                 }
             });
         }
 
-        renderHashrateChart();
+        renderCharts();
 
         async function fetchPoolStats() {
             try {

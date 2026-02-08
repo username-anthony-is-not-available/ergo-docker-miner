@@ -69,7 +69,9 @@ class TestMetrics(unittest.TestCase):
         self.assertEqual(GPU_POWER_DRAW.labels(gpu="0", worker=WORKER)._value.get(), 120.5)
 
         # Assert database calls
-        mock_log.assert_called_once_with(120.5, 37.5, 57.5, 210, 5, 250.5)
+        mock_log.assert_called_once_with(
+            120.5, 37.5, 57.5, 210, 5, 250.5, 245.5, mock_full_data.return_value['gpus']
+        )
         mock_prune.assert_called_once()
 
     @patch('database.log_history')

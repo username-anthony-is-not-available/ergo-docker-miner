@@ -14,12 +14,16 @@ if [ "$MINER" = "lolminer" ]; then
     # lolMiner hashrate is in .Total_Performance[0]
     QUERY_HASHRATE=".Total_Performance[0]"
     QUERY_GPU_COUNT=".GPUs | length"
+    QUERY_ACCEPTED=".GPUs | map(.Accepted_Shares // 0) | add"
+    QUERY_REJECTED=".GPUs | map(.Rejected_Shares // 0) | add"
     PROCESS_NAME="lolMiner"
 elif [ "$MINER" = "t-rex" ]; then
     ENDPOINT="/summary"
     # T-Rex hashrate is in .hashrate
     QUERY_HASHRATE=".hashrate"
     QUERY_GPU_COUNT=".gpus | length"
+    QUERY_ACCEPTED=".accepted_count"
+    QUERY_REJECTED=".rejected_count"
     PROCESS_NAME="t-rex"
 else
     echo "Unsupported miner: $MINER"
@@ -47,6 +51,8 @@ fi
 if [ "$MULTI_PROCESS" = "true" ] && [ "$GPU_DEVICES" != "AUTO" ]; then
     TOTAL_HASHRATE=0
     TOTAL_ACTUAL_GPUS=0
+    TOTAL_ACCEPTED=0
+    TOTAL_REJECTED=0
 
     IFS=',' read -ra ADDR <<< "$GPU_DEVICES"
     for i in "${!ADDR[@]}"; do
@@ -54,17 +60,22 @@ if [ "$MULTI_PROCESS" = "true" ] && [ "$GPU_DEVICES" != "AUTO" ]; then
         CUR_RESPONSE=$(curl -s "http://localhost:${CURRENT_PORT}${ENDPOINT}")
         CUR_HASHRATE=$(echo "$CUR_RESPONSE" | jq "$QUERY_HASHRATE" 2>/dev/null || echo 0)
         CUR_GPUS=$(echo "$CUR_RESPONSE" | jq "$QUERY_GPU_COUNT" 2>/dev/null || echo 0)
+        CUR_ACCEPTED=$(echo "$CUR_RESPONSE" | jq "$QUERY_ACCEPTED" 2>/dev/null || echo 0)
+        CUR_REJECTED=$(echo "$CUR_RESPONSE" | jq "$QUERY_REJECTED" 2>/dev/null || echo 0)
 
-        # Simple integer addition for hashrate check (it's enough to know if it's > 0)
         # We use jq to handle potential float hashrates
         TOTAL_HASHRATE=$(jq -n "$TOTAL_HASHRATE + $CUR_HASHRATE")
         TOTAL_ACTUAL_GPUS=$((TOTAL_ACTUAL_GPUS + CUR_GPUS))
+        TOTAL_ACCEPTED=$((TOTAL_ACCEPTED + CUR_ACCEPTED))
+        TOTAL_REJECTED=$((TOTAL_REJECTED + CUR_REJECTED))
     done
 
     # Synthesize a response for the subsequent checks
-    RESPONSE="{\"hashrate\": $TOTAL_HASHRATE, \"gpu_count\": $TOTAL_ACTUAL_GPUS}"
+    RESPONSE="{\"hashrate\": $TOTAL_HASHRATE, \"gpu_count\": $TOTAL_ACTUAL_GPUS, \"accepted\": $TOTAL_ACCEPTED, \"rejected\": $TOTAL_REJECTED}"
     QUERY_HASHRATE=".hashrate"
     QUERY_GPU_COUNT=".gpu_count"
+    QUERY_ACCEPTED=".accepted"
+    QUERY_REJECTED=".rejected"
 else
     RESPONSE=$(curl -s "http://localhost:${API_PORT}${ENDPOINT}")
 fi
@@ -81,7 +92,23 @@ if [ "$GPU_DEVICES" != "AUTO" ]; then
     fi
 fi
 
-# 4. Check if hashrate is > 0
+# 4. Check for high rejected share ratio
+ACCEPTED_SHARES=$(echo "$RESPONSE" | jq "$QUERY_ACCEPTED" 2>/dev/null || echo 0)
+REJECTED_SHARES=$(echo "$RESPONSE" | jq "$QUERY_REJECTED" 2>/dev/null || echo 0)
+TOTAL_SHARES=$((ACCEPTED_SHARES + REJECTED_SHARES))
+
+if [ "$TOTAL_SHARES" -ge 20 ]; then
+    # Calculate ratio as percentage. Using bash arithmetic for simplicity.
+    # We multiply by 100 first to avoid floating point issues.
+    REJECT_RATIO=$(( (REJECTED_SHARES * 100) / TOTAL_SHARES ))
+    if [ "$REJECT_RATIO" -gt 10 ]; then
+        echo "High rejected share ratio detected! Rejected: $REJECTED_SHARES, Total: $TOTAL_SHARES ($REJECT_RATIO%)"
+        ./restart.sh
+        exit 1
+    fi
+fi
+
+# 5. Check if hashrate is > 0
 # We use jq to handle potential float values and ensure robust parsing.
 if echo "$RESPONSE" | jq -e "$QUERY_HASHRATE > 0" >/dev/null 2>&1; then
     # Miner is producing hashrate

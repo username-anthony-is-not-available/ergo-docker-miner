@@ -7,6 +7,7 @@ import asyncio
 import os
 import subprocess
 import logging
+from datetime import datetime
 from typing import Dict, Any, Optional
 import database
 from miner_api import get_full_miner_data, get_gpu_names, get_system_info
@@ -60,6 +61,15 @@ async def background_task() -> None:
             if data:
                 miner_data = data
                 miner_data['system_info'] = system_info # Ensure it's fresh
+
+                # Include the latest history point for real-time chart updates
+                miner_data['history_point'] = {
+                    'timestamp': datetime.now().isoformat(),
+                    'hashrate': data.get('total_hashrate', 0),
+                    'dual_hashrate': data.get('total_dual_hashrate', 0),
+                    'total_power_draw': data.get('total_power_draw', 0)
+                }
+
                 await sio.emit('update', miner_data)
             else:
                 miner_data['status'] = 'Error: Miner API unreachable'
@@ -108,6 +118,11 @@ async def restart():
 @app.get("/hashrate-history")
 async def hashrate_history():
     history = await asyncio.to_thread(database.get_history)
+    return history
+
+@app.get("/gpu-history/{gpu_index}")
+async def gpu_history(gpu_index: int):
+    history = await asyncio.to_thread(database.get_gpu_history, gpu_index=gpu_index)
     return history
 
 @app.get("/api/logs")

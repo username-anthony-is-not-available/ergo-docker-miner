@@ -56,22 +56,27 @@ def get_pool_profitability(pool: Dict) -> float:
         effort = 1.0 # Default effort (100% luck)
 
         if pool["type"] == "2miners":
-            # 2Miners 'luck' is current round luck, can be very volatile.
-            # For a 'simple' supervisor, we might just use the fee if no long-term effort is found.
-            # But let's try to find something.
-            pass
+            # 2Miners 'luck' is current round luck in percentage.
+            # We convert it to a factor (100% = 1.0)
+            luck = data.get("luck", 100.0)
+            if isinstance(luck, str):
+                luck = float(luck)
+            effort = luck / 100.0
 
         elif pool["type"] == "herominers":
             # HeroMiners has 'effort_1d' (average effort over 24h)
             effort = data.get("effort_1d", 1.0)
 
         elif pool["type"] == "nanopool":
-            # Nanopool API response structure varies, using default for now
-            pass
+            # Nanopool has 'luck' in some responses, but the stats endpoint is currently 404ing or different.
+            # For now, we'll use a more robust way to handle the data if it exists.
+            if "luck" in data:
+                effort = float(data["luck"]) / 100.0
 
         elif pool["type"] == "woolypooly":
-            # WoolyPooly API response structure varies, using default for now
-            pass
+            # WoolyPooly 'luck' or 'effort' might be in the response.
+            if "luck" in data:
+                effort = float(data["luck"]) / 100.0
 
         score = (1.0 - fee) / max(effort, 0.01)
         return score

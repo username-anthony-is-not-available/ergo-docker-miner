@@ -26,21 +26,42 @@ class TestDatabase(unittest.TestCase):
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='history'")
             self.assertIsNotNone(cursor.fetchone())
 
-            # Verify dual_hashrate column exists
+            # Verify columns exist
             cursor.execute("PRAGMA table_info(history)")
             columns = [column[1] for column in cursor.fetchall()]
             self.assertIn('dual_hashrate', columns)
+            self.assertIn('total_power_draw', columns)
+
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='gpu_history'")
+            self.assertIsNotNone(cursor.fetchone())
 
     def test_log_and_get_history(self):
-        database.log_history(120.5, 45.0, 60.0, 100, 2, dual_hashrate=50.5)
+        gpus = [
+            {'index': 0, 'hashrate': 60.0, 'dual_hashrate': 25.0, 'temperature': 44.0, 'power_draw': 120.0, 'fan_speed': 55.0, 'accepted_shares': 50, 'rejected_shares': 1},
+            {'index': 1, 'hashrate': 60.5, 'dual_hashrate': 25.5, 'temperature': 46.0, 'power_draw': 130.0, 'fan_speed': 65.0, 'accepted_shares': 50, 'rejected_shares': 1}
+        ]
+        database.log_history(120.5, 45.0, 60.0, 100, 2, dual_hashrate=50.5, total_power_draw=250.0, gpus=gpus)
+
         history = database.get_history(days=1)
         self.assertEqual(len(history), 1)
         self.assertEqual(history[0]['hashrate'], 120.5)
         self.assertEqual(history[0]['dual_hashrate'], 50.5)
         self.assertEqual(history[0]['avg_temp'], 45.0)
         self.assertEqual(history[0]['avg_fan_speed'], 60.0)
+        self.assertEqual(history[0]['total_power_draw'], 250.0)
         self.assertEqual(history[0]['accepted_shares'], 100)
         self.assertEqual(history[0]['rejected_shares'], 2)
+
+        gpu_history = database.get_gpu_history(days=1)
+        self.assertEqual(len(gpu_history), 2)
+        self.assertEqual(gpu_history[0]['gpu_index'], 0)
+        self.assertEqual(gpu_history[0]['hashrate'], 60.0)
+        self.assertEqual(gpu_history[1]['gpu_index'], 1)
+        self.assertEqual(gpu_history[1]['power_draw'], 130.0)
+
+        gpu0_history = database.get_gpu_history(gpu_index=0, days=1)
+        self.assertEqual(len(gpu0_history), 1)
+        self.assertEqual(gpu0_history[0]['gpu_index'], 0)
 
     def test_prune_history(self):
         # Insert some old data

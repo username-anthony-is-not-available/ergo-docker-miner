@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Implement detailed per-GPU historical tracking in a new `gpu_history` database table.
+- Add real-time, non-refresh chart updates to the web dashboard using Socket.IO.
+- Add total power draw history chart and rig-wide power tracking in the dashboard.
+- New `/gpu-history/{gpu_index}` API endpoint for granular performance analysis.
+- Implement rejected share ratio monitoring in `healthcheck.sh` with automated restart threshold (10%).
+- Improve `profit_switcher.py` with actual luck/effort parsing for 2Miners, Nanopool, and WoolyPooly.
 - Enhance profit switcher with configurable `PROFIT_SWITCHING_THRESHOLD` and `PROFIT_SWITCHING_INTERVAL`.
 - Add Nanopool and WoolyPooly support to the profit switcher for feature parity with `setup.sh`.
 - Collect and expose GPU fan speed from hardware SMI in the dashboard and metrics.
