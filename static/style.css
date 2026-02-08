@@ -180,3 +180,32 @@ nav button:hover {
     color: #721c24;
     border: 1px solid #f5c6cb;
 }
+
+.table-container {
+    overflow-x: auto;
+    margin-bottom: 2rem;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #f7f8fa;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+th, td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #dddfe2;
+}
+
+th {
+    background-color: #e4e6eb;
+    color: #4b4f56;
+    font-weight: 600;
+}
+
+tr:hover {
+    background-color: #f0f2f5;
+}

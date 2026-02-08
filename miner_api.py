@@ -4,8 +4,27 @@ import os
 import logging
 from typing import List, Dict, Any, Optional
 import time
+import psutil
 
 logger = logging.getLogger(__name__)
+
+def get_system_info() -> Dict[str, Any]:
+    """Fetches system info (CPU, RAM, Disk)."""
+    try:
+        return {
+            'cpu_usage': psutil.cpu_percent(interval=0.1),
+            'memory_usage': psutil.virtual_memory().percent,
+            'disk_usage': psutil.disk_usage('/').percent,
+            'host_uptime': time.time() - psutil.boot_time()
+        }
+    except Exception as e:
+        logger.error(f"Error fetching system info: {e}")
+        return {
+            'cpu_usage': 0,
+            'memory_usage': 0,
+            'disk_usage': 0,
+            'host_uptime': 0
+        }
 
 def get_gpu_names() -> List[str]:
     """Fetches GPU names from nvidia-smi or rocm-smi."""
