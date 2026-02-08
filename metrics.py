@@ -4,7 +4,7 @@ import os
 import logging
 import requests
 import database
-from miner_api import get_full_miner_data
+from miner_api import get_full_miner_data, get_node_status
 
 # Configure logging
 logging.basicConfig(
@@ -22,6 +22,8 @@ MINER_VERSION = os.getenv('LOLMINER_VERSION' if MINER_TYPE == 'lolminer' else 'T
 INFO = Gauge('miner_info', 'Miner information', ['miner', 'version', 'worker'])
 UPTIME = Gauge('miner_uptime', 'Miner uptime in seconds', ['worker'])
 API_UP = Gauge('miner_api_up', 'Whether the miner API is reachable (1) or not (0)', ['worker'])
+GPU_COUNT = Gauge('miner_gpu_count', 'Number of GPUs detected by the miner', ['worker'])
+NODE_SYNCED = Gauge('miner_node_synced', 'Whether the Ergo node is synced (1) or not (0)', ['worker'])
 
 HASHRATE = Gauge('miner_hashrate', 'Total hashrate in MH/s', ['worker'])
 DUAL_HASHRATE = Gauge('miner_dual_hashrate', 'Total dual hashrate in MH/s', ['worker'])
@@ -74,6 +76,10 @@ def update_metrics() -> None:
     global last_prune_time, unhealthy_since, is_currently_notified
     try:
         data = get_full_miner_data()
+        node_status = get_node_status()
+
+        # Update node sync metric
+        NODE_SYNCED.labels(worker=WORKER).set(1 if node_status.get('is_synced') else 0)
 
         # Telegram health check logic
         is_unhealthy = (data is None) or (data.get('total_hashrate', 0) == 0)
@@ -97,6 +103,7 @@ def update_metrics() -> None:
         if not data:
             logger.error("Failed to fetch consolidated miner data")
             API_UP.labels(worker=WORKER).set(0)
+            GPU_COUNT.labels(worker=WORKER).set(0)
             HASHRATE.labels(worker=WORKER).set(0)
             DUAL_HASHRATE.labels(worker=WORKER).set(0)
             AVG_FAN_SPEED.labels(worker=WORKER).set(0)
@@ -105,6 +112,7 @@ def update_metrics() -> None:
 
         # Set global metrics from pre-calculated aggregates
         API_UP.labels(worker=WORKER).set(1)
+        GPU_COUNT.labels(worker=WORKER).set(len(data.get('gpus', [])))
         UPTIME.labels(worker=WORKER).set(data.get('uptime', 0))
         HASHRATE.labels(worker=WORKER).set(data.get('total_hashrate', 0))
         DUAL_HASHRATE.labels(worker=WORKER).set(data.get('total_dual_hashrate', 0))
