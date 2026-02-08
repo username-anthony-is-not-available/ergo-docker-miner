@@ -7,18 +7,20 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import metrics
-from metrics import update_metrics, HASHRATE, DUAL_HASHRATE, AVG_FAN_SPEED, TOTAL_POWER_DRAW, TOTAL_SHARES_ACCEPTED, TOTAL_SHARES_REJECTED, GPU_HASHRATE, GPU_TEMPERATURE, GPU_POWER_DRAW
+from metrics import update_metrics, HASHRATE, DUAL_HASHRATE, AVG_FAN_SPEED, TOTAL_POWER_DRAW, TOTAL_SHARES_ACCEPTED, TOTAL_SHARES_REJECTED, GPU_HASHRATE, GPU_TEMPERATURE, GPU_POWER_DRAW, WORKER, API_UP, UPTIME, INFO
 
 class TestMetrics(unittest.TestCase):
     def setUp(self):
         metrics.last_prune_time = 0
         # Reset Prometheus metrics
-        HASHRATE.set(0)
-        DUAL_HASHRATE.set(0)
-        AVG_FAN_SPEED.set(0)
-        TOTAL_POWER_DRAW.set(0)
-        TOTAL_SHARES_ACCEPTED.set(0)
-        TOTAL_SHARES_REJECTED.set(0)
+        HASHRATE.labels(worker=WORKER).set(0)
+        DUAL_HASHRATE.labels(worker=WORKER).set(0)
+        AVG_FAN_SPEED.labels(worker=WORKER).set(0)
+        TOTAL_POWER_DRAW.labels(worker=WORKER).set(0)
+        TOTAL_SHARES_ACCEPTED.labels(worker=WORKER).set(0)
+        TOTAL_SHARES_REJECTED.labels(worker=WORKER).set(0)
+        API_UP.labels(worker=WORKER).set(0)
+        UPTIME.labels(worker=WORKER).set(0)
 
     @patch('database.log_history')
     @patch('database.prune_history')
@@ -49,17 +51,22 @@ class TestMetrics(unittest.TestCase):
         update_metrics()
 
         # Assert global metrics
-        self.assertEqual(HASHRATE._value.get(), 120.5)
-        self.assertEqual(DUAL_HASHRATE._value.get(), 250.5)
-        self.assertEqual(TOTAL_POWER_DRAW._value.get(), 245.5)
-        self.assertEqual(AVG_FAN_SPEED._value.get(), 57.5)
-        self.assertEqual(TOTAL_SHARES_ACCEPTED._value.get(), 210)
-        self.assertEqual(TOTAL_SHARES_REJECTED._value.get(), 5)
+        self.assertEqual(HASHRATE.labels(worker=WORKER)._value.get(), 120.5)
+        self.assertEqual(DUAL_HASHRATE.labels(worker=WORKER)._value.get(), 250.5)
+        self.assertEqual(TOTAL_POWER_DRAW.labels(worker=WORKER)._value.get(), 245.5)
+        self.assertEqual(AVG_FAN_SPEED.labels(worker=WORKER)._value.get(), 57.5)
+        self.assertEqual(TOTAL_SHARES_ACCEPTED.labels(worker=WORKER)._value.get(), 210)
+        self.assertEqual(TOTAL_SHARES_REJECTED.labels(worker=WORKER)._value.get(), 5)
+        self.assertEqual(API_UP.labels(worker=WORKER)._value.get(), 1)
+        self.assertEqual(UPTIME.labels(worker=WORKER)._value.get(), 0) # Mock uptime is 0 unless specified
+
+        # Assert info metric
+        self.assertEqual(INFO.labels(miner=metrics.MINER_TYPE, version=metrics.MINER_VERSION, worker=WORKER)._value.get(), 1)
 
         # Assert GPU metrics
-        self.assertEqual(GPU_HASHRATE.labels(gpu="0")._value.get(), 60.2)
-        self.assertEqual(GPU_TEMPERATURE.labels(gpu="0")._value.get(), 35.0)
-        self.assertEqual(GPU_POWER_DRAW.labels(gpu="0")._value.get(), 120.5)
+        self.assertEqual(GPU_HASHRATE.labels(gpu="0", worker=WORKER)._value.get(), 60.2)
+        self.assertEqual(GPU_TEMPERATURE.labels(gpu="0", worker=WORKER)._value.get(), 35.0)
+        self.assertEqual(GPU_POWER_DRAW.labels(gpu="0", worker=WORKER)._value.get(), 120.5)
 
         # Assert database calls
         mock_log.assert_called_once_with(120.5, 37.5, 57.5, 210, 5, 250.5)
@@ -73,8 +80,9 @@ class TestMetrics(unittest.TestCase):
 
         update_metrics()
 
-        self.assertEqual(HASHRATE._value.get(), 0)
-        self.assertEqual(TOTAL_POWER_DRAW._value.get(), 0)
+        self.assertEqual(HASHRATE.labels(worker=WORKER)._value.get(), 0)
+        self.assertEqual(TOTAL_POWER_DRAW.labels(worker=WORKER)._value.get(), 0)
+        self.assertEqual(API_UP.labels(worker=WORKER)._value.get(), 0)
         mock_log.assert_not_called()
 
 if __name__ == '__main__':
