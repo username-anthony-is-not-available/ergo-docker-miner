@@ -60,6 +60,7 @@ def get_services_status() -> Dict[str, str]:
     services = {
         'metrics.py': 'Stopped',
         'profit_switcher.py': 'Stopped',
+        'report_generator.py': 'Stopped',
         'cuda_monitor.sh': 'Stopped'
     }
     try:
@@ -85,6 +86,7 @@ def restart_service(service_name: str) -> bool:
     allowed_services = {
         'metrics.py': 'python3 metrics.py',
         'profit_switcher.py': 'python3 profit_switcher.py',
+        'report_generator.py': 'python3 report_generator.py',
         'cuda_monitor.sh': './cuda_monitor.sh'
     }
 
