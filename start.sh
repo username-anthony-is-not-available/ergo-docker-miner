@@ -134,6 +134,20 @@ if [ "$AUTO_RESTART_ON_CUDA_ERROR" = "true" ]; then
   ./cuda_monitor.sh &
 fi
 
+# Ergo Node Sync Check
+if [ "$CHECK_NODE_SYNC" = "true" ]; then
+  NODE_URL=${NODE_URL:-http://localhost:9053}
+  echo "Ergo Node Sync Check enabled. Checking $NODE_URL..."
+
+  until [ "$(curl -s "${NODE_URL}/info" | jq -r 'if .fullHeight != null and .headersHeight != null and .fullHeight >= .headersHeight then "true" else "false" end')" = "true" ]; do
+    FULL_HEIGHT=$(curl -s "${NODE_URL}/info" | jq -r '.fullHeight // "null"')
+    HEADERS_HEIGHT=$(curl -s "${NODE_URL}/info" | jq -r '.headersHeight // "null"')
+    echo "Waiting for Ergo Node to sync... (Full: $FULL_HEIGHT, Headers: $HEADERS_HEIGHT)"
+    sleep 60
+  done
+  echo "Ergo Node is synced! Proceeding to start miner."
+fi
+
 # Start GPU monitoring in the background based on available tools
 if command -v nvidia-smi &> /dev/null; then
   (

@@ -234,6 +234,18 @@ else
     AUTO_RESTART_ON_CUDA_ERROR="false"
 fi
 
+# 12. Ergo Node Integration
+echo -e "\n${GREEN}12. Ergo Node Integration${NC}"
+read -p "Pause mining if local Ergo node is out of sync? (y/n) [n]: " NODE_SYNC_CHOICE
+if [[ "$NODE_SYNC_CHOICE" =~ ^[Yy]$ ]]; then
+    CHECK_NODE_SYNC="true"
+    read -p "Enter Ergo Node API URL [http://localhost:9053]: " NODE_URL
+    NODE_URL=${NODE_URL:-http://localhost:9053}
+else
+    CHECK_NODE_SYNC="false"
+    NODE_URL=""
+fi
+
 # Generate .env file
 echo -e "\n${BLUE}Generating .env file...${NC}"
 cat <<EOF > .env
@@ -267,6 +279,10 @@ TELEGRAM_ENABLE=${TELEGRAM_ENABLE}
 
 # Auto-Restart on CUDA Error
 AUTO_RESTART_ON_CUDA_ERROR=${AUTO_RESTART_ON_CUDA_ERROR}
+
+# Ergo Node Integration
+CHECK_NODE_SYNC=${CHECK_NODE_SYNC}
+NODE_URL=${NODE_URL}
 EOF
 
 if [ "$TELEGRAM_ENABLE" == "true" ]; then

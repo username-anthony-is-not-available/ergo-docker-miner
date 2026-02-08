@@ -43,6 +43,11 @@
                 <h2>Efficiency</h2>
                 <p id="total-efficiency">-- MH/W</p>
             </div>
+            <div id="node-status-card" class="stat-card" style="display: none;">
+                <h2>Ergo Node</h2>
+                <p id="node-sync-status">--</p>
+                <small id="node-height">Height: -- / --</small>
+            </div>
         </div>
 
         <h2>System Information</h2>
@@ -163,6 +168,25 @@
                 document.getElementById('total-dual-hashrate').innerText = `${data.total_dual_hashrate.toFixed(2)} MH/s`;
             } else {
                 document.getElementById('dual-hashrate-card').style.display = 'none';
+            }
+
+            if (data.node_status && data.node_status.enabled) {
+                document.getElementById('node-status-card').style.display = 'block';
+                const nodeStatus = data.node_status;
+                const syncEl = document.getElementById('node-sync-status');
+
+                if (nodeStatus.is_synced) {
+                    syncEl.innerText = 'Synced';
+                    syncEl.style.color = '#4caf50';
+                } else {
+                    syncEl.innerText = nodeStatus.error ? 'Error' : 'Syncing...';
+                    syncEl.style.color = '#ff9800';
+                    if (nodeStatus.error) syncEl.style.color = '#f44336';
+                }
+
+                document.getElementById('node-height').innerText = `Height: ${nodeStatus.full_height || 0} / ${nodeStatus.headers_height || 0}`;
+            } else {
+                document.getElementById('node-status-card').style.display = 'none';
             }
 
             if (data.uptime !== undefined) {

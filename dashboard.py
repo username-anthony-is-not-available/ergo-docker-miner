@@ -10,7 +10,7 @@ import logging
 from datetime import datetime
 from typing import Dict, Any, Optional
 import database
-from miner_api import get_full_miner_data, get_gpu_names, get_system_info, restart_service
+from miner_api import get_full_miner_data, get_gpu_names, get_system_info, restart_service, get_node_status
 from contextlib import asynccontextmanager
 from env_config import read_env_file, write_env_file
 import profit_switcher
@@ -53,14 +53,21 @@ async def background_task() -> None:
     while True:
         global miner_data
         try:
-            # Fetch system info regardless of miner status
+            # Fetch system info and node status regardless of miner status
             system_info = await asyncio.to_thread(get_system_info)
+            node_status = await asyncio.to_thread(get_node_status)
 
             # get_full_miner_data is synchronous, but we can run it in a thread to not block the event loop
             data = await asyncio.to_thread(get_full_miner_data)
+
             if data:
                 miner_data = data
-                miner_data['system_info'] = system_info # Ensure it's fresh
+                miner_data['system_info'] = system_info
+                miner_data['node_status'] = node_status
+
+                # If node sync check is enabled and node is not synced, update status
+                if node_status.get('enabled') and not node_status.get('is_synced'):
+                    miner_data['status'] = 'Waiting for Node Sync'
 
                 # Include the latest history point for real-time chart updates
                 miner_data['history_point'] = {
@@ -73,7 +80,13 @@ async def background_task() -> None:
                 await sio.emit('update', miner_data)
             else:
                 miner_data['status'] = 'Error: Miner API unreachable'
+
+                # If node sync check is enabled and node is not synced, it's more specific than API unreachable
+                if node_status.get('enabled') and not node_status.get('is_synced'):
+                    miner_data['status'] = 'Waiting for Node Sync'
+
                 miner_data['system_info'] = system_info
+                miner_data['node_status'] = node_status
                 await sio.emit('update', miner_data)
         except Exception as e:
             logger.error(f"Error in background task: {e}")
