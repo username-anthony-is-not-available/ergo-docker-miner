@@ -28,6 +28,8 @@ RUN apt-get update && \
     python3 \
     python3-pip \
     rocm-smi \
+    rocm-opencl-runtime \
+    clinfo \
     procps \
     gosu && \
     rm -rf /var/lib/apt/lists/*
