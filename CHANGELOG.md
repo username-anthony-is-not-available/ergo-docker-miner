@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Add 'Overclocking Bible' for RTX 40-series GPUs (`OVERCLOCKING.md`) with community-tested settings and efficiency tips.
 - Implement individual background service management with new `/api/services/restart/{service_name}` endpoint and dashboard buttons.
 - Export `GPU_DEVICES` in `start.sh` for reliable environment propagation to background processes.
 - Implement GPU name caching in `miner_api.py` to reduce SMI overhead and improve dashboard responsiveness.

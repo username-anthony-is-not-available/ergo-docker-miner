@@ -165,6 +165,8 @@ Overclocking can be risky and may damage your hardware if not done correctly. Th
 
 ### **Configuration**
 
+For a detailed guide on the best overclocking settings for the latest hardware, check out our **[Overclocking Bible (RTX 40-Series)](OVERCLOCKING.md)**.
+
 To enable overclocking, set the `APPLY_OC` environment variable to `true` in your `.env` file. You can then use the following variables to configure your desired settings:
 
 -   `GPU_CLOCK_OFFSET`: The desired GPU clock offset in MHz.
