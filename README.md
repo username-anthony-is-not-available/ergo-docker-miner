@@ -267,6 +267,19 @@ The image includes a built-in Prometheus exporter that provides key performance 
 -   **URL:** `http://<your-docker-host>:4455/metrics`
 -   **Format:** Prometheus Text-Based
 
+### **Key Metrics**
+
+The exporter provides the following metrics, all labeled with `worker` for easy multi-rig aggregation:
+
+- `miner_info`: Static information including `miner` type and `version`.
+- `miner_hashrate`: Total rig hashrate in MH/s.
+- `miner_uptime`: Miner session uptime in seconds.
+- `miner_api_up`: Status of the miner API (1 for UP, 0 for DOWN).
+- `miner_total_power_draw`: Total power consumption in watts.
+- `miner_gpu_hashrate`: Per-GPU hashrate (labeled with `gpu` index).
+- `miner_gpu_temperature`: Per-GPU temperature in °C.
+- `miner_gpu_power_draw`: Per-GPU power draw in watts.
+
 This endpoint can be scraped by a Prometheus server to collect and store the metrics over time.
 
 ### Grafana Dashboard
