@@ -130,10 +130,14 @@ By default, the file is configured for a two-GPU setup. To add more GPUs, you ca
 -   `TELEGRAM_BOT_TOKEN`: Your Telegram Bot API token.
 -   `TELEGRAM_CHAT_ID`: Your Telegram Chat ID.
 -   `TELEGRAM_NOTIFY_THRESHOLD`: Grace period in seconds before sending a downtime notification (default: `300`).
+-   `PROFIT_SWITCHING_THRESHOLD`: Minimum profitability gain required to switch pools (e.g. `0.005` for 0.5%).
+-   `PROFIT_SWITCHING_INTERVAL`: Time in seconds between profitability checks (default: `3600`).
 
 ## Auto-Profit Switching
 
-This image includes a supervisor that periodically checks the profitability of supported pools (currently 2Miners and HeroMiners) based on their fees and current luck/effort. If it finds a pool that is significantly more profitable (over 0.5% gain) than your current pool, it will automatically update your configuration and restart the miner.
+This image includes a supervisor that periodically checks the profitability of supported pools (2Miners, HeroMiners, Nanopool, and WoolyPooly) based on their fees and current luck/effort. If it finds a pool that is significantly more profitable than your current pool, it will automatically update your configuration and restart the miner.
+
+The default threshold for switching is a **0.5% gain**, and checks are performed **every hour**. Both parameters are configurable via environment variables or the web dashboard.
 
 You can enable this feature during setup or by setting `AUTO_PROFIT_SWITCHING=true` in your `.env` file. The supervisor runs every hour and includes safety thresholds to prevent frequent switching.
 

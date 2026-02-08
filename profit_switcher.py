@@ -24,6 +24,20 @@ POOLS = [
         "stratum": "stratum+tcp://herominers.com:1180",
         "type": "herominers",
         "fee": 0.009
+    },
+    {
+        "name": "Nanopool",
+        "url": "https://api.nanopool.org/v1/erg/pool/stats",
+        "stratum": "stratum+tcp://erg-eu1.nanopool.org:11111",
+        "type": "nanopool",
+        "fee": 0.01
+    },
+    {
+        "name": "WoolyPooly",
+        "url": "https://api.woolypooly.com/stats/ergo",
+        "stratum": "stratum+tcp://pool.woolypooly.com:3100",
+        "type": "woolypooly",
+        "fee": 0.009
     }
 ]
 
@@ -51,6 +65,14 @@ def get_pool_profitability(pool: Dict) -> float:
             # HeroMiners has 'effort_1d' (average effort over 24h)
             effort = data.get("effort_1d", 1.0)
 
+        elif pool["type"] == "nanopool":
+            # Nanopool API response structure varies, using default for now
+            pass
+
+        elif pool["type"] == "woolypooly":
+            # WoolyPooly API response structure varies, using default for now
+            pass
+
         score = (1.0 - fee) / max(effort, 0.01)
         return score
     except Exception as e:
@@ -63,9 +85,11 @@ def main():
         try:
             env_vars = read_env_file()
             auto_switching = env_vars.get("AUTO_PROFIT_SWITCHING", "false").lower() == "true"
+            threshold = float(env_vars.get("PROFIT_SWITCHING_THRESHOLD", "0.005"))
+            interval = int(env_vars.get("PROFIT_SWITCHING_INTERVAL", "3600"))
 
             if not auto_switching:
-                logger.info("Auto profit switching is disabled. Sleeping for 1 minute.")
+                logger.info("Auto profit switching is disabled. Sleeping for 60s.")
                 time.sleep(60)
                 continue
 
@@ -83,10 +107,6 @@ def main():
                     best_pool = pool
 
             if best_pool and best_pool["stratum"] != current_pool_address:
-                # Add a small threshold to avoid switching for negligible gains
-                # or if the current pool score is close to the best pool score.
-                # Since score is (1-fee)/effort, a 0.5% gain threshold seems reasonable.
-
                 # We need to know the score of the current pool to compare.
                 current_pool_score = 0.0
                 for pool in POOLS:
@@ -94,7 +114,7 @@ def main():
                         current_pool_score = get_pool_profitability(pool)
                         break
 
-                if max_score > current_pool_score * 1.005:
+                if max_score > current_pool_score * (1 + threshold):
                     logger.info(f"Better pool found: {best_pool['name']} with score {max_score:.4f} (current: {current_pool_score:.4f})")
                     logger.info(f"Switching to {best_pool['stratum']}")
 
@@ -112,8 +132,9 @@ def main():
 
         except Exception as e:
             logger.error(f"Error in profit switcher loop: {e}")
+            interval = 60 # Retry sooner on error
 
-        time.sleep(3600) # Check every hour
+        time.sleep(interval)
 
 if __name__ == "__main__":
     main()

@@ -38,12 +38,19 @@ class TestProfitSwitcher(unittest.TestCase):
         # Current pool is 2Miners
         mock_read_env.return_value = {
             "AUTO_PROFIT_SWITCHING": "true",
-            "POOL_ADDRESS": "stratum+tcp://erg.2miners.com:8080"
+            "POOL_ADDRESS": "stratum+tcp://erg.2miners.com:8080",
+            "PROFIT_SWITCHING_THRESHOLD": "0.1", # 10%
+            "PROFIT_SWITCHING_INTERVAL": "1800"
         }
 
-        # HeroMiners is more profitable
-        # Scores: 2Miners=0.99, HeroMiners=1.2
-        mock_get_profit.side_effect = [0.99, 1.2, 0.99, 1.2]
+        # Use a dictionary to return consistent scores based on pool name
+        scores = {
+            "2Miners": 0.99,
+            "HeroMiners": 1.2,
+            "Nanopool": 1.0,
+            "WoolyPooly": 1.05
+        }
+        mock_get_profit.side_effect = lambda pool: scores[pool["name"]]
 
         try:
             profit_switcher.main()

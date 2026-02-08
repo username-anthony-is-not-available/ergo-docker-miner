@@ -28,6 +28,8 @@ fi
 # Dual Worker: test-worker-dual
 # Extra Args: --extra-param 1
 # Profit Switch: y
+# Threshold: 0.01
+# Interval: 7200
 # Telegram: y
 # Telegram Token: MyToken
 # Telegram ID: MyID
@@ -52,6 +54,8 @@ MyDualPool
 test-worker-dual
 --extra-param 1
 y
+0.01
+7200
 y
 MyToken
 MyID
@@ -91,6 +95,8 @@ check_var "DUAL_POOL=MyDualPool"
 check_var "DUAL_WORKER=test-worker-dual"
 check_var "EXTRA_ARGS=--extra-param 1"
 check_var "AUTO_PROFIT_SWITCHING=true"
+check_var "PROFIT_SWITCHING_THRESHOLD=0.01"
+check_var "PROFIT_SWITCHING_INTERVAL=7200"
 check_var "TELEGRAM_ENABLE=true"
 check_var "TELEGRAM_BOT_TOKEN=MyToken"
 check_var "TELEGRAM_CHAT_ID=MyID"
