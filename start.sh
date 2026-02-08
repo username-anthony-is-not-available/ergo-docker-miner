@@ -1,5 +1,20 @@
 #!/bin/bash
 
+# Support Docker secrets for sensitive variables
+load_secret() {
+    local var=$1
+    local file="/run/secrets/$var"
+    if [ -f "$file" ]; then
+        if [ -z "${!var}" ]; then
+            export "$var"=$(cat "$file" | tr -d '\r\n')
+            echo "Loaded $var from secret."
+        fi
+    fi
+}
+
+load_secret WALLET_ADDRESS
+load_secret DUAL_WALLET
+
 # Handle privilege dropping if running as root
 if [ "$(id -u)" = '0' ]; then
   echo "Running as root. Ensuring /app ownership and applying OC settings..."

@@ -170,7 +170,7 @@ def main():
         with st.form("config_form"):
             # Group settings
             st.subheader("Wallet & Pool")
-            wallet = st.text_input("Wallet Address", value=config.get('WALLET_ADDRESS', ''))
+            wallet = st.text_input("Wallet Address", value=os.getenv('WALLET_ADDRESS', config.get('WALLET_ADDRESS', '')))
             pool = st.text_input("Pool Address", value=config.get('POOL_ADDRESS', ''))
             worker = st.text_input("Worker Name", value=config.get('WORKER_NAME', 'ergo-miner'))
 

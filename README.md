@@ -197,6 +197,24 @@ docker run --user 1000:1000 ...
 ```
 *Note: If started as a non-root user, the automatic overclocking feature will be skipped as it requires root privileges.*
 
+### Docker Secrets
+For improved security, you can use Docker secrets to provide sensitive information like wallet addresses instead of including them in plain text in your `docker-compose.yml` or `.env` file.
+
+The following secrets are supported:
+- `WALLET_ADDRESS`: Your primary Ergo wallet address.
+- `DUAL_WALLET`: Your wallet address for the second coin (if dual mining).
+
+To use secrets in Docker Compose:
+```yaml
+services:
+  nvidia:
+    # ...
+    secrets:
+      - WALLET_ADDRESS
+secrets:
+  WALLET_ADDRESS:
+    file: ./wallet_address.txt
+```
 
 ### GPU Tuning Profiles
 
