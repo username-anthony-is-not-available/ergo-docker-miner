@@ -55,38 +55,50 @@ def get_pool_profitability(pool: Dict) -> float:
     try:
         response = requests.get(pool["url"], timeout=10)
         response.raise_for_status()
-        data = response.json()
+        try:
+            data = response.json()
+        except ValueError:
+            logger.error(f"Invalid JSON from {pool['name']} API")
+            return 0.0
 
         fee = pool["fee"]
         effort = 1.0 # Default effort (100% luck)
 
-        if pool["type"] == "2miners":
-            # 2Miners 'luck' is current round luck in percentage.
-            # We convert it to a factor (100% = 1.0)
-            luck = data.get("luck", 100.0)
-            if isinstance(luck, str):
-                luck = float(luck)
-            effort = luck / 100.0
+        try:
+            if pool["type"] == "2miners":
+                # 2Miners 'luck' is current round luck in percentage.
+                luck = data.get("luck", 100.0)
+                if isinstance(luck, str):
+                    luck = float(luck)
+                effort = luck / 100.0
 
-        elif pool["type"] == "herominers":
-            # HeroMiners has 'effort_1d' (average effort over 24h)
-            effort = data.get("effort_1d", 1.0)
+            elif pool["type"] == "herominers":
+                # HeroMiners has 'effort_1d' (average effort over 24h)
+                effort = data.get("effort_1d", 1.0)
 
-        elif pool["type"] == "nanopool":
-            # Nanopool has 'luck' in some responses, but the stats endpoint is currently 404ing or different.
-            # For now, we'll use a more robust way to handle the data if it exists.
-            if "luck" in data:
-                effort = float(data["luck"]) / 100.0
+            elif pool["type"] == "nanopool":
+                # Nanopool has 'luck' in some responses.
+                if "luck" in data:
+                    effort = float(data["luck"]) / 100.0
+                elif "data" in data and isinstance(data["data"], dict) and "luck" in data["data"]:
+                    effort = float(data["data"]["luck"]) / 100.0
 
-        elif pool["type"] == "woolypooly":
-            # WoolyPooly 'luck' or 'effort' might be in the response.
-            if "luck" in data:
-                effort = float(data["luck"]) / 100.0
+            elif pool["type"] == "woolypooly":
+                # WoolyPooly 'luck' or 'effort' might be in the response.
+                if "luck" in data:
+                    effort = float(data["luck"]) / 100.0
+                elif "effort" in data:
+                    effort = float(data["effort"]) / 100.0
+        except (ValueError, TypeError, KeyError) as e:
+            logger.warning(f"Error parsing specific stats for {pool['name']}: {e}. Using default effort.")
 
         score = (1.0 - fee) / max(effort, 0.01)
+        logger.debug(f"Calculated score for {pool['name']}: {score:.4f} (Effort: {effort:.2f}, Fee: {fee:.3f})")
         return score
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Network error fetching stats for {pool['name']}: {e}")
     except Exception as e:
-        logger.error(f"Error fetching stats for {pool['name']}: {e}")
+        logger.error(f"Unexpected error for {pool['name']}: {e}")
     return 0.0
 
 def main():
@@ -129,11 +141,14 @@ def main():
 
             for pool in POOLS:
                 score = get_pool_profitability(pool)
-                logger.info(f"Pool {pool['name']} score: {score:.4f}")
                 pool_scores[pool["stratum"]] = score
                 if score > max_score:
                     max_score = score
                     best_pool = pool
+
+            # Log all scores for transparency
+            scores_summary = ", ".join([f"{p['name']}: {pool_scores.get(p['stratum'], 0):.4f}" for p in POOLS])
+            logger.info(f"Pool scores: {scores_summary}")
 
             if best_pool and best_pool["stratum"] != current_pool_address:
                 # Use cached score for the current pool
@@ -141,20 +156,23 @@ def main():
 
                 # If current pool was not in POOLS (custom pool), fetch it once
                 if current_pool_score == 0.0:
-                   logger.info(f"Current pool {current_pool_address} not in standard list, fetching score...")
+                   logger.info(f"Current pool {current_pool_address} not in standard list, attempting to identify...")
                    # We don't have the API URL for custom pools easily,
                    # but if it matches one of the known pools by address, we can use it.
                    for pool in POOLS:
                        if pool["stratum"] == current_pool_address:
                            current_pool_score = get_pool_profitability(pool)
+                           logger.info(f"Matched current pool to {pool['name']}, score: {current_pool_score:.4f}")
                            break
 
                    # Still 0? Assume it's a generic pool with default luck (score 0.99 for 1% fee)
                    if current_pool_score == 0.0:
                        current_pool_score = 0.99
+                       logger.info(f"Using default score 0.99 for custom pool {current_pool_address}")
 
                 if max_score > current_pool_score * (1 + threshold):
-                    logger.info(f"Better pool found: {best_pool['name']} with score {max_score:.4f} (current: {current_pool_score:.4f})")
+                    diff_pct = (max_score / current_pool_score - 1) * 100
+                    logger.info(f"Better pool found: {best_pool['name']} with score {max_score:.4f} (+{diff_pct:.2f}% over current {current_pool_score:.4f})")
                     logger.info(f"Switching to {best_pool['stratum']}")
 
                     env_vars["POOL_ADDRESS"] = best_pool["stratum"]

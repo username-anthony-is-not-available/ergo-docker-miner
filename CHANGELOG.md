@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Major enhancement to the web dashboard configuration UI with logical grouping, icons, and support for all environment variables (Dual Mining, Telegram, Profit Switching Advanced).
+- Implement robust GPU discovery fallback using `lspci` when both `nvidia-smi` and `rocm-smi` are unavailable.
+- Enhance `miner_api.py` multi-process aggregation to gracefully handle unresponsive ports.
+- Improve `profit_switcher.py` stability with individual pool API error handling and defensive parsing.
+- Add transparent pool scoring logs to `profit_switcher.py` for better visibility into switching decisions.
+- Implement idempotent database migrations for `gpu_history` table in `database.py`.
 - Implement background hashrate logging to CSV and automated weekly report generation.
 - Implement E2E testing for the liveness probe (healthcheck) using a new `tests/mock_miner_api.py` server and `tests/test_healthcheck_e2e.sh` test suite.
 - Add 'Overclocking Bible' for RTX 40-series GPUs (`OVERCLOCKING.md`) with community-tested settings and efficiency tips.

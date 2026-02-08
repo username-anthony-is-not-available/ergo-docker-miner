@@ -139,7 +139,7 @@ def get_system_info() -> Dict[str, Any]:
         }
 
 def get_gpu_names() -> List[str]:
-    """Fetches GPU names from nvidia-smi or rocm-smi."""
+    """Fetches GPU names from nvidia-smi, rocm-smi, or lspci as fallback."""
     if _is_mock_enabled():
         return ["Mock NVIDIA GeForce RTX 3080", "Mock NVIDIA GeForce RTX 3080"]
 
@@ -148,13 +148,16 @@ def get_gpu_names() -> List[str]:
         return _gpu_names_cache
 
     gpu_names = []
+    # 1. Try NVIDIA SMI
     try:
-        subprocess.check_output(['which', 'nvidia-smi'], stderr=subprocess.DEVNULL)
         output = subprocess.check_output(['nvidia-smi', '--query-gpu=name', '--format=csv,noheader'], stderr=subprocess.DEVNULL).decode()
         gpu_names = [line.strip() for line in output.strip().split('\n') if line.strip()]
     except (subprocess.CalledProcessError, FileNotFoundError):
+        pass
+
+    # 2. Try ROCm SMI (if NVIDIA failed or to support hybrid)
+    if not gpu_names:
         try:
-            subprocess.check_output(['which', 'rocm-smi'], stderr=subprocess.DEVNULL)
             # rocm-smi --showname --csv
             output = subprocess.check_output("rocm-smi --showname --csv | tail -n +2", shell=True, stderr=subprocess.DEVNULL).decode()
             for line in output.strip().split('\n'):
@@ -162,6 +165,21 @@ def get_gpu_names() -> List[str]:
                 parts = line.split(',')
                 if len(parts) >= 2:
                     gpu_names.append(parts[1].strip())
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            pass
+
+    # 3. Fallback to lspci
+    if not gpu_names:
+        try:
+            output = subprocess.check_output(r"lspci | grep -i 'vga\|3d'", shell=True, stderr=subprocess.DEVNULL).decode()
+            for line in output.strip().split('\n'):
+                if 'controller:' in line.lower():
+                    name = line.split('controller:')[1].strip()
+                elif 'vga compatible controller:' in line.lower():
+                    name = line.split('vga compatible controller:')[1].strip()
+                else:
+                    name = line.strip()
+                gpu_names.append(name)
         except (subprocess.CalledProcessError, FileNotFoundError):
             pass
 
@@ -338,15 +356,20 @@ def get_normalized_miner_data() -> Optional[Dict[str, Any]]:
                 # Map back to original GPU index
                 # In multi-process mode, each miner has 1 GPU, usually index 0 in its API
                 for gpu in data['gpus']:
-                    gpu['index'] = int(device_id)
+                    try:
+                        gpu['index'] = int(device_id)
+                    except (ValueError, TypeError):
+                        pass # Keep original index if device_id is weird
 
                 if aggregated_data is None:
                     aggregated_data = data
                 else:
-                    aggregated_data['total_hashrate'] += data['total_hashrate']
-                    aggregated_data['total_dual_hashrate'] += data['total_dual_hashrate']
-                    aggregated_data['uptime'] = min(aggregated_data['uptime'], data['uptime'])
-                    aggregated_data['gpus'].extend(data['gpus'])
+                    aggregated_data['total_hashrate'] += data.get('total_hashrate', 0)
+                    aggregated_data['total_dual_hashrate'] += data.get('total_dual_hashrate', 0)
+                    aggregated_data['uptime'] = min(aggregated_data.get('uptime', 0), data.get('uptime', 0))
+                    aggregated_data['gpus'].extend(data.get('gpus', []))
+            else:
+                logger.warning(f"No data received from miner instance on port {current_port} (GPU {device_id})")
 
         # Ensure GPUs are sorted by index
         if aggregated_data:
