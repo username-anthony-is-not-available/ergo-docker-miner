@@ -24,6 +24,7 @@ This script will guide you through configuring your wallet, pool, and GPU settin
 - **Auto-Restart:** Automatically restarts the container if the miner crashes or stops submitting shares for more than 5 minutes.
 - **Automatic Overclocking:** Apply overclocking settings to your GPUs to improve performance and efficiency.
 - **Auto-Profit Switching:** Automatically switches to the most profitable pool based on real-time stats to maximize your earnings.
+- **Telegram Notifications:** Receive instant alerts on your phone when your rig goes down or experiences zero hashrate.
 - **Enhanced Security:** The miner runs as a non-root user (`miner`) inside the container by default. It also supports Rootless Docker environments.
 
 ## Requirements
@@ -125,6 +126,10 @@ By default, the file is configured for a two-GPU setup. To add more GPUs, you ca
 -   `DUAL_WALLET`: (lolMiner only) Your wallet address for the second coin.
 -   `DUAL_WORKER`: (lolMiner only) Optional worker name for the dual mining pool (defaults to `WORKER_NAME`).
 -   `AUTO_PROFIT_SWITCHING`: Set to `true` to enable the automatic pool switching feature.
+-   `TELEGRAM_ENABLE`: Set to `true` to enable Telegram notifications.
+-   `TELEGRAM_BOT_TOKEN`: Your Telegram Bot API token.
+-   `TELEGRAM_CHAT_ID`: Your Telegram Chat ID.
+-   `TELEGRAM_NOTIFY_THRESHOLD`: Grace period in seconds before sending a downtime notification (default: `300`).
 
 ## Auto-Profit Switching
 
@@ -230,6 +235,20 @@ The container has a Docker health check that verifies:
 2.  The miner is submitting hashrate.
 
 If the miner process stops, the container will be restarted immediately. If the hashrate remains at 0 for more than 5 minutes (e.g., due to a hung API or driver issue), the health check will also trigger a restart. This ensures maximum uptime and prevents "zombie" mining sessions.
+
+### Telegram Notifications
+
+You can receive instant alerts on your phone when your rig goes down. This feature is integrated into the metrics exporter and will notify you if:
+1. The miner process crashes.
+2. The miner API is unreachable.
+3. The rig produces zero hashrate for a sustained period.
+
+To set up Telegram notifications:
+1. Create a new bot using [BotFather](https://t.me/botfather) and get your **Bot Token**.
+2. Get your **Chat ID** (you can use a bot like [@userinfobot](https://t.me/userinfobot)).
+3. Enable the feature during the interactive setup or by setting the `TELEGRAM_*` variables in your `.env` file.
+
+The default notification threshold is 300 seconds (5 minutes), meaning you will only receive an alert if the rig stays down for that duration. You will also receive a follow-up message once the rig recovers.
 
 ### Prometheus Exporter
 

@@ -2,6 +2,7 @@ from prometheus_client import start_http_server, Gauge
 import time
 import os
 import logging
+import requests
 import database
 from miner_api import get_full_miner_data
 
@@ -32,10 +33,55 @@ GPU_SHARES_REJECTED = Gauge('miner_gpu_shares_rejected', 'Number of rejected sha
 
 last_prune_time = 0.0
 
+# Telegram configuration
+TELEGRAM_ENABLE = os.getenv('TELEGRAM_ENABLE', 'false').lower() == 'true'
+TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
+TELEGRAM_NOTIFY_THRESHOLD = int(os.getenv('TELEGRAM_NOTIFY_THRESHOLD', 300))
+
+# Notification state
+unhealthy_since = None
+is_currently_notified = False
+
+def send_telegram_notification(message: str) -> None:
+    if not TELEGRAM_ENABLE or not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        return
+
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": message,
+        "parse_mode": "HTML"
+    }
+
+    try:
+        response = requests.post(url, json=payload, timeout=10)
+        response.raise_for_status()
+        logger.info("Telegram notification sent successfully")
+    except Exception as e:
+        logger.error(f"Failed to send Telegram notification: {e}")
+
 def update_metrics() -> None:
-    global last_prune_time
+    global last_prune_time, unhealthy_since, is_currently_notified
     try:
         data = get_full_miner_data()
+
+        # Telegram health check logic
+        is_unhealthy = (data is None) or (data.get('total_hashrate', 0) == 0)
+        if is_unhealthy:
+            if unhealthy_since is None:
+                unhealthy_since = time.time()
+            elapsed = time.time() - unhealthy_since
+            if elapsed >= TELEGRAM_NOTIFY_THRESHOLD and not is_currently_notified:
+                reason = "API Unreachable" if data is None else "Zero Hashrate"
+                send_telegram_notification(f"⚠️ <b>Rig Alert</b>\nStatus: DOWN\nReason: {reason}\nDuration: {int(elapsed)}s")
+                is_currently_notified = True
+        else:
+            if is_currently_notified:
+                send_telegram_notification(f"✅ <b>Rig Alert</b>\nStatus: RECOVERED\nHashrate: {data.get('total_hashrate', 0)} MH/s")
+                is_currently_notified = False
+            unhealthy_since = None
+
         if not data:
             logger.error("Failed to fetch consolidated miner data")
             HASHRATE.set(0)

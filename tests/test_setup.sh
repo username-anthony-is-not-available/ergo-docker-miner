@@ -26,6 +26,10 @@ fi
 # Dual Worker: test-worker-dual
 # Extra Args: --extra-param 1
 # Profit Switch: y
+# Telegram: y
+# Telegram Token: MyToken
+# Telegram ID: MyID
+# Telegram Threshold: 600
 # Start now: n
 ./setup.sh <<EOF
 MyTestWallet
@@ -43,6 +47,10 @@ MyDualPool
 test-worker-dual
 --extra-param 1
 y
+y
+MyToken
+MyID
+600
 n
 EOF
 
@@ -76,6 +84,10 @@ check_var "DUAL_POOL=MyDualPool"
 check_var "DUAL_WORKER=test-worker-dual"
 check_var "EXTRA_ARGS=--extra-param 1"
 check_var "AUTO_PROFIT_SWITCHING=true"
+check_var "TELEGRAM_ENABLE=true"
+check_var "TELEGRAM_BOT_TOKEN=MyToken"
+check_var "TELEGRAM_CHAT_ID=MyID"
+check_var "TELEGRAM_NOTIFY_THRESHOLD=600"
 
 if [ $EXIT_CODE -eq 0 ]; then
     echo "setup.sh test 1 PASSED"
@@ -94,6 +106,7 @@ echo "Running setup.sh test 2 (AMD, Defaults)..."
 # GPU Count: default (AUTO)
 # Extra Args: empty
 # Profit Switching: n
+# Telegram: n
 # Start now: n
 ./setup.sh <<EOF
 AmdWallet
@@ -105,6 +118,7 @@ AmdWallet
 
 n
 n
+n
 EOF
 
 check_var "WALLET_ADDRESS=AmdWallet"
@@ -114,6 +128,7 @@ check_var "MINER=lolminer"
 check_var "GPU_DEVICES=AUTO"
 check_var "APPLY_OC=false"
 check_var "AUTO_PROFIT_SWITCHING=false"
+check_var "TELEGRAM_ENABLE=false"
 
 if [ $EXIT_CODE -eq 0 ]; then
     echo "setup.sh test 2 PASSED"
