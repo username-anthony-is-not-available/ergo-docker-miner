@@ -225,13 +225,14 @@ def main():
 
     elif page == "Logs":
         st.title("Miner Logs")
+        log_file = os.path.join(os.getenv('DATA_DIR', '.'), 'miner.log')
 
-        if os.path.exists('miner.log'):
-            with open('miner.log', 'r') as f:
+        if os.path.exists(log_file):
+            with open(log_file, 'r') as f:
                 lines = f.readlines()
                 st.text_area("Last 100 lines", value="".join(lines[-100:]), height=400)
 
-            with open('miner.log', 'rb') as f:
+            with open(log_file, 'rb') as f:
                 st.download_button("Download Full Log", data=f, file_name="miner.log", mime="text/plain")
         else:
             st.info("Miner log file not found. Waiting for miner to start...")

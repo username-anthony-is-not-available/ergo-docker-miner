@@ -2,7 +2,7 @@ import sqlite3
 from datetime import datetime, timedelta
 import os
 
-DB_FILE = 'miner_history.db'
+DB_FILE = os.path.join(os.getenv('DATA_DIR', '.'), 'miner_history.db')
 
 def get_connection():
     return sqlite3.connect(DB_FILE)

@@ -15,13 +15,14 @@ load_secret() {
 load_secret WALLET_ADDRESS
 load_secret DUAL_WALLET
 
+# Default to /app/data if DATA_DIR is not set
+DATA_DIR=${DATA_DIR:-/app/data}
+
 # Handle privilege dropping if running as root
 if [ "$(id -u)" = '0' ]; then
-  echo "Running as root. Ensuring /app ownership and applying OC settings..."
-  chown -R miner:miner /app
-  if [ -f /app/miner_history.db ]; then
-    chown miner:miner /app/miner_history.db
-  fi
+  echo "Running as root. Ensuring $DATA_DIR ownership and applying OC settings..."
+  mkdir -p "$DATA_DIR"
+  chown -R miner:miner "$DATA_DIR"
 
   # Apply overclocking settings if enabled and nvidia-smi is present
   if [ "$APPLY_OC" = "true" ] && command -v nvidia-smi &> /dev/null; then
@@ -153,7 +154,7 @@ fi
 ./metrics.sh &
 
 # Start the dashboard in the background
-streamlit run streamlit_app.py --server.port 5000 --server.address 0.0.0.0 --server.headless true &> streamlit.log &
+streamlit run streamlit_app.py --server.port 5000 --server.address 0.0.0.0 --server.headless true &> "$DATA_DIR/streamlit.log" &
 
 # Start the profit switcher in the background
 python3 profit_switcher.py &
@@ -251,7 +252,7 @@ if [ "$MULTI_PROCESS" = "true" ] && [ "$GPU_DEVICES" != "AUTO" ]; then
     case "$MINER" in
       lolminer)
         MINER_BIN="/app/lolMiner"
-        MINER_CONFIG="--algo AUTOLYKOS2 --pool ${POOL_ADDRESS} --user ${WALLET_ADDRESS}.${WORKER_NAME} --devices ${GPU_ID} --apiport ${CURRENT_PORT} --json-read-only --logfile miner.log"
+        MINER_CONFIG="--algo AUTOLYKOS2 --pool ${POOL_ADDRESS} --user ${WALLET_ADDRESS}.${WORKER_NAME} --devices ${GPU_ID} --apiport ${CURRENT_PORT} --json-read-only --logfile $DATA_DIR/miner.log"
         [ -n "$BACKUP_POOL_ADDRESS" ] && MINER_CONFIG="$MINER_CONFIG --pool ${BACKUP_POOL_ADDRESS}"
         if [ -n "$DUAL_ALGO" ]; then
           MINER_CONFIG="$MINER_CONFIG --dualmode ${DUAL_ALGO} --dualpool ${DUAL_POOL} --dualuser ${DUAL_WALLET}.${DUAL_WORKER:-$WORKER_NAME}"
@@ -259,7 +260,7 @@ if [ "$MULTI_PROCESS" = "true" ] && [ "$GPU_DEVICES" != "AUTO" ]; then
         ;;
       t-rex)
         MINER_BIN="/app/t-rex"
-        MINER_CONFIG="-a AUTOLYKOS2 -o ${POOL_ADDRESS} -u ${WALLET_ADDRESS}.${WORKER_NAME} -d ${GPU_ID} --api-bind-http 127.0.0.1:${CURRENT_PORT} --log-path miner.log"
+        MINER_CONFIG="-a AUTOLYKOS2 -o ${POOL_ADDRESS} -u ${WALLET_ADDRESS}.${WORKER_NAME} -d ${GPU_ID} --api-bind-http 127.0.0.1:${CURRENT_PORT} --log-path $DATA_DIR/miner.log"
         [ -n "$BACKUP_POOL_ADDRESS" ] && MINER_CONFIG="$MINER_CONFIG -o2 ${BACKUP_POOL_ADDRESS} -u2 ${WALLET_ADDRESS}.${WORKER_NAME}"
         ;;
     esac
@@ -267,7 +268,7 @@ if [ "$MULTI_PROCESS" = "true" ] && [ "$GPU_DEVICES" != "AUTO" ]; then
     [ -n "$EXTRA_ARGS" ] && MINER_CONFIG="$MINER_CONFIG $EXTRA_ARGS"
 
     # Start miner in background
-    $MINER_BIN $MINER_CONFIG >> miner.log 2>&1 &
+    $MINER_BIN $MINER_CONFIG >> "$DATA_DIR/miner.log" 2>&1 &
   done
 
   # Wait for all background miners
@@ -279,7 +280,7 @@ else
       MINER_BIN="/app/lolMiner"
       DEVICE_FLAG=""
       [ "$GPU_DEVICES" != "AUTO" ] && DEVICE_FLAG="--devices ${GPU_DEVICES}"
-      MINER_CONFIG="--algo AUTOLYKOS2 --pool ${POOL_ADDRESS} --user ${WALLET_ADDRESS}.${WORKER_NAME} ${DEVICE_FLAG} --apiport ${API_PORT} --json-read-only --logfile miner.log"
+      MINER_CONFIG="--algo AUTOLYKOS2 --pool ${POOL_ADDRESS} --user ${WALLET_ADDRESS}.${WORKER_NAME} ${DEVICE_FLAG} --apiport ${API_PORT} --json-read-only --logfile $DATA_DIR/miner.log"
       [ -n "$BACKUP_POOL_ADDRESS" ] && MINER_CONFIG="$MINER_CONFIG --pool ${BACKUP_POOL_ADDRESS}"
       if [ -n "$DUAL_ALGO" ]; then
         MINER_CONFIG="$MINER_CONFIG --dualmode ${DUAL_ALGO} --dualpool ${DUAL_POOL} --dualuser ${DUAL_WALLET}.${DUAL_WORKER:-$WORKER_NAME}"
@@ -289,7 +290,7 @@ else
       MINER_BIN="/app/t-rex"
       DEVICE_FLAG=""
       [ "$GPU_DEVICES" != "AUTO" ] && DEVICE_FLAG="-d ${GPU_DEVICES}"
-      MINER_CONFIG="-a AUTOLYKOS2 -o ${POOL_ADDRESS} -u ${WALLET_ADDRESS}.${WORKER_NAME} ${DEVICE_FLAG} --api-bind-http 127.0.0.1:${API_PORT} --log-path miner.log"
+      MINER_CONFIG="-a AUTOLYKOS2 -o ${POOL_ADDRESS} -u ${WALLET_ADDRESS}.${WORKER_NAME} ${DEVICE_FLAG} --api-bind-http 127.0.0.1:${API_PORT} --log-path $DATA_DIR/miner.log"
       [ -n "$BACKUP_POOL_ADDRESS" ] && MINER_CONFIG="$MINER_CONFIG -o2 ${BACKUP_POOL_ADDRESS} -u2 ${WALLET_ADDRESS}.${WORKER_NAME}"
       ;;
     *)
