@@ -1,10 +1,14 @@
 import os
 from typing import Dict
 
+def get_env_file_path() -> str:
+    return os.path.join(os.getenv('DATA_DIR', '.'), '.env')
+
 def read_env_file() -> Dict[str, str]:
     env_vars = {}
-    if os.path.exists('.env'):
-        with open('.env', 'r') as f:
+    env_file = get_env_file_path()
+    if os.path.exists(env_file):
+        with open(env_file, 'r') as f:
             for line in f:
                 line = line.strip()
                 if line and not line.startswith('#') and '=' in line:
@@ -16,8 +20,9 @@ def read_env_file() -> Dict[str, str]:
 
 def write_env_file(env_vars: Dict[str, str]) -> None:
     lines = []
-    if os.path.exists('.env'):
-        with open('.env', 'r') as f:
+    env_file = get_env_file_path()
+    if os.path.exists(env_file):
+        with open(env_file, 'r') as f:
             lines = f.readlines()
 
     new_lines = []
@@ -36,5 +41,5 @@ def write_env_file(env_vars: Dict[str, str]) -> None:
         if key not in keys_written:
             new_lines.append(f"{key}={value}\n")
 
-    with open('.env', 'w') as f:
+    with open(env_file, 'w') as f:
         f.writelines(new_lines)

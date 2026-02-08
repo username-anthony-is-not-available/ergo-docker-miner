@@ -56,7 +56,11 @@ COPY start.sh metrics.sh metrics.py miner_api.py healthcheck.sh restart.sh datab
 COPY streamlit_app.py .
 
 RUN chmod +x start.sh metrics.sh healthcheck.sh restart.sh cuda_monitor.sh && \
-    chown -R miner:miner /app
+    mkdir -p /app/data && \
+    chown -R miner:miner /app/data && \
+    chmod 755 /app
+
+ENV DATA_DIR=/app/data
 
 EXPOSE 4444 4455 4456 5000
 
