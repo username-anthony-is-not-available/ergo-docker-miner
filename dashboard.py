@@ -10,7 +10,7 @@ import logging
 from datetime import datetime
 from typing import Dict, Any, Optional
 import database
-from miner_api import get_full_miner_data, get_gpu_names, get_system_info
+from miner_api import get_full_miner_data, get_gpu_names, get_system_info, restart_service
 from contextlib import asynccontextmanager
 from env_config import read_env_file, write_env_file
 import profit_switcher
@@ -104,6 +104,14 @@ async def post_config(request: Request):
         env_vars[key] = str(value)
     write_env_file(env_vars)
     return {"message": "Configuration saved successfully!"}
+
+@app.post("/api/services/restart/{service_name}")
+async def api_restart_service(service_name: str):
+    success = await asyncio.to_thread(restart_service, service_name)
+    if success:
+        return {"message": f"Service {service_name} restarted successfully"}
+    else:
+        return JSONResponse(status_code=500, content={"message": f"Failed to restart {service_name}"})
 
 @app.post("/api/restart")
 async def restart():

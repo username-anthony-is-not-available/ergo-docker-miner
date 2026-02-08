@@ -8,6 +8,9 @@ import psutil
 
 logger = logging.getLogger(__name__)
 
+# Module-level cache for GPU names
+_gpu_names_cache: List[str] = []
+
 def get_services_status() -> Dict[str, str]:
     """Checks if background services are running."""
     services = {
@@ -33,6 +36,43 @@ def get_services_status() -> Dict[str, str]:
 
     return services
 
+def restart_service(service_name: str) -> bool:
+    """Attempts to restart a background service."""
+    allowed_services = {
+        'metrics.py': 'python3 metrics.py',
+        'profit_switcher.py': 'python3 profit_switcher.py',
+        'cuda_monitor.sh': './cuda_monitor.sh'
+    }
+
+    if service_name not in allowed_services:
+        return False
+
+    try:
+        # 1. Kill existing process(es)
+        for proc in psutil.process_iter(['cmdline']):
+            try:
+                cmdline = proc.info.get('cmdline')
+                if cmdline and any(service_name in arg for arg in cmdline):
+                    # Don't kill ourselves if we are the dashboard
+                    if 'dashboard.py' in " ".join(cmdline):
+                        continue
+                    proc.terminate()
+                    try:
+                        proc.wait(timeout=3)
+                    except psutil.TimeoutExpired:
+                        proc.kill()
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
+
+        # 2. Start new instance
+        cmd = allowed_services[service_name]
+        # Use Popen with start_new_session to ensure it lives beyond the dashboard request
+        subprocess.Popen(cmd.split(), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+        return True
+    except Exception as e:
+        logger.error(f"Error restarting service {service_name}: {e}")
+        return False
+
 def get_system_info() -> Dict[str, Any]:
     """Fetches system info (CPU, RAM, Disk)."""
     try:
@@ -54,6 +94,10 @@ def get_system_info() -> Dict[str, Any]:
 
 def get_gpu_names() -> List[str]:
     """Fetches GPU names from nvidia-smi or rocm-smi."""
+    global _gpu_names_cache
+    if _gpu_names_cache:
+        return _gpu_names_cache
+
     gpu_names = []
     try:
         subprocess.check_output(['which', 'nvidia-smi'], stderr=subprocess.DEVNULL)
@@ -71,6 +115,9 @@ def get_gpu_names() -> List[str]:
                     gpu_names.append(parts[1].strip())
         except (subprocess.CalledProcessError, FileNotFoundError):
             pass
+
+    if gpu_names:
+        _gpu_names_cache = gpu_names
     return gpu_names
 
 def get_gpu_smi_data() -> List[Dict[str, float]]:
@@ -194,8 +241,26 @@ def get_normalized_miner_data() -> Optional[Dict[str, Any]]:
     multi_process = os.getenv('MULTI_PROCESS', 'false').lower() == 'true'
     gpu_devices_env = os.getenv('GPU_DEVICES', 'AUTO')
 
-    if multi_process and gpu_devices_env != 'AUTO':
-        device_ids = [d.strip() for d in gpu_devices_env.split(',') if d.strip()]
+    if multi_process:
+        if gpu_devices_env == 'AUTO':
+            # Robust fallback: if MULTI_PROCESS is on but devices are AUTO,
+            # we try to resolve them here to know how many API ports to query.
+            try:
+                output = subprocess.check_output(['nvidia-smi', '--query-gpu=index', '--format=csv,noheader'], stderr=subprocess.DEVNULL).decode()
+                device_ids = [line.strip() for line in output.strip().split('\n') if line.strip()]
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                try:
+                    output = subprocess.check_output("rocm-smi --showtemp --csv | tail -n +2 | cut -d, -f1", shell=True, stderr=subprocess.DEVNULL).decode()
+                    device_ids = [line.strip() for line in output.strip().split('\n') if line.strip()]
+                except:
+                    device_ids = []
+        else:
+            device_ids = [d.strip() for d in gpu_devices_env.split(',') if d.strip()]
+
+        if not device_ids:
+            # Fallback to single port if we couldn't determine devices
+            return _fetch_single_miner_data(miner, api_port)
+
         aggregated_data = None
 
         for i, device_id in enumerate(device_ids):

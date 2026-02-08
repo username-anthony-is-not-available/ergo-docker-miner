@@ -112,10 +112,12 @@ if [ "$GPU_DEVICES" = "AUTO" ]; then
 
   if [ -n "$DETECTED_GPU_IDS" ]; then
     echo "Auto-detected GPUs: $DETECTED_GPU_IDS"
-    GPU_DEVICES=$DETECTED_GPU_IDS
+    export GPU_DEVICES=$DETECTED_GPU_IDS
   else
     echo "Warning: Could not auto-detect GPUs. Falling back to miner default."
   fi
+else
+  export GPU_DEVICES
 fi
 
 # Start the metrics exporter in the background

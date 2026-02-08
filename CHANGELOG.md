@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Implement individual background service management with new `/api/services/restart/{service_name}` endpoint and dashboard buttons.
+- Export `GPU_DEVICES` in `start.sh` for reliable environment propagation to background processes.
+- Implement GPU name caching in `miner_api.py` to reduce SMI overhead and improve dashboard responsiveness.
+- Enhance `profit_switcher.py` with profitability score caching and a configurable `MIN_SWITCH_COOLDOWN` (default 900s).
+- Improve `miner_api.py` robustness in `MULTI_PROCESS` mode with automatic device discovery fallback.
 - Implement rig-wide and per-GPU power efficiency metrics (MH/s per Watt) in the dashboard and Prometheus exporter.
 - Add "Service Status" watchdog to monitor the health of background processes (Metrics, Profit Switcher, CUDA Monitor).
 - Implement a 15-minute safety cooldown in `profit_switcher.py` to prevent rapid pool switching and ensure stability.
