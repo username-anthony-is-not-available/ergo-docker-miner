@@ -16,7 +16,7 @@ chmod +x mock_restart.sh
 
 # Create a test version of the monitor script with mocked components
 # We use sed to replace the log file and the restart script call
-sed -e "s|LOG_FILE=\"miner.log\"|LOG_FILE=\"$TEST_LOG\"|" \
+sed -e "s|LOG_FILE=\"\$DATA_DIR/miner.*.log\"|LOG_FILE=\"$TEST_LOG\"|" \
     -e "s|./restart.sh|./mock_restart.sh|" \
     "$MONITOR_SCRIPT" > test_cuda_monitor.sh
 chmod +x test_cuda_monitor.sh

@@ -94,20 +94,23 @@ class TestMinerApi(unittest.TestCase):
     @patch('psutil.process_iter')
     def test_get_services_status(self, mock_iter):
         mock_proc1 = MagicMock()
-        mock_proc1.info = {'cmdline': ['python3', 'metrics.py']}
+        mock_proc1.info = {'cmdline': ['python3', 'metrics.py'], 'create_time': 100.0}
         mock_proc2 = MagicMock()
-        mock_proc2.info = {'cmdline': ['/bin/bash', './cuda_monitor.sh']}
+        mock_proc2.info = {'cmdline': ['/bin/bash', './cuda_monitor.sh'], 'create_time': 200.0}
         mock_iter.return_value = [mock_proc1, mock_proc2]
 
-        with patch.dict(os.environ, {'AUTO_RESTART_ON_CUDA_ERROR': 'true'}):
-            status = miner_api.get_services_status()
-            self.assertEqual(status['metrics.py'], 'Running')
-            self.assertEqual(status['cuda_monitor.sh'], 'Running')
-            self.assertEqual(status['profit_switcher.py'], 'Stopped')
+        with patch('time.time', return_value=300.0):
+            with patch.dict(os.environ, {'AUTO_RESTART_ON_CUDA_ERROR': 'true'}):
+                status = miner_api.get_services_status()
+                self.assertEqual(status['metrics.py']['status'], 'Running')
+                self.assertEqual(status['metrics.py']['uptime'], 200.0)
+                self.assertEqual(status['cuda_monitor.sh']['status'], 'Running')
+                self.assertEqual(status['cuda_monitor.sh']['uptime'], 100.0)
+                self.assertEqual(status['profit_switcher.py']['status'], 'Stopped')
 
-        with patch.dict(os.environ, {'AUTO_RESTART_ON_CUDA_ERROR': 'false'}):
-            status = miner_api.get_services_status()
-            self.assertEqual(status['cuda_monitor.sh'], 'Disabled')
+            with patch.dict(os.environ, {'AUTO_RESTART_ON_CUDA_ERROR': 'false'}):
+                status = miner_api.get_services_status()
+                self.assertEqual(status['cuda_monitor.sh']['status'], 'Disabled')
 
     @patch('subprocess.check_output')
     def test_get_gpu_names_nvidia(self, mock_check_output):

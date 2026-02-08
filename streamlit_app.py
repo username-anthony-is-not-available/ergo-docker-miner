@@ -9,7 +9,7 @@ import logging
 from typing import Dict, Any, Optional
 
 import database
-from miner_api import get_full_miner_data, get_gpu_names, get_system_info, restart_service, get_node_status
+from miner_api import get_full_miner_data, get_gpu_names, get_system_info, restart_service, get_node_status, refresh_gpu_names_cache
 from env_config import read_env_file, write_env_file
 import profit_switcher
 
@@ -66,7 +66,11 @@ def main():
             status_val = data.get('status', 'Unknown')
             status_color = "status-mining" if status_val == 'Mining' else "status-error" if "Error" in status_val else "status-warning"
             st.markdown(f"### Status: <span class='{status_color}'>{status_val}</span>", unsafe_allow_html=True)
-            st.write(f"Miner: {data.get('miner', '--')} | Last Updated: {datetime.now().strftime('%H:%M:%S')}")
+            col_h1, col_h2 = st.columns([4, 1])
+            col_h1.write(f"Miner: {data.get('miner', '--')} | Last Updated: {datetime.now().strftime('%H:%M:%S')}")
+            if col_h2.button("🔄 Refresh Data"):
+                refresh_gpu_names_cache()
+                st.rerun()
 
             # Top Stats
             col1, col2, col3, col4, col5, col6 = st.columns(6)
@@ -112,9 +116,12 @@ def main():
             with col_ser:
                 st.subheader("Service Status")
                 services = system_info.get('services', {})
-                for service, status in services.items():
+                for service, s_info in services.items():
                     s_col1, s_col2 = st.columns([3, 1])
-                    s_col1.write(f"**{service}:** {status}")
+                    status = s_info.get('status', 'Unknown')
+                    uptime = s_info.get('uptime', 0)
+                    uptime_str = f" (Up {format_uptime(uptime)})" if status == 'Running' and uptime > 0 else ""
+                    s_col1.write(f"**{service}:** {status}{uptime_str}")
                     if s_col2.button("Restart", key=f"restart_{service}"):
                         if restart_service(service):
                             st.success(f"Restarted {service}")
@@ -175,8 +182,20 @@ def main():
                         st.download_button("Download Hashrate History CSV", data=f, file_name="hashrate_history.csv", mime="text/csv")
             else:
                 st.info("Weekly report not yet generated. The report generator runs in the background.")
+
+            # Clear History Button
+            st.divider()
+            with st.expander("🗑️ Danger Zone"):
+                st.warning("Clearing history will permanently delete all records from the database.")
+                if st.button("Clear All Mining History"):
+                    database.clear_history()
+                    st.success("History cleared!")
+                    time.sleep(1)
+                    st.rerun()
         else:
             st.info("No history data available")
+            if st.button("Refresh History"):
+                st.rerun()
 
     elif page == "Configuration":
         st.title("Configuration")
@@ -303,31 +322,45 @@ def main():
 
     elif page == "Logs":
         st.title("Miner Logs")
-        log_file = os.path.join(os.getenv('DATA_DIR', '.'), 'miner.log')
+        data_dir = os.getenv('DATA_DIR', '.')
 
-        if os.path.exists(log_file):
-            with open(log_file, 'r') as f:
-                lines = f.readlines()
-                st.text_area("Last 100 lines", value="".join(lines[-100:]), height=400)
+        # Discover available log files
+        log_files = [f for f in os.listdir(data_dir) if f.startswith('miner') and f.endswith('.log')]
+        log_files.sort()
 
-            with open(log_file, 'rb') as f:
-                st.download_button("Download Full Log", data=f, file_name="miner.log", mime="text/plain")
+        if not log_files:
+            st.info("No miner log files found. Waiting for miner to start...")
         else:
-            st.info("Miner log file not found. Waiting for miner to start...")
+            selected_log = st.selectbox("Select Log File", log_files)
+            log_path = os.path.join(data_dir, selected_log)
+
+            if os.path.exists(log_path):
+                with open(log_path, 'r', errors='replace') as f:
+                    lines = f.readlines()
+                    st.text_area(f"Last 100 lines of {selected_log}", value="".join(lines[-100:]), height=400)
+
+                with open(log_path, 'rb') as f:
+                    st.download_button(f"Download {selected_log}", data=f, file_name=selected_log, mime="text/plain")
 
     elif page == "Pool Stats":
         st.title("Pool Profitability")
+        st.write("Real-time profitability analysis across supported Ergo pools.")
 
         stats = []
         for pool in profit_switcher.POOLS:
-            score = profit_switcher.get_pool_profitability(pool)
+            details = profit_switcher.get_pool_profitability(pool, return_details=True)
             stats.append({
                 "Pool": pool["name"],
-                "Address": pool["stratum"],
-                "Score": round(score, 4)
+                "Score": round(details['score'], 4),
+                "Effort (Luck)": f"{details['effort']*100:.1f}%",
+                "Fee": f"{details['fee']*100:.1f}%",
+                "Address": pool["stratum"]
             })
 
-        st.table(stats)
+        df_stats = pd.DataFrame(stats)
+        st.dataframe(df_stats, use_container_width=True, hide_index=True)
+
+        st.info("💡 **Score** is calculated as `(1 - Fee) / Effort`. Higher score means better profitability. Effort is estimated from pool's luck/effort statistics where available.")
 
 if __name__ == "__main__":
     main()

@@ -268,5 +268,25 @@
     "GPU_CLOCK_OFFSET": -400,
     "GPU_MEM_OFFSET": 1200,
     "GPU_POWER_LIMIT": 70
+  },
+  "GTX 1660 Super": {
+    "GPU_CLOCK_OFFSET": -200,
+    "GPU_MEM_OFFSET": 800,
+    "GPU_POWER_LIMIT": 80
+  },
+  "GTX 1660 Super (Eco)": {
+    "GPU_CLOCK_OFFSET": -300,
+    "GPU_MEM_OFFSET": 800,
+    "GPU_POWER_LIMIT": 70
+  },
+  "GTX 1660 Ti": {
+    "GPU_CLOCK_OFFSET": -200,
+    "GPU_MEM_OFFSET": 700,
+    "GPU_POWER_LIMIT": 75
+  },
+  "GTX 1660": {
+    "GPU_CLOCK_OFFSET": -200,
+    "GPU_MEM_OFFSET": 600,
+    "GPU_POWER_LIMIT": 70
   }
 }

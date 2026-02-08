@@ -126,3 +126,10 @@ def prune_history(days=30):
         cursor.execute('DELETE FROM history WHERE timestamp < ?', (since,))
         cursor.execute('DELETE FROM gpu_history WHERE timestamp < ?', (since,))
         conn.commit()
+
+def clear_history():
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM history')
+        cursor.execute('DELETE FROM gpu_history')
+        conn.commit()
