@@ -2,16 +2,18 @@ import unittest
 from unittest.mock import patch, MagicMock
 import os
 import json
+from fastapi.testclient import TestClient
+from fastapi.responses import JSONResponse
 import dashboard
+import asyncio
 
 class TestDashboardLogic(unittest.TestCase):
 
     def setUp(self):
-        dashboard.app.testing = True
-        self.client = dashboard.app.test_client()
+        self.client = TestClient(dashboard.app)
 
     @patch('dashboard.get_full_miner_data')
-    def test_background_thread_update(self, mock_full_data):
+    def test_background_task_update(self, mock_full_data):
         # Mock consolidated miner data
         mock_full_data.return_value = {
             'miner': 'lolminer',
@@ -32,12 +34,12 @@ class TestDashboardLogic(unittest.TestCase):
             ]
         }
 
-        with patch('dashboard.socketio.emit') as mock_emit:
+        with patch('dashboard.sio.emit') as mock_emit:
             # Mock sleep to break the infinite loop after one iteration
-            with patch('time.sleep', side_effect=InterruptedError):
+            with patch('asyncio.sleep', side_effect=asyncio.CancelledError):
                 try:
-                    dashboard.background_thread()
-                except InterruptedError:
+                    asyncio.run(dashboard.background_task())
+                except asyncio.CancelledError:
                     pass
 
             self.assertTrue(mock_emit.called)
@@ -53,7 +55,7 @@ class TestDashboardLogic(unittest.TestCase):
         mock_get_names.return_value = ['RTX 3070']
         response = self.client.get('/api/gpu-models')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['models'], ['RTX 3070'])
+        self.assertEqual(response.json()['models'], ['RTX 3070'])
 
     def test_index_route(self):
         response = self.client.get('/')
@@ -64,16 +66,15 @@ class TestDashboardLogic(unittest.TestCase):
         mock_read.return_value = {'WALLET_ADDRESS': 'test_wallet'}
         response = self.client.get('/api/config')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json['WALLET_ADDRESS'], 'test_wallet')
+        self.assertEqual(response.json()['WALLET_ADDRESS'], 'test_wallet')
 
     @patch('os.path.exists')
-    @patch('dashboard.send_file')
-    def test_api_logs_download(self, mock_send_file, mock_exists):
+    def test_api_logs_download(self, mock_exists):
         mock_exists.return_value = True
-        mock_send_file.return_value = "file_content"
-        response = self.client.get('/api/logs/download')
-        self.assertEqual(response.status_code, 200)
-        mock_send_file.assert_called_once_with('miner.log', as_attachment=True)
+        with patch('dashboard.FileResponse', return_value=JSONResponse({"mock": "file"})) as mock_file:
+            response = self.client.get('/api/logs/download')
+            self.assertEqual(response.status_code, 200)
+            mock_file.assert_called_once()
 
 if __name__ == '__main__':
     unittest.main()
