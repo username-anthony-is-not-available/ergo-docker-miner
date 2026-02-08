@@ -151,20 +151,20 @@ else
 fi
 
 # Start the metrics exporter in the background
-./metrics.sh &
+./metrics.sh >> "$DATA_DIR/metrics.log" 2>&1 &
 
 # Start the dashboard in the background
 streamlit run streamlit_app.py --server.port 5000 --server.address 0.0.0.0 --server.headless true &> "$DATA_DIR/streamlit.log" &
 
 # Start the profit switcher in the background
-python3 profit_switcher.py &
+python3 profit_switcher.py >> "$DATA_DIR/profit_switcher.log" 2>&1 &
 
 # Start report generator in the background
-python3 report_generator.py &
+python3 report_generator.py >> "$DATA_DIR/report_generator.log" 2>&1 &
 
 # Start CUDA error monitor if enabled
 if [ "$AUTO_RESTART_ON_CUDA_ERROR" = "true" ]; then
-  ./cuda_monitor.sh &
+  ./cuda_monitor.sh >> "$DATA_DIR/cuda_monitor.log" 2>&1 &
 fi
 
 # Ergo Node Sync Check

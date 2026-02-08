@@ -227,9 +227,15 @@ if [ "$MINER" == "lolminer" ]; then
     fi
 fi
 
-# 8. Extra Arguments
-echo -e "\n${GREEN}8. Extra Arguments${NC}"
+# 8. Extra Arguments & Advanced Modes
+echo -e "\n${GREEN}8. Extra Arguments & Advanced Modes${NC}"
 read -p "Enter any extra arguments for the miner (optional): " EXTRA_ARGS
+read -p "Enable Multi-Process Mode (one miner process per GPU)? (y/n) [n]: " MULTI_PROCESS_CHOICE
+if [[ "$MULTI_PROCESS_CHOICE" =~ ^[Yy]$ ]]; then
+    MULTI_PROCESS="true"
+else
+    MULTI_PROCESS="false"
+fi
 
 # 9. Profit Switching
 echo -e "\n${GREEN}9. Profit Switching${NC}"
@@ -240,6 +246,8 @@ if [[ "$AUTO_SWITCH_CHOICE" =~ ^[Yy]$ ]]; then
     PROFIT_SWITCHING_THRESHOLD=${PROFIT_SWITCHING_THRESHOLD:-0.005}
     read -p "Enter Switching Interval (seconds) [3600]: " PROFIT_SWITCHING_INTERVAL
     PROFIT_SWITCHING_INTERVAL=${PROFIT_SWITCHING_INTERVAL:-3600}
+    read -p "Enter Minimum Switch Cooldown (seconds) [900]: " MIN_SWITCH_COOLDOWN
+    MIN_SWITCH_COOLDOWN=${MIN_SWITCH_COOLDOWN:-900}
 else
     AUTO_PROFIT_SWITCHING="false"
 fi
@@ -296,6 +304,7 @@ T_REX_VERSION=${T_REX_VERSION}
 
 # GPU Selection
 GPU_DEVICES=${GPU_DEVICES}
+MULTI_PROCESS=${MULTI_PROCESS}
 
 # Overclocking
 APPLY_OC=${APPLY_OC}
@@ -306,6 +315,7 @@ ECO_MODE=${ECO_MODE}
 AUTO_PROFIT_SWITCHING=${AUTO_PROFIT_SWITCHING}
 PROFIT_SWITCHING_THRESHOLD=${PROFIT_SWITCHING_THRESHOLD:-0.005}
 PROFIT_SWITCHING_INTERVAL=${PROFIT_SWITCHING_INTERVAL:-3600}
+MIN_SWITCH_COOLDOWN=${MIN_SWITCH_COOLDOWN:-900}
 
 # Telegram Notifications
 TELEGRAM_ENABLE=${TELEGRAM_ENABLE}

@@ -27,9 +27,11 @@ fi
 # Dual Pool: MyDualPool
 # Dual Worker: test-worker-dual
 # Extra Args: --extra-param 1
+# Multi-Process: y
 # Profit Switch: y
 # Threshold: 0.01
 # Interval: 7200
+# Cooldown: 1200
 # Telegram: y
 # Telegram Token: MyToken
 # Telegram ID: MyID
@@ -54,8 +56,10 @@ MyDualPool
 test-worker-dual
 --extra-param 1
 y
+y
 0.01
 7200
+1200
 y
 MyToken
 MyID
@@ -95,9 +99,11 @@ check_var "DUAL_WALLET=MyDualWallet"
 check_var "DUAL_POOL=MyDualPool"
 check_var "DUAL_WORKER=test-worker-dual"
 check_var "EXTRA_ARGS=--extra-param 1"
+check_var "MULTI_PROCESS=true"
 check_var "AUTO_PROFIT_SWITCHING=true"
 check_var "PROFIT_SWITCHING_THRESHOLD=0.01"
 check_var "PROFIT_SWITCHING_INTERVAL=7200"
+check_var "MIN_SWITCH_COOLDOWN=1200"
 check_var "TELEGRAM_ENABLE=true"
 check_var "TELEGRAM_BOT_TOKEN=MyToken"
 check_var "TELEGRAM_CHAT_ID=MyID"
@@ -122,6 +128,7 @@ echo "Running setup.sh test 2 (AMD, Defaults)..."
 # GPU Count: default (AUTO)
 # Dual Mining: n
 # Extra Args: empty
+# Multi-Process: n
 # Profit Switching: n
 # Telegram: n
 # Auto-Restart: n
@@ -135,6 +142,7 @@ AmdWallet
 2
 
 
+n
 n
 
 n
@@ -150,6 +158,7 @@ check_var "WORKER_NAME=ergo-miner"
 check_var "POOL_ADDRESS=stratum+tcp://erg.2miners.com:8080"
 check_var "MINER=lolminer"
 check_var "GPU_DEVICES=AUTO"
+check_var "MULTI_PROCESS=false"
 check_var "APPLY_OC=false"
 check_var "AUTO_PROFIT_SWITCHING=false"
 check_var "TELEGRAM_ENABLE=false"
@@ -177,6 +186,7 @@ echo "Running setup.sh test 3 (NVIDIA, Quiet)..."
 # Tuning Preset: 3 (Quiet)
 # Dual Mining: n
 # Extra Args: empty
+# Multi-Process: n
 # Profit Switching: n
 # Telegram: n
 # Auto-Restart: n
@@ -193,6 +203,7 @@ n
 y
 RTX 4090
 3
+n
 n
 
 n

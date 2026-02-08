@@ -78,13 +78,20 @@ fi
 if [ -n "$ACCEPTED_SHARES" ] && [ -n "$REJECTED_SHARES" ]; then
     TOTAL_SHARES=$(awk -v acc="$ACCEPTED_SHARES" -v rej="$REJECTED_SHARES" 'BEGIN {print acc + rej}')
 
-    # Only check if we have enough shares to be statistically significant
+    # Only check if we have enough shares to be statistically significant (>= 20 shares)
     if [ "$(awk -v ts="$TOTAL_SHARES" 'BEGIN {if (ts >= 20) print "1"; else print "0"}')" = "1" ]; then
         REJECT_RATIO=$(awk -v rej="$REJECTED_SHARES" -v ts="$TOTAL_SHARES" 'BEGIN {print (rej * 100) / ts}')
         if [ "$(awk -v rr="$REJECT_RATIO" 'BEGIN {if (rr > 10) print "1"; else print "0"}')" = "1" ]; then
-            echo "High rejected share ratio detected! Rejected: $REJECTED_SHARES, Total: $TOTAL_SHARES ($REJECT_RATIO%)"
+            echo "CRITICAL: High rejected share ratio detected!"
+            echo "  Accepted: $ACCEPTED_SHARES"
+            echo "  Rejected: $REJECTED_SHARES"
+            echo "  Total: $TOTAL_SHARES"
+            echo "  Ratio: $REJECT_RATIO% (Threshold: 10%)"
+            echo "Triggering automated restart..."
             ./restart.sh
             exit 1
+        else
+            echo "Health check: Share ratio healthy ($REJECT_RATIO% rejected)."
         fi
     fi
 fi
