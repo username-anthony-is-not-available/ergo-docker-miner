@@ -98,6 +98,13 @@ def get_history(days=30):
         rows = cursor.fetchall()
         return [dict(row) for row in rows]
 
+def get_gpu_indices(days=30):
+    since = (datetime.now() - timedelta(days=days)).isoformat()
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT DISTINCT gpu_index FROM gpu_history WHERE timestamp >= ? ORDER BY gpu_index ASC', (since,))
+        return [row[0] for row in cursor.fetchall()]
+
 def get_gpu_history(gpu_index=None, days=30):
     since = (datetime.now() - timedelta(days=days)).isoformat()
     with get_connection() as conn:

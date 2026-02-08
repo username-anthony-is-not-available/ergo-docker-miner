@@ -22,6 +22,7 @@ MINER_VERSION = os.getenv('LOLMINER_VERSION' if MINER_TYPE == 'lolminer' else 'T
 INFO = Gauge('miner_info', 'Miner information', ['miner', 'version', 'worker', 'driver'])
 UPTIME = Gauge('miner_uptime', 'Miner uptime in seconds', ['worker'])
 API_UP = Gauge('miner_api_up', 'Whether the miner API is reachable (1) or not (0)', ['worker'])
+MINER_INSTANCE_UP = Gauge('miner_instance_up', 'Whether a specific miner instance is UP (1) or DOWN (0)', ['port', 'worker'])
 GPU_COUNT = Gauge('miner_gpu_count', 'Number of GPUs detected by the miner', ['worker'])
 NODE_SYNCED = Gauge('miner_node_synced', 'Whether the Ergo node is synced (1) or not (0)', ['worker'])
 
@@ -125,6 +126,13 @@ def update_metrics() -> None:
 
         # Set global metrics from pre-calculated aggregates
         API_UP.labels(worker=WORKER).set(1)
+
+        # Update individual miner instance status
+        instances = data.get('miner_instances', {})
+        for port, status in instances.items():
+            val = 1 if status == 'UP' else 0
+            MINER_INSTANCE_UP.labels(port=str(port), worker=WORKER).set(val)
+
         GPU_COUNT.labels(worker=WORKER).set(len(data.get('gpus', [])))
         UPTIME.labels(worker=WORKER).set(data.get('uptime', 0))
         HASHRATE.labels(worker=WORKER).set(data.get('total_hashrate', 0))
