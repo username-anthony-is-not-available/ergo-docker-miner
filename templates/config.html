@@ -76,6 +76,12 @@
                 <label for="gpu_power_limit">GPU Power Limit</label>
                 <input type="number" id="gpu_power_limit" name="GPU_POWER_LIMIT">
             </div>
+            <hr>
+            <h2>Stability & Maintenance</h2>
+            <div class="form-group">
+                <label for="auto_restart_on_cuda_error">Auto-Restart on CUDA Error</label>
+                <input type="checkbox" id="auto_restart_on_cuda_error" name="AUTO_RESTART_ON_CUDA_ERROR">
+            </div>
             <button type="submit">Save</button>
         </form>
         <button id="restart-miner">Restart Miner</button>
@@ -101,6 +107,7 @@
                     document.getElementById('gpu_clock_offset').value = data.GPU_CLOCK_OFFSET || 0;
                     document.getElementById('gpu_mem_offset').value = data.GPU_MEM_OFFSET || 0;
                     document.getElementById('gpu_power_limit').value = data.GPU_POWER_LIMIT || 0;
+                    document.getElementById('auto_restart_on_cuda_error').checked = data.AUTO_RESTART_ON_CUDA_ERROR === 'true';
                 });
             // Handle form submission
             document.getElementById('config-form').addEventListener('submit', function(event) {
@@ -113,6 +120,7 @@
                 data['APPLY_OC'] = document.getElementById('apply_oc').checked;
                 data['ECO_MODE'] = document.getElementById('eco_mode').checked;
                 data['AUTO_PROFIT_SWITCHING'] = document.getElementById('auto_profit_switching').checked;
+                data['AUTO_RESTART_ON_CUDA_ERROR'] = document.getElementById('auto_restart_on_cuda_error').checked;
                 fetch('/api/config', {
                     method: 'POST',
                     headers: {

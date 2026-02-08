@@ -221,6 +221,15 @@ else
     TELEGRAM_ENABLE="false"
 fi
 
+# 11. Auto-Restart on CUDA Error
+echo -e "\n${GREEN}11. Auto-Restart on CUDA Error${NC}"
+read -p "Enable Auto-Restart on CUDA error detection? (y/n) [n]: " CUDA_RESTART_CHOICE
+if [[ "$CUDA_RESTART_CHOICE" =~ ^[Yy]$ ]]; then
+    AUTO_RESTART_ON_CUDA_ERROR="true"
+else
+    AUTO_RESTART_ON_CUDA_ERROR="false"
+fi
+
 # Generate .env file
 echo -e "\n${BLUE}Generating .env file...${NC}"
 cat <<EOF > .env
@@ -249,6 +258,9 @@ AUTO_PROFIT_SWITCHING=${AUTO_PROFIT_SWITCHING}
 
 # Telegram Notifications
 TELEGRAM_ENABLE=${TELEGRAM_ENABLE}
+
+# Auto-Restart on CUDA Error
+AUTO_RESTART_ON_CUDA_ERROR=${AUTO_RESTART_ON_CUDA_ERROR}
 EOF
 
 if [ "$TELEGRAM_ENABLE" == "true" ]; then

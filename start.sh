@@ -127,6 +127,11 @@ uvicorn dashboard:sio_app --host 0.0.0.0 --port 5000 &
 # Start the profit switcher in the background
 python3 profit_switcher.py &
 
+# Start CUDA error monitor if enabled
+if [ "$AUTO_RESTART_ON_CUDA_ERROR" = "true" ]; then
+  ./cuda_monitor.sh &
+fi
+
 # Start GPU monitoring in the background based on available tools
 if command -v nvidia-smi &> /dev/null; then
   (

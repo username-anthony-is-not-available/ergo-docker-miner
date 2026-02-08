@@ -32,6 +32,7 @@ fi
 # Telegram Token: MyToken
 # Telegram ID: MyID
 # Telegram Threshold: 600
+# Auto-Restart: y
 # Start now: n
 ./setup.sh <<EOF
 MyTestWallet
@@ -55,6 +56,7 @@ y
 MyToken
 MyID
 600
+y
 n
 EOF
 
@@ -93,6 +95,7 @@ check_var "TELEGRAM_ENABLE=true"
 check_var "TELEGRAM_BOT_TOKEN=MyToken"
 check_var "TELEGRAM_CHAT_ID=MyID"
 check_var "TELEGRAM_NOTIFY_THRESHOLD=600"
+check_var "AUTO_RESTART_ON_CUDA_ERROR=true"
 
 if [ $EXIT_CODE -eq 0 ]; then
     echo "setup.sh test 1 PASSED"
@@ -101,6 +104,7 @@ else
 fi
 
 rm .env
+EXIT_CODE=0
 
 echo "Running setup.sh test 2 (AMD, Defaults)..."
 # Wallet: AmdWallet
@@ -112,6 +116,7 @@ echo "Running setup.sh test 2 (AMD, Defaults)..."
 # Extra Args: empty
 # Profit Switching: n
 # Telegram: n
+# Auto-Restart: n
 # Start now: n
 ./setup.sh <<EOF
 AmdWallet
@@ -121,6 +126,7 @@ AmdWallet
 2
 
 
+n
 n
 n
 n
@@ -135,6 +141,7 @@ check_var "GPU_DEVICES=AUTO"
 check_var "APPLY_OC=false"
 check_var "AUTO_PROFIT_SWITCHING=false"
 check_var "TELEGRAM_ENABLE=false"
+check_var "AUTO_RESTART_ON_CUDA_ERROR=false"
 
 if [ $EXIT_CODE -eq 0 ]; then
     echo "setup.sh test 2 PASSED"
