@@ -138,7 +138,7 @@ fi
 ./metrics.sh &
 
 # Start the dashboard in the background
-uvicorn dashboard:sio_app --host 0.0.0.0 --port 5000 &
+streamlit run streamlit_app.py --server.port 5000 --server.address 0.0.0.0 --server.headless true &> streamlit.log &
 
 # Start the profit switcher in the background
 python3 profit_switcher.py &

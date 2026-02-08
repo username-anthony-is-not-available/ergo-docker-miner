@@ -53,9 +53,7 @@ COPY --from=builder /app/t-rex /app/t-rex
 
 # Copy scripts
 COPY start.sh metrics.sh metrics.py miner_api.py healthcheck.sh restart.sh database.py gpu_profiles.json env_config.py profit_switcher.py cuda_monitor.sh ./
-COPY dashboard.py .
-COPY templates/ templates/
-COPY static/ static/
+COPY streamlit_app.py .
 
 RUN chmod +x start.sh metrics.sh healthcheck.sh restart.sh cuda_monitor.sh && \
     chown -R miner:miner /app
