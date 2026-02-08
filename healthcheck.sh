@@ -2,10 +2,11 @@
 
 # Configuration
 MINER=${MINER:-lolminer}
-API_PORT=4444
+API_PORT=${API_PORT:-4444}
 STATE_FILE=${HEALTHCHECK_STATE_FILE:-/tmp/miner_unhealthy_since}
 MAX_UNHEALTHY_TIME=300 # 5 minutes in seconds
 GPU_DEVICES=${GPU_DEVICES:-AUTO}
+MULTI_PROCESS=${MULTI_PROCESS:-false}
 
 # Determine endpoint and process name based on miner
 if [ "$MINER" = "lolminer" ]; then
@@ -26,14 +27,47 @@ else
 fi
 
 # 1. Check if the miner process is running
-if ! pgrep -x "$PROCESS_NAME" > /dev/null; then
-    echo "Miner process $PROCESS_NAME not found!"
-    ./restart.sh
-    exit 1
+if [ "$MULTI_PROCESS" = "true" ] && [ "$GPU_DEVICES" != "AUTO" ]; then
+    EXPECTED_PROCESS_COUNT=$(echo "$GPU_DEVICES" | tr ',' '\n' | grep -v "^$" | wc -l)
+    ACTUAL_PROCESS_COUNT=$(pgrep -x "$PROCESS_NAME" | wc -l)
+    if [ "$ACTUAL_PROCESS_COUNT" -lt "$EXPECTED_PROCESS_COUNT" ]; then
+        echo "Miner process count mismatch! Expected: $EXPECTED_PROCESS_COUNT, Actual: $ACTUAL_PROCESS_COUNT"
+        ./restart.sh
+        exit 1
+    fi
+else
+    if ! pgrep -x "$PROCESS_NAME" > /dev/null; then
+        echo "Miner process $PROCESS_NAME not found!"
+        ./restart.sh
+        exit 1
+    fi
 fi
 
 # 2. Query the miner's API
-RESPONSE=$(curl -s "http://localhost:${API_PORT}${ENDPOINT}")
+if [ "$MULTI_PROCESS" = "true" ] && [ "$GPU_DEVICES" != "AUTO" ]; then
+    TOTAL_HASHRATE=0
+    TOTAL_ACTUAL_GPUS=0
+
+    IFS=',' read -ra ADDR <<< "$GPU_DEVICES"
+    for i in "${!ADDR[@]}"; do
+        CURRENT_PORT=$((API_PORT + i))
+        CUR_RESPONSE=$(curl -s "http://localhost:${CURRENT_PORT}${ENDPOINT}")
+        CUR_HASHRATE=$(echo "$CUR_RESPONSE" | jq "$QUERY_HASHRATE" 2>/dev/null || echo 0)
+        CUR_GPUS=$(echo "$CUR_RESPONSE" | jq "$QUERY_GPU_COUNT" 2>/dev/null || echo 0)
+
+        # Simple integer addition for hashrate check (it's enough to know if it's > 0)
+        # We use jq to handle potential float hashrates
+        TOTAL_HASHRATE=$(jq -n "$TOTAL_HASHRATE + $CUR_HASHRATE")
+        TOTAL_ACTUAL_GPUS=$((TOTAL_ACTUAL_GPUS + CUR_GPUS))
+    done
+
+    # Synthesize a response for the subsequent checks
+    RESPONSE="{\"hashrate\": $TOTAL_HASHRATE, \"gpu_count\": $TOTAL_ACTUAL_GPUS}"
+    QUERY_HASHRATE=".hashrate"
+    QUERY_GPU_COUNT=".gpu_count"
+else
+    RESPONSE=$(curl -s "http://localhost:${API_PORT}${ENDPOINT}")
+fi
 
 # 3. Check GPU count if GPU_DEVICES is not AUTO
 if [ "$GPU_DEVICES" != "AUTO" ]; then
