@@ -1,4 +1,5 @@
 import requests
+import re
 import subprocess
 import os
 import logging
@@ -215,6 +216,45 @@ def get_gpu_smi_data() -> List[Dict[str, float]]:
             pass
     return gpu_stats
 
+def parse_lolminer_data(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Parses raw lolMiner API response into a normalized format."""
+    session = data.get('Session', {})
+    total_perf = data.get('Total_Performance', [0])
+
+    # Extract major driver version using regex from confirmed 'Driver' field
+    driver_str = session.get('Driver', '')
+    driver_version = "unknown"
+    if driver_str:
+        match = re.search(r'^(\d+)', driver_str)
+        if match:
+            driver_version = match.group(1)
+
+    normalized = {
+        'miner': 'lolminer',
+        'uptime': session.get('Uptime', 0),
+        'total_hashrate': total_perf[0] if total_perf else 0,
+        'total_dual_hashrate': total_perf[1] if len(total_perf) > 1 else 0,
+        'driver_version': driver_version,
+        'gpus': []
+    }
+
+    for i, gpu in enumerate(data.get('GPUs', [])):
+        perf = gpu.get('Performance', [0])
+        gpu_hashrate = perf[0] if isinstance(perf, list) else perf
+        gpu_dual_hashrate = perf[1] if isinstance(perf, list) and len(perf) > 1 else 0
+
+        normalized['gpus'].append({
+            'index': i,
+            'hashrate': gpu_hashrate,
+            'dual_hashrate': gpu_dual_hashrate,
+            'fan_speed': gpu.get('Fan_Speed', 0),
+            'accepted_shares': gpu.get('Accepted_Shares', 0),
+            'rejected_shares': gpu.get('Rejected_Shares', 0),
+            'temperature': 0,
+            'power_draw': 0
+        })
+    return normalized
+
 def _fetch_single_miner_data(miner: str, api_port: int) -> Optional[Dict[str, Any]]:
     """Fetches data from a single miner API instance."""
     max_retries = 3
@@ -223,33 +263,7 @@ def _fetch_single_miner_data(miner: str, api_port: int) -> Optional[Dict[str, An
             if miner == 'lolminer':
                 response = requests.get(f'http://localhost:{api_port}/', timeout=2)
                 response.raise_for_status()
-                data = response.json()
-
-                total_perf = data.get('Total_Performance', [0])
-                normalized = {
-                    'miner': 'lolminer',
-                    'uptime': data.get('Session', {}).get('Uptime', 0),
-                    'total_hashrate': total_perf[0],
-                    'total_dual_hashrate': total_perf[1] if len(total_perf) > 1 else 0,
-                    'gpus': []
-                }
-
-                for i, gpu in enumerate(data.get('GPUs', [])):
-                    perf = gpu.get('Performance', [0])
-                    gpu_hashrate = perf[0] if isinstance(perf, list) else perf
-                    gpu_dual_hashrate = perf[1] if isinstance(perf, list) and len(perf) > 1 else 0
-
-                    normalized['gpus'].append({
-                        'index': i,
-                        'hashrate': gpu_hashrate,
-                        'dual_hashrate': gpu_dual_hashrate,
-                        'fan_speed': gpu.get('Fan_Speed', 0),
-                        'accepted_shares': gpu.get('Accepted_Shares', 0),
-                        'rejected_shares': gpu.get('Rejected_Shares', 0),
-                        'temperature': 0,
-                        'power_draw': 0
-                    })
-                return normalized
+                return parse_lolminer_data(response.json())
 
             elif miner == 't-rex':
                 response = requests.get(f'http://localhost:{api_port}/summary', timeout=2)

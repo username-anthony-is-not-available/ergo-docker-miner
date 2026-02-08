@@ -36,6 +36,7 @@ class TestMetrics(unittest.TestCase):
             'total_accepted_shares': 210,
             'total_rejected_shares': 5,
             'status': 'Mining',
+            'driver_version': '535',
             'gpus': [
                 {
                     'index': 0, 'hashrate': 60.2, 'dual_hashrate': 125.2, 'fan_speed': 55,
@@ -61,7 +62,7 @@ class TestMetrics(unittest.TestCase):
         self.assertEqual(UPTIME.labels(worker=WORKER)._value.get(), 0) # Mock uptime is 0 unless specified
 
         # Assert info metric
-        self.assertEqual(INFO.labels(miner=metrics.MINER_TYPE, version=metrics.MINER_VERSION, worker=WORKER)._value.get(), 1)
+        self.assertEqual(INFO.labels(miner=metrics.MINER_TYPE, version=metrics.MINER_VERSION, worker=WORKER, driver='535')._value.get(), 1)
 
         # Assert GPU metrics
         self.assertEqual(GPU_HASHRATE.labels(gpu="0", worker=WORKER)._value.get(), 60.2)
