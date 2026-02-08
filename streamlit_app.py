@@ -4,6 +4,7 @@ import plotly.express as px
 import time
 from datetime import datetime
 import os
+import json
 import subprocess
 import logging
 from typing import Dict, Any, Optional
@@ -167,6 +168,43 @@ def main():
                                 title="Average Temp and Fan Speed")
             st.plotly_chart(fig_temp, use_container_width=True)
 
+            st.subheader("Efficiency History")
+            df['efficiency'] = df['hashrate'] / df['total_power_draw'].replace(0, float('nan'))
+            fig_eff = px.line(df, x='timestamp', y='efficiency',
+                                labels={'efficiency': 'Efficiency (MH/W)', 'timestamp': 'Time'},
+                                title="Rig-wide Efficiency over Time")
+            st.plotly_chart(fig_eff, use_container_width=True)
+
+            # Per-GPU History Section
+            st.divider()
+            st.subheader("Per-GPU History")
+            gpu_indices = database.get_gpu_indices(days=days)
+            if gpu_indices:
+                selected_gpu = st.selectbox("Select GPU", gpu_indices, format_func=lambda x: f"GPU {x}")
+                gpu_history = database.get_gpu_history(gpu_index=selected_gpu, days=days)
+                if gpu_history:
+                    gdf = pd.DataFrame(gpu_history)
+                    gdf['timestamp'] = pd.to_datetime(gdf['timestamp'])
+
+                    col_g1, col_g2 = st.columns(2)
+
+                    fig_gh = px.line(gdf, x='timestamp', y='hashrate',
+                                    labels={'hashrate': 'Hashrate (MH/s)', 'timestamp': 'Time'},
+                                    title=f"GPU {selected_gpu} Hashrate")
+                    col_g1.plotly_chart(fig_gh, use_container_width=True)
+
+                    fig_gp = px.line(gdf, x='timestamp', y='power_draw',
+                                    labels={'power_draw': 'Power (W)', 'timestamp': 'Time'},
+                                    title=f"GPU {selected_gpu} Power Draw")
+                    col_g2.plotly_chart(fig_gp, use_container_width=True)
+
+                    fig_gt = px.line(gdf, x='timestamp', y=['temperature', 'fan_speed'],
+                                    labels={'value': 'Value', 'timestamp': 'Time'},
+                                    title=f"GPU {selected_gpu} Temp & Fan")
+                    st.plotly_chart(fig_gt, use_container_width=True)
+            else:
+                st.info("No per-GPU historical data available.")
+
             # Weekly Report Section
             st.divider()
             st.subheader("Weekly Summary Report")
@@ -246,10 +284,37 @@ def main():
             col5, col6 = st.columns(2)
             apply_oc = col5.checkbox("Apply Overclocking", value=config.get('APPLY_OC', 'false').lower() == 'true')
 
-            tuning_options = ["High", "Efficient", "Quiet"]
+            # Load profiles for dynamic selection
+            profiles = {}
+            if os.path.exists('gpu_profiles.json'):
+                try:
+                    with open('gpu_profiles.json', 'r') as f:
+                        profiles = json.load(f)
+                except Exception:
+                    pass
+
+            base_profiles = sorted(list(set([p.split(' (')[0] for p in profiles.keys()])))
+            current_profile = config.get('GPU_PROFILE', 'AUTO')
+
+            profile_idx = 0
+            if current_profile != 'AUTO' and current_profile.split(' (')[0] in base_profiles:
+                profile_idx = base_profiles.index(current_profile.split(' (')[0]) + 1
+            elif current_profile == 'AUTO':
+                profile_idx = 0
+
+            selected_profile = col5.selectbox("GPU Model Profile", ["AUTO"] + base_profiles, index=profile_idx, help="Select your GPU model for optimized settings.")
+
+            # Dynamic Tuning Presets based on selected profile
+            tuning_options = ["High"]
+            if selected_profile != "AUTO":
+                if f"{selected_profile} (Eco)" in profiles: tuning_options.append("Efficient")
+                if f"{selected_profile} (Quiet)" in profiles: tuning_options.append("Quiet")
+            else:
+                tuning_options = ["High", "Efficient", "Quiet"]
+
             current_tuning = config.get('GPU_TUNING', 'Efficient')
-            tuning_idx = tuning_options.index(current_tuning) if current_tuning in tuning_options else 1
-            tuning = col6.selectbox("Tuning Preset", tuning_options, index=tuning_idx, help="Requires APPLY_OC=true. Presets defined in gpu_profiles.json.")
+            tuning_idx = tuning_options.index(current_tuning) if current_tuning in tuning_options else (1 if "Efficient" in tuning_options else 0)
+            tuning = col6.selectbox("Tuning Preset", tuning_options, index=tuning_idx, help="High=Max Hashrate, Efficient=Best MH/W, Quiet=Lower Fans/Power.")
 
             # 4. Dual Mining
             with st.expander("🔗 Dual Mining (lolMiner Only)"):
@@ -299,6 +364,7 @@ def main():
                 new_config['MULTI_PROCESS'] = 'true' if multi_process else 'false'
                 new_config['EXTRA_ARGS'] = extra_args
                 new_config['APPLY_OC'] = 'true' if apply_oc else 'false'
+                new_config['GPU_PROFILE'] = selected_profile
                 new_config['GPU_TUNING'] = tuning
 
                 # Dual Mining

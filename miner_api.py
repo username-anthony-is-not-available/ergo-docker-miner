@@ -392,11 +392,13 @@ def get_normalized_miner_data() -> Optional[Dict[str, Any]]:
             return _fetch_single_miner_data(miner, api_port)
 
         aggregated_data = None
+        instances_status = {}
 
         for i, device_id in enumerate(device_ids):
             current_port = api_port + i
             data = _fetch_single_miner_data(miner, current_port)
             if data:
+                instances_status[current_port] = 'UP'
                 # Map back to original GPU index
                 # In multi-process mode, each miner has 1 GPU, usually index 0 in its API
                 for gpu in data['gpus']:
@@ -413,10 +415,12 @@ def get_normalized_miner_data() -> Optional[Dict[str, Any]]:
                     aggregated_data['uptime'] = min(aggregated_data.get('uptime', 0), data.get('uptime', 0))
                     aggregated_data['gpus'].extend(data.get('gpus', []))
             else:
+                instances_status[current_port] = 'DOWN'
                 logger.warning(f"No data received from miner instance on port {current_port} (GPU {device_id})")
 
         # Ensure GPUs are sorted by index
         if aggregated_data:
+            aggregated_data['miner_instances'] = instances_status
             aggregated_data['gpus'].sort(key=lambda x: x['index'])
         return aggregated_data
     else:
@@ -450,6 +454,7 @@ def _get_mock_full_data() -> Dict[str, Any]:
         'total_hashrate': total_hashrate,
         'total_dual_hashrate': 0.0,
         'gpus': gpus,
+        'miner_instances': {'4444': 'UP', '4445': 'UP'},
         'total_power_draw': total_power,
         'efficiency': total_hashrate / total_power if total_power > 0 else 0,
         'avg_temperature': sum(g['temperature'] for g in gpus) / num_gpus,
