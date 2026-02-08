@@ -91,6 +91,24 @@ class TestMinerApi(unittest.TestCase):
         self.assertEqual(data[0]['power_draw'], 120.0)
         self.assertEqual(data[0]['fan_speed'], 50.0)
 
+    @patch('psutil.process_iter')
+    def test_get_services_status(self, mock_iter):
+        mock_proc1 = MagicMock()
+        mock_proc1.info = {'cmdline': ['python3', 'metrics.py']}
+        mock_proc2 = MagicMock()
+        mock_proc2.info = {'cmdline': ['/bin/bash', './cuda_monitor.sh']}
+        mock_iter.return_value = [mock_proc1, mock_proc2]
+
+        with patch.dict(os.environ, {'AUTO_RESTART_ON_CUDA_ERROR': 'true'}):
+            status = miner_api.get_services_status()
+            self.assertEqual(status['metrics.py'], 'Running')
+            self.assertEqual(status['cuda_monitor.sh'], 'Running')
+            self.assertEqual(status['profit_switcher.py'], 'Stopped')
+
+        with patch.dict(os.environ, {'AUTO_RESTART_ON_CUDA_ERROR': 'false'}):
+            status = miner_api.get_services_status()
+            self.assertEqual(status['cuda_monitor.sh'], 'Disabled')
+
     @patch('subprocess.check_output')
     def test_get_gpu_names_nvidia(self, mock_check_output):
         def side_effect(cmd, *args, **kwargs):
@@ -136,6 +154,8 @@ class TestMinerApi(unittest.TestCase):
         self.assertEqual(data['gpus'][0]['fan_speed'], 50.0) # SMI should overwrite
         self.assertEqual(data['total_accepted_shares'], 10)
         self.assertEqual(data['avg_fan_speed'], 50.0)
+        self.assertEqual(data['efficiency'], 120.0 / 150.0)
+        self.assertEqual(data['gpus'][0]['efficiency'], 60.0 / 150.0)
 
     @patch('requests.get')
     def test_get_normalized_miner_data_multi_process(self, mock_get):

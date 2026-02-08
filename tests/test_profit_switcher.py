@@ -35,6 +35,9 @@ class TestProfitSwitcher(unittest.TestCase):
     @patch('profit_switcher.subprocess.run')
     @patch('profit_switcher.time.sleep', side_effect=Exception("Break Loop"))
     def test_main_loop_switching(self, mock_sleep, mock_run, mock_get_profit, mock_write_env, mock_read_env):
+        # Move start_time back so cooldown is not active
+        profit_switcher.start_time = profit_switcher.time.time() - 2000
+
         # Current pool is 2Miners
         mock_read_env.return_value = {
             "AUTO_PROFIT_SWITCHING": "true",
@@ -71,6 +74,9 @@ class TestProfitSwitcher(unittest.TestCase):
     @patch('profit_switcher.write_env_file')
     @patch('profit_switcher.time.sleep', side_effect=Exception("Break Loop"))
     def test_main_loop_no_switching_below_threshold(self, mock_sleep, mock_write, mock_get_profit, mock_read_env):
+        # Move start_time back so cooldown is not active
+        profit_switcher.start_time = profit_switcher.time.time() - 2000
+
         # Current pool is 2Miners
         mock_read_env.return_value = {
             "AUTO_PROFIT_SWITCHING": "true",

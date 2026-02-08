@@ -8,6 +8,31 @@ import psutil
 
 logger = logging.getLogger(__name__)
 
+def get_services_status() -> Dict[str, str]:
+    """Checks if background services are running."""
+    services = {
+        'metrics.py': 'Stopped',
+        'profit_switcher.py': 'Stopped',
+        'cuda_monitor.sh': 'Stopped'
+    }
+    try:
+        for proc in psutil.process_iter(['cmdline']):
+            cmdline = proc.info.get('cmdline')
+            if not cmdline:
+                continue
+            cmd_str = " ".join(cmdline)
+            for service in services.keys():
+                if service in cmd_str:
+                    services[service] = 'Running'
+    except Exception as e:
+        logger.error(f"Error checking services status: {e}")
+
+    # Check if cuda_monitor is even supposed to be running
+    if os.getenv('AUTO_RESTART_ON_CUDA_ERROR', 'false').lower() != 'true':
+        services['cuda_monitor.sh'] = 'Disabled'
+
+    return services
+
 def get_system_info() -> Dict[str, Any]:
     """Fetches system info (CPU, RAM, Disk)."""
     try:
@@ -15,7 +40,8 @@ def get_system_info() -> Dict[str, Any]:
             'cpu_usage': psutil.cpu_percent(interval=0.1),
             'memory_usage': psutil.virtual_memory().percent,
             'disk_usage': psutil.disk_usage('/').percent,
-            'host_uptime': time.time() - psutil.boot_time()
+            'host_uptime': time.time() - psutil.boot_time(),
+            'services': get_services_status()
         }
     except Exception as e:
         logger.error(f"Error fetching system info: {e}")
@@ -223,13 +249,19 @@ def get_full_miner_data() -> Optional[Dict[str, Any]]:
     gpu_count = len(data['gpus'])
 
     for gpu in data['gpus']:
-        total_power += gpu.get('power_draw', 0)
+        # Calculate per-GPU efficiency (MH/W)
+        gpu_power = gpu.get('power_draw', 0)
+        gpu['efficiency'] = gpu.get('hashrate', 0) / gpu_power if gpu_power > 0 else 0
+
+        total_power += gpu_power
         total_temp += gpu.get('temperature', 0)
         total_accepted += gpu.get('accepted_shares', 0)
         total_rejected += gpu.get('rejected_shares', 0)
         total_fan += gpu.get('fan_speed', 0)
 
     data['total_power_draw'] = total_power
+    # Rig-wide efficiency
+    data['efficiency'] = data.get('total_hashrate', 0) / total_power if total_power > 0 else 0
     data['avg_temperature'] = total_temp / gpu_count if gpu_count > 0 else 0
     data['total_accepted_shares'] = total_accepted
     data['total_rejected_shares'] = total_rejected

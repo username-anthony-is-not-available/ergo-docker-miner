@@ -27,6 +27,7 @@ HASHRATE = Gauge('miner_hashrate', 'Total hashrate in MH/s', ['worker'])
 DUAL_HASHRATE = Gauge('miner_dual_hashrate', 'Total dual hashrate in MH/s', ['worker'])
 AVG_FAN_SPEED = Gauge('miner_avg_fan_speed', 'Average fan speed of all GPUs in %', ['worker'])
 TOTAL_POWER_DRAW = Gauge('miner_total_power_draw', 'Total power draw of all GPUs in W', ['worker'])
+EFFICIENCY = Gauge('miner_efficiency', 'Rig-wide power efficiency in MH/s per Watt', ['worker'])
 TOTAL_SHARES_ACCEPTED = Gauge('miner_total_shares_accepted', 'Total number of accepted shares', ['worker'])
 TOTAL_SHARES_REJECTED = Gauge('miner_total_shares_rejected', 'Total number of rejected shares', ['worker'])
 
@@ -35,6 +36,7 @@ GPU_DUAL_HASHRATE = Gauge('miner_gpu_dual_hashrate', 'Dual hashrate of a single 
 GPU_TEMPERATURE = Gauge('miner_gpu_temperature', 'Temperature of a single GPU in °C', ['gpu', 'worker'])
 GPU_POWER_DRAW = Gauge('miner_gpu_power_draw', 'Power draw of a single GPU in W', ['gpu', 'worker'])
 GPU_FAN_SPEED = Gauge('miner_gpu_fan_speed', 'Fan speed of a single GPU in %', ['gpu', 'worker'])
+GPU_EFFICIENCY = Gauge('miner_gpu_efficiency', 'Power efficiency of a single GPU in MH/s per Watt', ['gpu', 'worker'])
 GPU_SHARES_ACCEPTED = Gauge('miner_gpu_shares_accepted', 'Number of accepted shares for a single GPU', ['gpu', 'worker'])
 GPU_SHARES_REJECTED = Gauge('miner_gpu_shares_rejected', 'Number of rejected shares for a single GPU', ['gpu', 'worker'])
 
@@ -108,6 +110,7 @@ def update_metrics() -> None:
         DUAL_HASHRATE.labels(worker=WORKER).set(data.get('total_dual_hashrate', 0))
         AVG_FAN_SPEED.labels(worker=WORKER).set(data.get('avg_fan_speed', 0))
         TOTAL_POWER_DRAW.labels(worker=WORKER).set(data.get('total_power_draw', 0))
+        EFFICIENCY.labels(worker=WORKER).set(data.get('efficiency', 0))
         TOTAL_SHARES_ACCEPTED.labels(worker=WORKER).set(data.get('total_accepted_shares', 0))
         TOTAL_SHARES_REJECTED.labels(worker=WORKER).set(data.get('total_rejected_shares', 0))
 
@@ -120,6 +123,7 @@ def update_metrics() -> None:
             GPU_TEMPERATURE.labels(gpu=gpu_idx, worker=WORKER).set(gpu.get('temperature', 0))
             GPU_POWER_DRAW.labels(gpu=gpu_idx, worker=WORKER).set(gpu.get('power_draw', 0))
             GPU_FAN_SPEED.labels(gpu=gpu_idx, worker=WORKER).set(gpu.get('fan_speed', 0))
+            GPU_EFFICIENCY.labels(gpu=gpu_idx, worker=WORKER).set(gpu.get('efficiency', 0))
             GPU_SHARES_ACCEPTED.labels(gpu=gpu_idx, worker=WORKER).set(gpu.get('accepted_shares', 0))
             GPU_SHARES_REJECTED.labels(gpu=gpu_idx, worker=WORKER).set(gpu.get('rejected_shares', 0))
 

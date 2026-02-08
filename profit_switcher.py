@@ -10,6 +10,11 @@ from env_config import read_env_file, write_env_file
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("profit_switcher")
 
+# Cooldown settings
+MIN_RUNTIME_BEFORE_SWITCH = 900 # 15 minutes
+last_switch_time = 0.0
+start_time = time.time()
+
 POOLS = [
     {
         "name": "2Miners",
@@ -85,6 +90,7 @@ def get_pool_profitability(pool: Dict) -> float:
     return 0.0
 
 def main():
+    global last_switch_time
     logger.info("Profit Switcher started")
     while True:
         try:
@@ -95,6 +101,21 @@ def main():
 
             if not auto_switching:
                 logger.info("Auto profit switching is disabled. Sleeping for 60s.")
+                time.sleep(60)
+                continue
+
+            # Safety check: ensure miner has been running for a minimum duration
+            current_time = time.time()
+            runtime = current_time - start_time
+            time_since_last_switch = current_time - last_switch_time if last_switch_time > 0 else runtime
+
+            if runtime < MIN_RUNTIME_BEFORE_SWITCH:
+                logger.info(f"Miner in initial grace period ({int(runtime)}s / {MIN_RUNTIME_BEFORE_SWITCH}s). Skipping check.")
+                time.sleep(60)
+                continue
+
+            if time_since_last_switch < MIN_RUNTIME_BEFORE_SWITCH:
+                logger.info(f"Cooldown active since last switch ({int(time_since_last_switch)}s / {MIN_RUNTIME_BEFORE_SWITCH}s). Skipping check.")
                 time.sleep(60)
                 continue
 
@@ -125,6 +146,7 @@ def main():
 
                     env_vars["POOL_ADDRESS"] = best_pool["stratum"]
                     write_env_file(env_vars)
+                    last_switch_time = time.time()
 
                     logger.info("Restarting miner...")
                     subprocess.run(["./restart.sh"], check=True)
