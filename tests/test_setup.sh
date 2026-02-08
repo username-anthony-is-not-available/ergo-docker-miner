@@ -19,6 +19,7 @@ fi
 # GPU Count: 2 (0,1)
 # Apply OC: y
 # Profile: RTX 3070
+# Eco Mode: y
 # Dual Mining: y
 # Dual Algo: 1 (Kaspa)
 # Dual Wallet: MyDualWallet
@@ -40,6 +41,7 @@ test-worker
 2
 y
 RTX 3070
+y
 y
 1
 MyDualWallet
@@ -77,6 +79,7 @@ check_var "POOL_ADDRESS=stratum+tcp://herominers.com:1180"
 check_var "MINER=lolminer"
 check_var "GPU_DEVICES=0,1"
 check_var "APPLY_OC=true"
+check_var "ECO_MODE=true"
 check_var "GPU_PROFILE=RTX 3070"
 check_var "DUAL_ALGO=KASPADUAL"
 check_var "DUAL_WALLET=MyDualWallet"
@@ -122,6 +125,7 @@ n
 EOF
 
 check_var "WALLET_ADDRESS=AmdWallet"
+check_var "ECO_MODE=false"
 check_var "WORKER_NAME=ergo-miner"
 check_var "POOL_ADDRESS=stratum+tcp://erg.2miners.com:8080"
 check_var "MINER=lolminer"
