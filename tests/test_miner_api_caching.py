@@ -10,21 +10,18 @@ class TestMinerApiCaching(unittest.TestCase):
 
     @patch('miner_api.subprocess.check_output')
     def test_get_gpu_names_caching(self, mock_output):
-        mock_output.side_effect = [
-            b'/usr/bin/nvidia-smi',
-            b'GPU 0: RTX 3070\nGPU 1: RTX 3080\n'
-        ]
+        mock_output.return_value = b'RTX 3070\nRTX 3080\n'
 
         # First call
         names1 = miner_api.get_gpu_names()
         self.assertEqual(len(names1), 2)
-        self.assertEqual(names1[0], "GPU 0: RTX 3070")
+        self.assertEqual(names1[0], 'RTX 3070')
 
         # Second call should use cache (mock_output should not be called again for smi)
         names2 = miner_api.get_gpu_names()
         self.assertEqual(names1, names2)
-        # 1 for 'which nvidia-smi', 1 for 'nvidia-smi ...'
-        self.assertEqual(mock_output.call_count, 2)
+        # 1 for 'nvidia-smi ...' (no longer calls 'which')
+        self.assertEqual(mock_output.call_count, 1)
 
     @patch('miner_api.subprocess.check_output')
     @patch('miner_api._fetch_single_miner_data')

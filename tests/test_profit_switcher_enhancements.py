@@ -4,6 +4,10 @@ import profit_switcher
 import time
 
 class TestProfitSwitcherEnhancements(unittest.TestCase):
+    def setUp(self):
+        # Reset global state to avoid cross-test interference
+        profit_switcher.last_switch_time = 0.0
+        profit_switcher.start_time = time.time()
 
     @patch('profit_switcher.read_env_file')
     @patch('profit_switcher.get_pool_profitability')

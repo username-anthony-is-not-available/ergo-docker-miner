@@ -184,34 +184,72 @@ def main():
         config = read_env_file()
 
         with st.form("config_form"):
-            # Group settings
-            st.subheader("Wallet & Pool")
-            wallet = st.text_input("Wallet Address", value=os.getenv('WALLET_ADDRESS', config.get('WALLET_ADDRESS', '')))
-            pool = st.text_input("Pool Address", value=config.get('POOL_ADDRESS', ''))
-            worker = st.text_input("Worker Name", value=config.get('WORKER_NAME', 'ergo-miner'))
+            # 1. Wallet & Pool
+            st.subheader("🌐 Wallet & Pool")
+            col1, col2 = st.columns(2)
+            wallet = col1.text_input("Wallet Address", value=os.getenv('WALLET_ADDRESS', config.get('WALLET_ADDRESS', '')), help="Your Ergo wallet address.")
+            worker = col2.text_input("Worker Name", value=config.get('WORKER_NAME', 'ergo-miner'), help="Name for this mining rig.")
 
-            st.subheader("Miner Settings")
+            pool = col1.text_input("Primary Pool Address", value=config.get('POOL_ADDRESS', ''), help="Primary mining pool stratum address.")
+            backup_pool = col2.text_input("Backup Pool Address", value=config.get('BACKUP_POOL_ADDRESS', ''), help="Failover pool address.")
+
+            # 2. Miner Settings
+            st.subheader("⛏️ Miner Settings")
+            col3, col4 = st.columns(2)
             miner_options = ["lolminer", "t-rex"]
-            current_miner = config.get('MINER', 'lolminer')
+            current_miner = config.get('MINER', 'lolminer').lower()
             miner_idx = miner_options.index(current_miner) if current_miner in miner_options else 0
-            miner = st.selectbox("Miner", miner_options, index=miner_idx)
+            miner = col3.selectbox("Miner Backend", miner_options, index=miner_idx)
 
-            gpu_devices = st.text_input("GPU Devices (e.g., 0,1,2 or AUTO)", value=config.get('GPU_DEVICES', 'AUTO'))
-            multi_process = st.checkbox("Multi-Process Mode", value=config.get('MULTI_PROCESS', 'false').lower() == 'true')
+            gpu_devices = col4.text_input("GPU Devices", value=config.get('GPU_DEVICES', 'AUTO'), help="Comma-separated IDs (e.g. 0,1,2) or AUTO.")
 
-            st.subheader("Features")
-            col_f1, col_f2 = st.columns(2)
-            profit_switch = col_f1.checkbox("Auto Profit Switching", value=config.get('ENABLE_PROFIT_SWITCHER', 'false').lower() == 'true')
-            cuda_restart = col_f2.checkbox("Auto Restart on CUDA Error", value=config.get('AUTO_RESTART_ON_CUDA_ERROR', 'false').lower() == 'true')
+            multi_process = col3.checkbox("Multi-Process Mode", value=config.get('MULTI_PROCESS', 'false').lower() == 'true', help="Run one miner process per GPU for better stability.")
+            extra_args = col4.text_input("Extra Arguments", value=config.get('EXTRA_ARGS', ''), help="Additional command line flags for the miner.")
 
-            node_check = col_f1.checkbox("Ergo Node Sync Check", value=config.get('CHECK_NODE_SYNC', 'false').lower() == 'true')
-            node_url = col_f2.text_input("Node URL", value=config.get('NODE_URL', 'http://localhost:9053'))
+            # 3. Overclocking & Tuning
+            st.subheader("⚙️ Overclocking & Tuning")
+            col5, col6 = st.columns(2)
+            apply_oc = col5.checkbox("Apply Overclocking", value=config.get('APPLY_OC', 'false').lower() == 'true')
 
-            st.subheader("Tuning")
             tuning_options = ["High", "Efficient", "Quiet"]
             current_tuning = config.get('GPU_TUNING', 'Efficient')
             tuning_idx = tuning_options.index(current_tuning) if current_tuning in tuning_options else 1
-            tuning = st.selectbox("Tuning Preset", tuning_options, index=tuning_idx)
+            tuning = col6.selectbox("Tuning Preset", tuning_options, index=tuning_idx, help="Requires APPLY_OC=true. Presets defined in gpu_profiles.json.")
+
+            # 4. Dual Mining
+            with st.expander("🔗 Dual Mining (lolMiner Only)"):
+                dual_algo_options = ["", "KASPADUAL", "ALEPHDUAL"]
+                current_dual_algo = config.get('DUAL_ALGO', '')
+                dual_algo_idx = dual_algo_options.index(current_dual_algo) if current_dual_algo in dual_algo_options else 0
+                dual_algo = st.selectbox("Dual Algorithm", dual_algo_options, index=dual_algo_idx)
+
+                col7, col8 = st.columns(2)
+                dual_pool = col7.text_input("Dual Pool Address", value=config.get('DUAL_POOL', ''))
+                dual_wallet = col8.text_input("Dual Wallet Address", value=config.get('DUAL_WALLET', ''))
+                dual_worker = col7.text_input("Dual Worker Name", value=config.get('DUAL_WORKER', ''))
+
+            # 5. Advanced Features
+            st.subheader("🚀 Advanced Features")
+            col9, col10 = st.columns(2)
+            profit_switch = col9.checkbox("Auto Profit Switching", value=config.get('ENABLE_PROFIT_SWITCHER', 'false').lower() == 'true' or config.get('AUTO_PROFIT_SWITCHING', 'false').lower() == 'true')
+            cuda_restart = col10.checkbox("Auto Restart on CUDA Error", value=config.get('AUTO_RESTART_ON_CUDA_ERROR', 'false').lower() == 'true')
+
+            node_check = col9.checkbox("Ergo Node Sync Check", value=config.get('CHECK_NODE_SYNC', 'false').lower() == 'true')
+            node_url = col10.text_input("Node API URL", value=config.get('NODE_URL', 'http://localhost:9053'))
+
+            if profit_switch:
+                with st.expander("📈 Profit Switching Settings"):
+                    col11, col12 = st.columns(2)
+                    ps_threshold = col11.number_input("Switching Threshold", value=float(config.get('PROFIT_SWITCHING_THRESHOLD', '0.005')), format="%.4f", step=0.001, help="Min profit gain to trigger switch (0.005 = 0.5%)")
+                    ps_interval = col12.number_input("Check Interval (seconds)", value=int(config.get('PROFIT_SWITCHING_INTERVAL', '3600')), step=60)
+                    ps_cooldown = col11.number_input("Minimum Switch Cooldown (seconds)", value=int(config.get('MIN_SWITCH_COOLDOWN', '900')), step=60)
+
+            # 6. Telegram Notifications
+            with st.expander("📱 Telegram Notifications"):
+                tg_enable = st.checkbox("Enable Telegram Alerts", value=config.get('TELEGRAM_ENABLE', 'false').lower() == 'true')
+                tg_token = st.text_input("Bot Token", value=config.get('TELEGRAM_BOT_TOKEN', ''), type="password")
+                tg_chat_id = st.text_input("Chat ID", value=config.get('TELEGRAM_CHAT_ID', ''))
+                tg_threshold = st.number_input("Notification Grace Period (seconds)", value=int(config.get('TELEGRAM_NOTIFY_THRESHOLD', '300')), step=60)
 
             submit = st.form_submit_button("Save Configuration")
 
@@ -219,15 +257,39 @@ def main():
                 new_config = config.copy()
                 new_config['WALLET_ADDRESS'] = wallet
                 new_config['POOL_ADDRESS'] = pool
+                new_config['BACKUP_POOL_ADDRESS'] = backup_pool
                 new_config['WORKER_NAME'] = worker
                 new_config['MINER'] = miner
                 new_config['GPU_DEVICES'] = gpu_devices
                 new_config['MULTI_PROCESS'] = 'true' if multi_process else 'false'
+                new_config['EXTRA_ARGS'] = extra_args
+                new_config['APPLY_OC'] = 'true' if apply_oc else 'false'
+                new_config['GPU_TUNING'] = tuning
+
+                # Dual Mining
+                new_config['DUAL_ALGO'] = dual_algo
+                new_config['DUAL_POOL'] = dual_pool
+                new_config['DUAL_WALLET'] = dual_wallet
+                new_config['DUAL_WORKER'] = dual_worker
+
+                # Features
                 new_config['ENABLE_PROFIT_SWITCHER'] = 'true' if profit_switch else 'false'
+                new_config['AUTO_PROFIT_SWITCHING'] = 'true' if profit_switch else 'false'
                 new_config['AUTO_RESTART_ON_CUDA_ERROR'] = 'true' if cuda_restart else 'false'
                 new_config['CHECK_NODE_SYNC'] = 'true' if node_check else 'false'
                 new_config['NODE_URL'] = node_url
-                new_config['GPU_TUNING'] = tuning
+
+                # Profit Switching Advanced
+                if profit_switch:
+                    new_config['PROFIT_SWITCHING_THRESHOLD'] = str(ps_threshold)
+                    new_config['PROFIT_SWITCHING_INTERVAL'] = str(ps_interval)
+                    new_config['MIN_SWITCH_COOLDOWN'] = str(ps_cooldown)
+
+                # Telegram
+                new_config['TELEGRAM_ENABLE'] = 'true' if tg_enable else 'false'
+                new_config['TELEGRAM_BOT_TOKEN'] = tg_token
+                new_config['TELEGRAM_CHAT_ID'] = tg_chat_id
+                new_config['TELEGRAM_NOTIFY_THRESHOLD'] = str(tg_threshold)
 
                 write_env_file(new_config)
                 st.success("Configuration saved successfully! Restart the miner to apply changes.")

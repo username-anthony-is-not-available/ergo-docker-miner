@@ -38,12 +38,22 @@ def init_db():
         ''')
 
         # Migrations for existing databases
+        # 1. history table
         cursor.execute("PRAGMA table_info(history)")
         columns = [column[1] for column in cursor.fetchall()]
         if 'dual_hashrate' not in columns:
             cursor.execute('ALTER TABLE history ADD COLUMN dual_hashrate REAL DEFAULT 0')
         if 'total_power_draw' not in columns:
             cursor.execute('ALTER TABLE history ADD COLUMN total_power_draw REAL DEFAULT 0')
+
+        # 2. gpu_history table
+        cursor.execute("PRAGMA table_info(gpu_history)")
+        gpu_columns = [column[1] for column in cursor.fetchall()]
+        if 'dual_hashrate' not in gpu_columns:
+            cursor.execute('ALTER TABLE gpu_history ADD COLUMN dual_hashrate REAL DEFAULT 0')
+        if 'power_draw' not in gpu_columns:
+            cursor.execute('ALTER TABLE gpu_history ADD COLUMN power_draw REAL DEFAULT 0')
+
         conn.commit()
 
 def log_history(hashrate, avg_temp, avg_fan_speed, accepted_shares, rejected_shares, dual_hashrate=0, total_power_draw=0, gpus=None):
