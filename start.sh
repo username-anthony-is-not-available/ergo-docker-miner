@@ -49,14 +49,28 @@ except Exception:
     fi
 
     if [ -n "$GPU_PROFILE" ] && [ "$GPU_PROFILE" != "null" ] && [ -f "gpu_profiles.json" ]; then
-      # Handle Eco Mode
-      if [ "$ECO_MODE" = "true" ]; then
-        ECO_PROFILE="$GPU_PROFILE (Eco)"
-        if jq -e ".[\"$ECO_PROFILE\"]" gpu_profiles.json > /dev/null; then
-          echo "Eco Mode enabled. Switching to $ECO_PROFILE"
-          GPU_PROFILE="$ECO_PROFILE"
-        else
-          echo "Eco Mode enabled, but no Eco profile found for $GPU_PROFILE. Using standard profile."
+      # Handle Tuning Presets
+      # Backward compatibility for ECO_MODE
+      if [ -z "$GPU_TUNING" ] && [ "$ECO_MODE" = "true" ]; then
+        GPU_TUNING="Efficient"
+      fi
+
+      if [ -n "$GPU_TUNING" ]; then
+        SUFFIX=""
+        case "$GPU_TUNING" in
+          Efficient) SUFFIX=" (Eco)" ;;
+          Quiet) SUFFIX=" (Quiet)" ;;
+          High) SUFFIX="" ;;
+        esac
+
+        if [ -n "$SUFFIX" ]; then
+          TUNED_PROFILE="${GPU_PROFILE}${SUFFIX}"
+          if jq -e ".[\"$TUNED_PROFILE\"]" gpu_profiles.json > /dev/null; then
+            echo "Tuning preset '$GPU_TUNING' enabled. Switching to $TUNED_PROFILE"
+            GPU_PROFILE="$TUNED_PROFILE"
+          else
+            echo "Tuning preset '$GPU_TUNING' enabled, but no matching profile found for $TUNED_PROFILE. Using $GPU_PROFILE."
+          fi
         fi
       fi
 

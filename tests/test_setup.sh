@@ -20,7 +20,7 @@ fi
 # GPU Count: 2 (0,1)
 # Apply OC: y
 # Profile: RTX 3070
-# Eco Mode: y
+# Tuning Preset: 2 (Efficient)
 # Dual Mining: y
 # Dual Algo: 1 (Kaspa)
 # Dual Wallet: MyDualWallet
@@ -46,7 +46,7 @@ n
 2
 y
 RTX 3070
-y
+2
 y
 1
 MyDualWallet
@@ -87,6 +87,7 @@ check_var "POOL_ADDRESS=stratum+tcp://herominers.com:1180"
 check_var "MINER=lolminer"
 check_var "GPU_DEVICES=0,1"
 check_var "APPLY_OC=true"
+check_var "GPU_TUNING=Efficient"
 check_var "ECO_MODE=true"
 check_var "GPU_PROFILE=RTX 3070"
 check_var "DUAL_ALGO=KASPADUAL"
@@ -119,10 +120,12 @@ echo "Running setup.sh test 2 (AMD, Defaults)..."
 # Miner: default
 # GPU Type: 2 (AMD)
 # GPU Count: default (AUTO)
+# Dual Mining: n
 # Extra Args: empty
 # Profit Switching: n
 # Telegram: n
 # Auto-Restart: n
+# Node Sync: n
 # Start now: n
 ./setup.sh <<EOF
 AmdWallet
@@ -131,7 +134,9 @@ AmdWallet
 1
 2
 
+n
 
+n
 n
 n
 n
@@ -153,6 +158,60 @@ if [ $EXIT_CODE -eq 0 ]; then
     echo "setup.sh test 2 PASSED"
 else
     echo "setup.sh test 2 FAILED"
+fi
+
+rm .env
+EXIT_CODE=0
+
+echo "Running setup.sh test 3 (NVIDIA, Quiet)..."
+# Wallet: QuietWallet
+# Worker: quiet-rig
+# Pool: 1
+# Miner: 1
+# GPU Type: 1
+# Run NVIDIA check: n
+# GPU Count: AUTO
+# Apply OC: y
+# Profile: RTX 4090
+# Tuning Preset: 3 (Quiet)
+# Dual Mining: n
+# Extra Args: empty
+# Profit Switching: n
+# Telegram: n
+# Auto-Restart: n
+# Node Sync: n
+# Start now: n
+./setup.sh <<EOF
+QuietWallet
+quiet-rig
+1
+1
+1
+n
+
+y
+RTX 4090
+3
+n
+
+n
+n
+n
+n
+n
+EOF
+
+check_var "WALLET_ADDRESS=QuietWallet"
+check_var "WORKER_NAME=quiet-rig"
+check_var "APPLY_OC=true"
+check_var "GPU_TUNING=Quiet"
+check_var "ECO_MODE=false"
+check_var "GPU_PROFILE=RTX 4090"
+
+if [ $EXIT_CODE -eq 0 ]; then
+    echo "setup.sh test 3 PASSED"
+else
+    echo "setup.sh test 3 FAILED"
 fi
 
 # Cleanup
