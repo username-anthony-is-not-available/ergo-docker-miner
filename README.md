@@ -23,6 +23,7 @@ This script will guide you through configuring your wallet, pool, and GPU settin
 - **Grafana Dashboard:** Includes a pre-configured Grafana dashboard to visualize your mining performance.
 - **Auto-Restart:** Automatically restarts the container if the miner crashes or stops submitting shares for more than 5 minutes.
 - **Automatic Overclocking:** Apply overclocking settings to your GPUs to improve performance and efficiency.
+- **Auto-Profit Switching:** Automatically switches to the most profitable pool based on real-time stats to maximize your earnings.
 - **Enhanced Security:** The miner runs as a non-root user (`miner`) inside the container by default. It also supports Rootless Docker environments.
 
 ## Requirements
@@ -123,6 +124,13 @@ By default, the file is configured for a two-GPU setup. To add more GPUs, you ca
 -   `DUAL_POOL`: (lolMiner only) The address of the dual mining pool.
 -   `DUAL_WALLET`: (lolMiner only) Your wallet address for the second coin.
 -   `DUAL_WORKER`: (lolMiner only) Optional worker name for the dual mining pool (defaults to `WORKER_NAME`).
+-   `AUTO_PROFIT_SWITCHING`: Set to `true` to enable the automatic pool switching feature.
+
+## Auto-Profit Switching
+
+This image includes a supervisor that periodically checks the profitability of supported pools (currently 2Miners and HeroMiners) based on their fees and current luck/effort. If it finds a pool that is significantly more profitable (over 0.5% gain) than your current pool, it will automatically update your configuration and restart the miner.
+
+You can enable this feature during setup or by setting `AUTO_PROFIT_SWITCHING=true` in your `.env` file. The supervisor runs every hour and includes safety thresholds to prevent frequent switching.
 
 ## Dual Mining
 
