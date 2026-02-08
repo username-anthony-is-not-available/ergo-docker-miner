@@ -159,6 +159,22 @@ def main():
                                 labels={'value': 'Value', 'timestamp': 'Time'},
                                 title="Average Temp and Fan Speed")
             st.plotly_chart(fig_temp, use_container_width=True)
+
+            # Weekly Report Section
+            st.divider()
+            st.subheader("Weekly Summary Report")
+            report_file = os.path.join(os.getenv('DATA_DIR', '.'), 'weekly_report.txt')
+            if os.path.exists(report_file):
+                with open(report_file, 'r') as f:
+                    st.text_area("Report Content", value=f.read(), height=200)
+
+                # Also provide CSV download
+                csv_file = os.path.join(os.getenv('DATA_DIR', '.'), 'hashrate_history.csv')
+                if os.path.exists(csv_file):
+                    with open(csv_file, 'rb') as f:
+                        st.download_button("Download Hashrate History CSV", data=f, file_name="hashrate_history.csv", mime="text/csv")
+            else:
+                st.info("Weekly report not yet generated. The report generator runs in the background.")
         else:
             st.info("No history data available")
 

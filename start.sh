@@ -159,6 +159,9 @@ streamlit run streamlit_app.py --server.port 5000 --server.address 0.0.0.0 --ser
 # Start the profit switcher in the background
 python3 profit_switcher.py &
 
+# Start report generator in the background
+python3 report_generator.py &
+
 # Start CUDA error monitor if enabled
 if [ "$AUTO_RESTART_ON_CUDA_ERROR" = "true" ]; then
   ./cuda_monitor.sh &

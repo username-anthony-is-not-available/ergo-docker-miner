@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Implement background hashrate logging to CSV and automated weekly report generation.
 - Implement E2E testing for the liveness probe (healthcheck) using a new `tests/mock_miner_api.py` server and `tests/test_healthcheck_e2e.sh` test suite.
 - Add 'Overclocking Bible' for RTX 40-series GPUs (`OVERCLOCKING.md`) with community-tested settings and efficiency tips.
 - Implement individual background service management with new `/api/services/restart/{service_name}` endpoint and dashboard buttons.

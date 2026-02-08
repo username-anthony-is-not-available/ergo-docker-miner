@@ -25,6 +25,7 @@ This script will guide you through configuring your wallet, pool, and GPU settin
 - **Automatic Overclocking:** Apply overclocking settings to your GPUs to improve performance and efficiency.
 - **Auto-Profit Switching:** Automatically switches to the most profitable pool based on real-time stats to maximize your earnings.
 - **Telegram Notifications:** Receive instant alerts on your phone when your rig goes down or experiences zero hashrate.
+- **Hashrate Logging & Reports:** Automatically logs hashrate to CSV and generates weekly summary reports for performance tracking.
 - **Enhanced Security:** The miner runs as a non-root user (`miner`) inside the container by default. It also supports Rootless Docker environments.
 
 ## Requirements
@@ -272,6 +273,10 @@ The container has a Docker health check that verifies:
 2.  The miner is submitting hashrate.
 
 If the miner process stops, the container will be restarted immediately. If the hashrate remains at 0 for more than 5 minutes (e.g., due to a hung API or driver issue), the health check will also trigger a restart. This ensures maximum uptime and prevents "zombie" mining sessions.
+
+### Hashrate Logging and Weekly Reports
+
+The miner includes a background process that appends hashrate snapshots to `hashrate_history.csv` every minute. Additionally, it generates a weekly summary report (`weekly_report.txt`) every 24 hours, calculating the average hashrate over the last 7 days. These reports and logs can be viewed and downloaded directly from the **History** page of the web dashboard.
 
 ### Telegram Notifications
 

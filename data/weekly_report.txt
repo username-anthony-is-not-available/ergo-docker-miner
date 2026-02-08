@@ -1,0 +1,8 @@
+Mining Weekly Report
+Generated on: 2026-02-08 20:24:24
+Period: Last 7 days
+--------------------------------------
+Total Samples: 10
+Average Hashrate: 104.50 MH/s
+Average Dual Hashrate: 54.50 MH/s
+--------------------------------------
