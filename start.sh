@@ -49,6 +49,17 @@ except Exception:
     fi
 
     if [ -n "$GPU_PROFILE" ] && [ "$GPU_PROFILE" != "null" ] && [ -f "gpu_profiles.json" ]; then
+      # Handle Eco Mode
+      if [ "$ECO_MODE" = "true" ]; then
+        ECO_PROFILE="$GPU_PROFILE (Eco)"
+        if jq -e ".[\"$ECO_PROFILE\"]" gpu_profiles.json > /dev/null; then
+          echo "Eco Mode enabled. Switching to $ECO_PROFILE"
+          GPU_PROFILE="$ECO_PROFILE"
+        else
+          echo "Eco Mode enabled, but no Eco profile found for $GPU_PROFILE. Using standard profile."
+        fi
+      fi
+
       echo "Using GPU profile: $GPU_PROFILE"
       PROFILE_SETTINGS=$(jq -r ".[\"$GPU_PROFILE\"]" gpu_profiles.json)
 

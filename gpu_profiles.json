@@ -4,34 +4,69 @@
     "GPU_MEM_OFFSET": 1200,
     "GPU_POWER_LIMIT": 120
   },
+  "RTX 3060 (Eco)": {
+    "GPU_CLOCK_OFFSET": -300,
+    "GPU_MEM_OFFSET": 1200,
+    "GPU_POWER_LIMIT": 90
+  },
   "RTX 3070": {
     "GPU_CLOCK_OFFSET": -200,
     "GPU_MEM_OFFSET": 1300,
     "GPU_POWER_LIMIT": 130
+  },
+  "RTX 3070 (Eco)": {
+    "GPU_CLOCK_OFFSET": -300,
+    "GPU_MEM_OFFSET": 1300,
+    "GPU_POWER_LIMIT": 110
   },
   "RTX 3080": {
     "GPU_CLOCK_OFFSET": -200,
     "GPU_MEM_OFFSET": 1500,
     "GPU_POWER_LIMIT": 240
   },
+  "RTX 3080 (Eco)": {
+    "GPU_CLOCK_OFFSET": -300,
+    "GPU_MEM_OFFSET": 1500,
+    "GPU_POWER_LIMIT": 190
+  },
   "RTX 3060 Ti": {
     "GPU_CLOCK_OFFSET": -200,
     "GPU_MEM_OFFSET": 1200,
     "GPU_POWER_LIMIT": 130
+  },
+  "RTX 3060 Ti (Eco)": {
+    "GPU_CLOCK_OFFSET": -300,
+    "GPU_MEM_OFFSET": 1200,
+    "GPU_POWER_LIMIT": 100
   },
   "RTX 3090": {
     "GPU_CLOCK_OFFSET": -200,
     "GPU_MEM_OFFSET": 1000,
     "GPU_POWER_LIMIT": 300
   },
+  "RTX 3090 (Eco)": {
+    "GPU_CLOCK_OFFSET": -300,
+    "GPU_MEM_OFFSET": 1000,
+    "GPU_POWER_LIMIT": 250
+  },
   "RTX 4070": {
     "GPU_CLOCK_OFFSET": -200,
     "GPU_MEM_OFFSET": 1300,
     "GPU_POWER_LIMIT": 150
   },
+  "RTX 4070 (Eco)": {
+    "GPU_CLOCK_OFFSET": -300,
+    "GPU_MEM_OFFSET": 1300,
+    "GPU_POWER_LIMIT": 120
+  },
   "RTX 4090": {
     "GPU_CLOCK_OFFSET": -200,
     "GPU_MEM_OFFSET": 1500,
     "GPU_POWER_LIMIT": 350
+  },
+  "RTX 4090 (Eco)": {
+    "GPU_CLOCK_OFFSET": -300,
+    "GPU_MEM_OFFSET": 1500,
+    "GPU_POWER_LIMIT": 280
   }
 }

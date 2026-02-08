@@ -216,6 +216,16 @@ To use the "RTX 3070" profile, set `GPU_PROFILE=RTX 3070` in your `.env` file.
 
 If `GPU_PROFILE` is set, it will override any values set for `GPU_CLOCK_OFFSET`, `GPU_MEM_OFFSET`, and `GPU_POWER_LIMIT`. If the specified profile is not found in `gpu_profiles.json`, the script will fall back to using the individual environment variables.
 
+### **Eco Mode**
+
+The image includes a "Eco Mode" feature for NVIDIA RTX 30 and 40 series GPUs. When enabled, it automatically switches to a more conservative tuning profile that reduces power consumption while maintaining a solid hashrate for Ergo.
+
+To enable Eco Mode:
+1. Set `APPLY_OC=true` and `ECO_MODE=true` in your `.env` file.
+2. Select a compatible `GPU_PROFILE` (e.g., `RTX 3070`) or use `AUTO` detection.
+
+The miner will automatically look for an "(Eco)" version of your profile in `gpu_profiles.json` and apply those settings (lower power limits and core clock offsets).
+
 ## Verifying the Setup
 
 You can monitor the miner's output and view logs using the following command:

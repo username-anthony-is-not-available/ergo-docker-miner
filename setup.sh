@@ -121,6 +121,7 @@ fi
 # 6. Overclocking (NVIDIA only)
 APPLY_OC="false"
 GPU_PROFILE=""
+ECO_MODE="false"
 if [ "$GPU_TYPE" == "NVIDIA" ]; then
     read -p "Apply Overclocking? (y/n) [n]: " APPLY_OC_CHOICE
     if [[ "$APPLY_OC_CHOICE" =~ ^[Yy]$ ]]; then
@@ -133,6 +134,11 @@ if [ "$GPU_TYPE" == "NVIDIA" ]; then
                 grep -o '"[^"]*": {' gpu_profiles.json | tr -d '": {'
             fi
             read -p "Enter a profile name (e.g. RTX 3070) or leave blank: " GPU_PROFILE
+        fi
+
+        read -p "Enable Eco Mode? (y/n) [n]: " ECO_MODE_CHOICE
+        if [[ "$ECO_MODE_CHOICE" =~ ^[Yy]$ ]]; then
+            ECO_MODE="true"
         fi
     fi
 fi
@@ -205,6 +211,7 @@ GPU_DEVICES=${GPU_DEVICES}
 
 # Overclocking
 APPLY_OC=${APPLY_OC}
+ECO_MODE=${ECO_MODE}
 
 # Profit Switching
 AUTO_PROFIT_SWITCHING=${AUTO_PROFIT_SWITCHING}
