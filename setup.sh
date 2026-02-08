@@ -58,7 +58,12 @@ echo "1) lolMiner (Recommended, supports AMD/NVIDIA and Dual Mining)"
 echo "2) T-Rex (NVIDIA only)"
 read -p "Selection [1]: " MINER_CHOICE
 if [ "$MINER_CHOICE" == "2" ]; then
-    MINER="t-rex"
+    if [ "$GPU_TYPE" == "AMD" ]; then
+        echo -e "${YELLOW}Warning: T-Rex does not support AMD GPUs. Falling back to lolMiner.${NC}"
+        MINER="lolminer"
+    else
+        MINER="t-rex"
+    fi
 else
     MINER="lolminer"
 fi
@@ -127,6 +132,27 @@ if [ "$GPU_TYPE" == "NVIDIA" ] && command -v docker &> /dev/null; then
                 echo "Aborting setup."
                 exit 1
             fi
+        fi
+    fi
+fi
+
+# AMD Runtime Validation
+if [ "$GPU_TYPE" == "AMD" ]; then
+    echo -e "\n${BLUE}Pre-flight check: AMD GPU Devices${NC}"
+    if [ -c /dev/kfd ] && [ -d /dev/dri ]; then
+        echo -e "${GREEN}✓ AMD GPU devices (/dev/kfd, /dev/dri) detected.${NC}"
+    else
+        echo -e "${YELLOW}⚠ WARNING: AMD GPU devices not found!${NC}"
+        echo -e "The miner will likely fail to start or won't see your AMD GPUs."
+        echo -e "\nPossible solutions:"
+        echo -e "1. Install ROCm Drivers: https://rocm.docs.amd.com/en/latest/deploy/linux/index.html"
+        echo -e "2. Ensure your user is in 'video' and 'render' groups: sudo usermod -aG video,render \$USER"
+        echo ""
+        read -p "Continue with setup anyway? (y/n) [y]: " CONTINUE_SETUP
+        CONTINUE_SETUP=${CONTINUE_SETUP:-y}
+        if [[ ! "$CONTINUE_SETUP" =~ ^[Yy]$ ]]; then
+            echo "Aborting setup."
+            exit 1
         fi
     fi
 fi

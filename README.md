@@ -40,8 +40,9 @@ This script will guide you through configuring your wallet, pool, and GPU settin
 
 ### For AMD Users
 
-- [ROCm Drivers](https://rocm.docs.amd.com/en/latest/deploy/linux/index.html)
-- AMD GPU
+- [ROCm Drivers](https://rocm.docs.amd.com/en/latest/deploy/linux/index.html) (ROCm 5.x or 6.x recommended)
+- AMD GPU (Polaris, Vega, Navi, or later)
+- Access to `/dev/kfd` and `/dev/dri` on the host
 
 ## Setup
 
@@ -96,11 +97,13 @@ By default, the file is configured for a two-GPU setup. To add more GPUs, you ca
 
 ### AMD
 
-To use this configuration for AMD GPUs, run the following command:
+The AMD configuration utilizes `Dockerfile.amd` based on the ROCm runtime. To use this configuration for AMD GPUs, run the following command:
 
 ```bash
 sudo docker compose -f docker-compose.multi-gpu.amd.yml up -d --build
 ```
+
+**Note for AMD:** Ensure your user has permissions to access `/dev/kfd` and `/dev/dri`. Adding your user to the `video` and `render` groups on the host is usually required.
 
 By default, the file is configured for a two-GPU setup. To add more GPUs, you can duplicate the `ergo-miner-gpu1` service and update the following fields:
 

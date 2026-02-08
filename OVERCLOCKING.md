@@ -70,3 +70,17 @@ These settings are derived from the `gpu_profiles.json` included in this project
 - **Rig Crashes:** If your rig crashes or the miner restarts frequently, try reducing the `GPU_MEM_OFFSET` or increasing the `GPU_POWER_LIMIT`.
 - **High Temperatures:** If your GPU is running too hot (above 70°C for Ergo), ensure you have adequate airflow and consider using the "Eco" profile.
 - **Settings Not Applying:** Ensure the container is running with the necessary privileges and that the NVIDIA Container Toolkit is correctly installed.
+
+## AMD GPUs
+
+Automatic overclocking for AMD GPUs is currently **not supported** in this project. You must apply overclocking settings manually on the host using tools like `rocm-smi` or through other AMD-specific management software.
+
+### Recommended Manual Settings (AMD)
+
+| GPU Model | Core Clock | Memory Clock | Voltage (mV) |
+|-----------|------------|--------------|--------------|
+| **RX 6800** | 1350 MHz | 1075 MHz | 800 mV |
+| **RX 6700 XT** | 1450 MHz | 1075 MHz | 850 mV |
+| **RX 580** | 1150 MHz | 2100 MHz | 900 mV |
+
+*Note: These are general community values. Use `rocm-smi` on the host to apply these settings.*
