@@ -19,7 +19,7 @@ MINER_TYPE = os.getenv('MINER', 'lolminer')
 MINER_VERSION = os.getenv('LOLMINER_VERSION' if MINER_TYPE == 'lolminer' else 'T_REX_VERSION', 'unknown')
 
 # Define Prometheus metrics (generic)
-INFO = Gauge('miner_info', 'Miner information', ['miner', 'version', 'worker'])
+INFO = Gauge('miner_info', 'Miner information', ['miner', 'version', 'worker', 'driver'])
 UPTIME = Gauge('miner_uptime', 'Miner uptime in seconds', ['worker'])
 API_UP = Gauge('miner_api_up', 'Whether the miner API is reachable (1) or not (0)', ['worker'])
 GPU_COUNT = Gauge('miner_gpu_count', 'Number of GPUs detected by the miner', ['worker'])
@@ -97,8 +97,13 @@ def update_metrics() -> None:
                 is_currently_notified = False
             unhealthy_since = None
 
+        # Extract driver version if available
+        driver_version = data.get('driver_version', 'unknown') if data else 'unknown'
+        if driver_version != 'unknown':
+            logger.info(f"Detected GPU Driver version: {driver_version}")
+
         # Update static info
-        INFO.labels(miner=MINER_TYPE, version=MINER_VERSION, worker=WORKER).set(1)
+        INFO.labels(miner=MINER_TYPE, version=MINER_VERSION, worker=WORKER, driver=driver_version).set(1)
 
         if not data:
             logger.error("Failed to fetch consolidated miner data")
