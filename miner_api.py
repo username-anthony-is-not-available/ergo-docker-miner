@@ -55,13 +55,13 @@ def get_gpu_smi_data() -> List[Dict[str, float]]:
 
     try:
         subprocess.check_output(['which', 'nvidia-smi'], stderr=subprocess.DEVNULL)
-        smi_cmd = "nvidia-smi --query-gpu=temperature.gpu,power.draw --format=csv,noheader,nounits"
+        smi_cmd = "nvidia-smi --query-gpu=temperature.gpu,power.draw,fan.speed --format=csv,noheader,nounits"
         is_nvidia = True
     except (subprocess.CalledProcessError, FileNotFoundError):
         try:
             subprocess.check_output(['which', 'rocm-smi'], stderr=subprocess.DEVNULL)
-            # rocm-smi's csv output includes a header, so we skip it with tail
-            smi_cmd = "rocm-smi --showtemp --showpower --csv | tail -n +2"
+            # rocm-smi's csv output: card,temperature,power,fan
+            smi_cmd = "rocm-smi --showtemp --showpower --showfan --csv | tail -n +2"
         except (subprocess.CalledProcessError, FileNotFoundError):
             return []
 
@@ -72,16 +72,20 @@ def get_gpu_smi_data() -> List[Dict[str, float]]:
                 if not line.strip(): continue
                 try:
                     if is_nvidia:
-                        temp, power = map(float, line.split(', '))
-                        gpu_stats.append({'temperature': temp, 'power_draw': power})
+                        parts = line.split(', ')
+                        temp = float(parts[0])
+                        power = float(parts[1])
+                        fan = float(parts[2]) if len(parts) > 2 else 0
+                        gpu_stats.append({'temperature': temp, 'power_draw': power, 'fan_speed': fan})
                     else: # AMD
                         parts = line.split(',')
-                        # rocm-smi csv: card,temp,power
+                        # rocm-smi csv: card,temp,power,fan
                         temp = float(parts[1])
                         power = float(parts[2].replace('W', '').strip())
-                        gpu_stats.append({'temperature': temp, 'power_draw': power})
+                        fan = float(parts[3]) if len(parts) > 3 else 0
+                        gpu_stats.append({'temperature': temp, 'power_draw': power, 'fan_speed': fan})
                 except (ValueError, IndexError):
-                    gpu_stats.append({'temperature': 0, 'power_draw': 0})
+                    gpu_stats.append({'temperature': 0, 'power_draw': 0, 'fan_speed': 0})
         except subprocess.CalledProcessError:
             pass
     return gpu_stats
@@ -202,11 +206,13 @@ def get_full_miner_data() -> Optional[Dict[str, Any]]:
     if smi_data:
         for i, gpu in enumerate(data['gpus']):
             if i < len(smi_data):
-                # Only overwrite if SMI data is non-zero (SMI is more reliable for temp/power)
+                # Only overwrite if SMI data is non-zero (SMI is more reliable for temp/power/fan)
                 if smi_data[i]['temperature'] > 0:
                     gpu['temperature'] = smi_data[i]['temperature']
                 if smi_data[i]['power_draw'] > 0:
                     gpu['power_draw'] = smi_data[i]['power_draw']
+                if smi_data[i].get('fan_speed', 0) > 0:
+                    gpu['fan_speed'] = smi_data[i]['fan_speed']
 
     # Calculate aggregates
     total_power = 0

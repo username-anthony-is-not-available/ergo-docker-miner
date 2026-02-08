@@ -80,7 +80,7 @@ class TestMinerApi(unittest.TestCase):
             if cmd == ['which', 'nvidia-smi']:
                 return b'/usr/bin/nvidia-smi'
             if 'nvidia-smi --query-gpu' in cmd:
-                return b'60, 120\n65, 130'
+                return b'60, 120, 50\n65, 130, 55'
             raise subprocess.CalledProcessError(1, cmd)
 
         mock_check_output.side_effect = side_effect
@@ -89,6 +89,7 @@ class TestMinerApi(unittest.TestCase):
         self.assertEqual(len(data), 2)
         self.assertEqual(data[0]['temperature'], 60.0)
         self.assertEqual(data[0]['power_draw'], 120.0)
+        self.assertEqual(data[0]['fan_speed'], 50.0)
 
     @patch('subprocess.check_output')
     def test_get_gpu_names_nvidia(self, mock_check_output):
@@ -116,7 +117,7 @@ class TestMinerApi(unittest.TestCase):
                     'index': 0,
                     'hashrate': 60,
                     'dual_hashrate': 0,
-                    'fan_speed': 50,
+                    'fan_speed': 20, # Miner reported fan speed
                     'accepted_shares': 10,
                     'rejected_shares': 1,
                     'temperature': 0,
@@ -124,7 +125,7 @@ class TestMinerApi(unittest.TestCase):
                 }
             ]
         }
-        mock_smi.return_value = [{'temperature': 60.0, 'power_draw': 150.0}]
+        mock_smi.return_value = [{'temperature': 60.0, 'power_draw': 150.0, 'fan_speed': 50.0}]
 
         data = miner_api.get_full_miner_data()
         self.assertIsNotNone(data)
@@ -132,6 +133,7 @@ class TestMinerApi(unittest.TestCase):
         self.assertEqual(data['avg_temperature'], 60.0)
         self.assertEqual(data['status'], 'Mining')
         self.assertEqual(data['gpus'][0]['temperature'], 60.0)
+        self.assertEqual(data['gpus'][0]['fan_speed'], 50.0) # SMI should overwrite
         self.assertEqual(data['total_accepted_shares'], 10)
         self.assertEqual(data['avg_fan_speed'], 50.0)
 

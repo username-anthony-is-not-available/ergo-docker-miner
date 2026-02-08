@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Enhance profit switcher with configurable `PROFIT_SWITCHING_THRESHOLD` and `PROFIT_SWITCHING_INTERVAL`.
+- Add Nanopool and WoolyPooly support to the profit switcher for feature parity with `setup.sh`.
+- Collect and expose GPU fan speed from hardware SMI in the dashboard and metrics.
+- New profit switching configuration fields in the web dashboard.
+- Integrated profit switching threshold and interval prompts in `setup.sh`.
 - Implement automated CUDA error detection and auto-restart functionality via `cuda_monitor.sh`.
 - New 'Auto-Restart on CUDA Error' configuration option in `setup.sh` and the web dashboard.
 - Add NVIDIA container runtime validation tool to `setup.sh` for easier first-time troubleshooting.
