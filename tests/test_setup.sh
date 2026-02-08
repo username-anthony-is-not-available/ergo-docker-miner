@@ -16,6 +16,7 @@ fi
 # Pool: 2 (HeroMiners)
 # Miner: 1 (lolMiner)
 # GPU Type: 1 (NVIDIA)
+# Run NVIDIA check: n
 # GPU Count: 2 (0,1)
 # Apply OC: y
 # Profile: RTX 3070
@@ -38,6 +39,7 @@ test-worker
 2
 1
 1
+n
 2
 y
 RTX 3070
