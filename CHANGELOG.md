@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Add NVIDIA container runtime validation tool to `setup.sh` for easier first-time troubleshooting.
 - Enhance Prometheus metrics with `miner_info`, `miner_uptime`, and `miner_api_up`.
 - Add `worker` label to all Prometheus metrics for better multi-rig support.
 - Add 'Eco Mode' underclocking profiles for RTX 30/40 series GPUs.

@@ -19,6 +19,8 @@ echo -e "${GREEN}inside the container for improved security.${NC}"
 # Check for Docker
 if ! command -v docker &> /dev/null; then
     echo -e "${YELLOW}Warning: docker is not installed. Please install it to run the miner.${NC}"
+else
+    echo -e "${GREEN}✓ Docker is installed.${NC}"
 fi
 
 # 1. Wallet Address
@@ -98,6 +100,35 @@ if [ "$GPU_TYPE_CHOICE" == "2" ]; then
     GPU_TYPE="AMD"
 else
     GPU_TYPE="NVIDIA"
+fi
+
+# NVIDIA Runtime Validation
+if [ "$GPU_TYPE" == "NVIDIA" ] && command -v docker &> /dev/null; then
+    echo -e "\n${BLUE}Pre-flight check: NVIDIA Container Runtime${NC}"
+    read -p "Would you like to validate your NVIDIA container runtime? (y/n) [y]: " VALIDATE_NVIDIA
+    VALIDATE_NVIDIA=${VALIDATE_NVIDIA:-y}
+    if [[ "$VALIDATE_NVIDIA" =~ ^[Yy]$ ]]; then
+        echo -e "Running: docker run --rm --gpus all nvidia/cuda:11.0-base nvidia-smi"
+        echo "This may take a moment if the image needs to be pulled..."
+        if docker run --rm --gpus all nvidia/cuda:11.0-base nvidia-smi &> /dev/null; then
+            echo -e "${GREEN}✓ NVIDIA container runtime is correctly configured.${NC}"
+        else
+            echo -e "${YELLOW}⚠ WARNING: NVIDIA container runtime validation failed!${NC}"
+            echo -e "The miner will likely fail to start or won't see your NVIDIA GPUs."
+            echo -e "\nPossible solutions:"
+            echo -e "1. Install NVIDIA Container Toolkit: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html"
+            echo -e "2. Configure Docker: sudo nvidia-ctk runtime configure --runtime=docker"
+            echo -e "3. Restart Docker: sudo systemctl restart docker"
+            echo -e "4. Ensure NVIDIA drivers are installed on the host (run 'nvidia-smi')"
+            echo ""
+            read -p "Continue with setup anyway? (y/n) [y]: " CONTINUE_SETUP
+            CONTINUE_SETUP=${CONTINUE_SETUP:-y}
+            if [[ ! "$CONTINUE_SETUP" =~ ^[Yy]$ ]]; then
+                echo "Aborting setup."
+                exit 1
+            fi
+        fi
+    fi
 fi
 
 read -p "Enter GPU count (e.g. 2) or specific IDs (e.g. 0,1) [AUTO]: " GPU_INPUT
