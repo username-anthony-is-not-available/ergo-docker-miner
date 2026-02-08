@@ -33,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rig-wide metrics (Total Power Draw, Average Temperature) in the web dashboard.
 - Automated T-Rex version discovery in `setup.sh`.
 - WoolyPooly pool support in `setup.sh`.
-- New GPU tuning profiles for RTX 3060 Ti, 3090, 4070, and 4090 in `gpu_profiles.json`.
+- Comprehensive GPU tuning profiles for NVIDIA 30/40 series (3050, 3060/Ti, 3070/Ti, 3080/Ti, 3090/Ti, 4060/Ti, 4070/Super/Ti/Ti Super, 4080/Super, 4090) in `gpu_profiles.json`.
 - `miner_total_shares_accepted` and `miner_total_shares_rejected` Prometheus metrics.
 - Multi-miner support (lolMiner and T-Rex) in the web dashboard via a normalization layer.
 - Hardware-level GPU metrics (Temperature, Power Draw) in the dashboard using `nvidia-smi` and `rocm-smi`.
