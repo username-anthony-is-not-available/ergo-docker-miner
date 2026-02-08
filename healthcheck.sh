@@ -1,137 +1,96 @@
 #!/bin/bash
 
 # Configuration
-MINER=${MINER:-lolminer}
-API_PORT=${API_PORT:-4444}
+METRICS_PORT=${METRICS_PORT:-4455}
+METRICS_URL="http://localhost:${METRICS_PORT}/metrics"
 STATE_FILE=${HEALTHCHECK_STATE_FILE:-/tmp/miner_unhealthy_since}
 MAX_UNHEALTHY_TIME=300 # 5 minutes in seconds
 GPU_DEVICES=${GPU_DEVICES:-AUTO}
-MULTI_PROCESS=${MULTI_PROCESS:-false}
 
-# Determine endpoint and process name based on miner
-if [ "$MINER" = "lolminer" ]; then
-    ENDPOINT="/"
-    # lolMiner hashrate is in .Total_Performance[0]
-    QUERY_HASHRATE=".Total_Performance[0]"
-    QUERY_GPU_COUNT=".GPUs | length"
-    QUERY_ACCEPTED=".GPUs | map(.Accepted_Shares // 0) | add"
-    QUERY_REJECTED=".GPUs | map(.Rejected_Shares // 0) | add"
-    PROCESS_NAME="lolMiner"
-elif [ "$MINER" = "t-rex" ]; then
-    ENDPOINT="/summary"
-    # T-Rex hashrate is in .hashrate
-    QUERY_HASHRATE=".hashrate"
-    QUERY_GPU_COUNT=".gpus | length"
-    QUERY_ACCEPTED=".accepted_count"
-    QUERY_REJECTED=".rejected_count"
-    PROCESS_NAME="t-rex"
-else
-    echo "Unsupported miner: $MINER"
+# 1. Query the metrics server
+METRICS=$(curl -s --fail "$METRICS_URL")
+if [ $? -ne 0 ]; then
+    echo "Metrics server at $METRICS_URL is unreachable!"
+    # During startup or if metrics service crashed, we don't want to immediately
+    # restart the whole container. Docker will retry the healthcheck.
     exit 0
 fi
 
-# 0. Check Ergo Node Sync if enabled
-if [ "$CHECK_NODE_SYNC" = "true" ]; then
-    NODE_URL=${NODE_URL:-http://localhost:9053}
-    NODE_INFO=$(curl -s "${NODE_URL}/info")
-    IS_SYNCED=$(echo "$NODE_INFO" | jq -r 'if .fullHeight != null and .headersHeight != null and .fullHeight >= .headersHeight then "true" else "false" end')
+# Helper to extract metric values
+get_metric() {
+    local name=$1
+    # Extracts the first value for the given metric name, ignoring labels
+    echo "$METRICS" | grep "^${name}{" | head -n 1 | sed -n 's/.*} //p'
+}
 
-    if [ "$IS_SYNCED" != "true" ]; then
-        # If node is out of sync, we check if miner is already running.
-        # If it is running, we should restart (so it hits the wait loop in start.sh).
-        # If it is NOT running, we are currently waiting, which is healthy.
-        if pgrep -x "$PROCESS_NAME" > /dev/null; then
-            echo "Node went out of sync while mining! Triggering restart to pause."
+# Extracts a label value from a metric
+get_label() {
+    local name=$1
+    local label=$2
+    echo "$METRICS" | grep "^${name}{" | head -n 1 | sed -n "s/.*${label}=\"\([^\"]*\)\".*/\1/p"
+}
+
+# 2. Extract standardized metrics
+HASHRATE=$(get_metric "miner_hashrate")
+API_UP=$(get_metric "miner_api_up")
+GPU_COUNT=$(get_metric "miner_gpu_count")
+ACCEPTED_SHARES=$(get_metric "miner_total_shares_accepted")
+REJECTED_SHARES=$(get_metric "miner_total_shares_rejected")
+NODE_SYNCED=$(get_metric "miner_node_synced")
+MINER_TYPE=$(get_label "miner_info" "miner")
+
+# Determine process name for checks
+if [ "$MINER_TYPE" = "lolminer" ]; then
+    PROCESS_NAME="lolMiner"
+elif [ "$MINER_TYPE" = "t-rex" ]; then
+    PROCESS_NAME="t-rex"
+else
+    PROCESS_NAME=""
+fi
+
+# 3. Check Ergo Node Sync
+if [ -n "$NODE_SYNCED" ] && [ "$(awk -v ns="$NODE_SYNCED" 'BEGIN {if (ns == 0) print "1"; else print "0"}')" = "1" ]; then
+    if [ -n "$PROCESS_NAME" ] && pgrep -x "$PROCESS_NAME" > /dev/null; then
+        echo "Node went out of sync while mining! Triggering restart to pause."
+        ./restart.sh
+        exit 1
+    else
+        echo "Node is not synced, but miner is not running. Waiting for sync..."
+        exit 0
+    fi
+fi
+
+# 4. Check GPU count if GPU_DEVICES is not AUTO
+if [ "$GPU_DEVICES" != "AUTO" ] && [ -n "$GPU_COUNT" ]; then
+    EXPECTED_GPU_COUNT=$(echo "$GPU_DEVICES" | tr ',' '\n' | grep -v "^$" | wc -l)
+
+    # Use awk for robust numeric comparison
+    IS_COUNT_OK=$(awk -v act="$GPU_COUNT" -v expected="$EXPECTED_GPU_COUNT" 'BEGIN {if (act >= expected) print "1"; else print "0"}')
+
+    if [ "$IS_COUNT_OK" = "0" ]; then
+        echo "GPU count mismatch! Expected: $EXPECTED_GPU_COUNT, Actual: $GPU_COUNT"
+        ./restart.sh
+        exit 1
+    fi
+fi
+
+# 5. Check for high rejected share ratio
+if [ -n "$ACCEPTED_SHARES" ] && [ -n "$REJECTED_SHARES" ]; then
+    TOTAL_SHARES=$(awk -v acc="$ACCEPTED_SHARES" -v rej="$REJECTED_SHARES" 'BEGIN {print acc + rej}')
+
+    # Only check if we have enough shares to be statistically significant
+    if [ "$(awk -v ts="$TOTAL_SHARES" 'BEGIN {if (ts >= 20) print "1"; else print "0"}')" = "1" ]; then
+        REJECT_RATIO=$(awk -v rej="$REJECTED_SHARES" -v ts="$TOTAL_SHARES" 'BEGIN {print (rej * 100) / ts}')
+        if [ "$(awk -v rr="$REJECT_RATIO" 'BEGIN {if (rr > 10) print "1"; else print "0"}')" = "1" ]; then
+            echo "High rejected share ratio detected! Rejected: $REJECTED_SHARES, Total: $TOTAL_SHARES ($REJECT_RATIO%)"
             ./restart.sh
             exit 1
-        else
-            echo "Node is not synced, but miner is not running. Waiting for sync..."
-            exit 0
         fi
     fi
 fi
 
-# 1. Check if the miner process is running
-if [ "$MULTI_PROCESS" = "true" ] && [ "$GPU_DEVICES" != "AUTO" ]; then
-    EXPECTED_PROCESS_COUNT=$(echo "$GPU_DEVICES" | tr ',' '\n' | grep -v "^$" | wc -l)
-    ACTUAL_PROCESS_COUNT=$(pgrep -x "$PROCESS_NAME" | wc -l)
-    if [ "$ACTUAL_PROCESS_COUNT" -lt "$EXPECTED_PROCESS_COUNT" ]; then
-        echo "Miner process count mismatch! Expected: $EXPECTED_PROCESS_COUNT, Actual: $ACTUAL_PROCESS_COUNT"
-        ./restart.sh
-        exit 1
-    fi
-else
-    if ! pgrep -x "$PROCESS_NAME" > /dev/null; then
-        echo "Miner process $PROCESS_NAME not found!"
-        ./restart.sh
-        exit 1
-    fi
-fi
-
-# 2. Query the miner's API
-if [ "$MULTI_PROCESS" = "true" ] && [ "$GPU_DEVICES" != "AUTO" ]; then
-    TOTAL_HASHRATE=0
-    TOTAL_ACTUAL_GPUS=0
-    TOTAL_ACCEPTED=0
-    TOTAL_REJECTED=0
-
-    IFS=',' read -ra ADDR <<< "$GPU_DEVICES"
-    for i in "${!ADDR[@]}"; do
-        CURRENT_PORT=$((API_PORT + i))
-        CUR_RESPONSE=$(curl -s "http://localhost:${CURRENT_PORT}${ENDPOINT}")
-        CUR_HASHRATE=$(echo "$CUR_RESPONSE" | jq "$QUERY_HASHRATE" 2>/dev/null || echo 0)
-        CUR_GPUS=$(echo "$CUR_RESPONSE" | jq "$QUERY_GPU_COUNT" 2>/dev/null || echo 0)
-        CUR_ACCEPTED=$(echo "$CUR_RESPONSE" | jq "$QUERY_ACCEPTED" 2>/dev/null || echo 0)
-        CUR_REJECTED=$(echo "$CUR_RESPONSE" | jq "$QUERY_REJECTED" 2>/dev/null || echo 0)
-
-        # We use jq to handle potential float hashrates
-        TOTAL_HASHRATE=$(jq -n "$TOTAL_HASHRATE + $CUR_HASHRATE")
-        TOTAL_ACTUAL_GPUS=$((TOTAL_ACTUAL_GPUS + CUR_GPUS))
-        TOTAL_ACCEPTED=$((TOTAL_ACCEPTED + CUR_ACCEPTED))
-        TOTAL_REJECTED=$((TOTAL_REJECTED + CUR_REJECTED))
-    done
-
-    # Synthesize a response for the subsequent checks
-    RESPONSE="{\"hashrate\": $TOTAL_HASHRATE, \"gpu_count\": $TOTAL_ACTUAL_GPUS, \"accepted\": $TOTAL_ACCEPTED, \"rejected\": $TOTAL_REJECTED}"
-    QUERY_HASHRATE=".hashrate"
-    QUERY_GPU_COUNT=".gpu_count"
-    QUERY_ACCEPTED=".accepted"
-    QUERY_REJECTED=".rejected"
-else
-    RESPONSE=$(curl -s "http://localhost:${API_PORT}${ENDPOINT}")
-fi
-
-# 3. Check GPU count if GPU_DEVICES is not AUTO
-if [ "$GPU_DEVICES" != "AUTO" ]; then
-    EXPECTED_GPU_COUNT=$(echo "$GPU_DEVICES" | tr ',' '\n' | grep -v "^$" | wc -l)
-    ACTUAL_GPU_COUNT=$(echo "$RESPONSE" | jq "$QUERY_GPU_COUNT" 2>/dev/null || echo 0)
-
-    if [ "$ACTUAL_GPU_COUNT" -lt "$EXPECTED_GPU_COUNT" ]; then
-        echo "GPU count mismatch! Expected: $EXPECTED_GPU_COUNT, Actual: $ACTUAL_GPU_COUNT"
-        ./restart.sh
-        exit 1
-    fi
-fi
-
-# 4. Check for high rejected share ratio
-ACCEPTED_SHARES=$(echo "$RESPONSE" | jq "$QUERY_ACCEPTED" 2>/dev/null || echo 0)
-REJECTED_SHARES=$(echo "$RESPONSE" | jq "$QUERY_REJECTED" 2>/dev/null || echo 0)
-TOTAL_SHARES=$((ACCEPTED_SHARES + REJECTED_SHARES))
-
-if [ "$TOTAL_SHARES" -ge 20 ]; then
-    # Calculate ratio as percentage. Using bash arithmetic for simplicity.
-    # We multiply by 100 first to avoid floating point issues.
-    REJECT_RATIO=$(( (REJECTED_SHARES * 100) / TOTAL_SHARES ))
-    if [ "$REJECT_RATIO" -gt 10 ]; then
-        echo "High rejected share ratio detected! Rejected: $REJECTED_SHARES, Total: $TOTAL_SHARES ($REJECT_RATIO%)"
-        ./restart.sh
-        exit 1
-    fi
-fi
-
-# 5. Check if hashrate is > 0
-# We use jq to handle potential float values and ensure robust parsing.
-if echo "$RESPONSE" | jq -e "$QUERY_HASHRATE > 0" >/dev/null 2>&1; then
+# 6. Check if hashrate is > 0
+if [ -n "$HASHRATE" ] && [ "$(awk -v hr="$HASHRATE" 'BEGIN {if (hr > 0) print "1"; else print "0"}')" = "1" ]; then
     # Miner is producing hashrate
     if [ -f "$STATE_FILE" ]; then
         echo "Miner recovered. Clearing unhealthy state."
@@ -139,13 +98,13 @@ if echo "$RESPONSE" | jq -e "$QUERY_HASHRATE > 0" >/dev/null 2>&1; then
     fi
     exit 0
 else
-    # Miner is NOT producing hashrate (or API is down)
+    # Miner is NOT producing hashrate (or metrics empty)
     CURRENT_TIME=$(date +%s)
 
     if [ ! -f "$STATE_FILE" ]; then
         echo "Miner unhealthy (hashrate 0 or API unreachable). Starting grace period."
         echo "$CURRENT_TIME" > "$STATE_FILE"
-        exit 0 # Still returning 0 during grace period
+        exit 0
     fi
 
     START_TIME=$(cat "$STATE_FILE")
