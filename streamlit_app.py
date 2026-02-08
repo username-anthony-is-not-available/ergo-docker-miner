@@ -170,18 +170,34 @@ def main():
             # Weekly Report Section
             st.divider()
             st.subheader("Weekly Summary Report")
-            report_file = os.path.join(os.getenv('DATA_DIR', '.'), 'weekly_report.txt')
+            data_dir = os.getenv('DATA_DIR', '.')
+            report_file = os.path.join(data_dir, 'weekly_report.txt')
             if os.path.exists(report_file):
                 with open(report_file, 'r') as f:
                     st.text_area("Report Content", value=f.read(), height=200)
-
-                # Also provide CSV download
-                csv_file = os.path.join(os.getenv('DATA_DIR', '.'), 'hashrate_history.csv')
-                if os.path.exists(csv_file):
-                    with open(csv_file, 'rb') as f:
-                        st.download_button("Download Hashrate History CSV", data=f, file_name="hashrate_history.csv", mime="text/csv")
             else:
                 st.info("Weekly report not yet generated. The report generator runs in the background.")
+
+            # Provide CSV download (generated on-the-fly from database)
+            st.subheader("Data Export")
+
+            @st.cache_data(ttl=60)
+            def get_csv_data(days_to_export):
+                temp_csv = os.path.join(data_dir, f'history_export_{days_to_export}d.csv')
+                if database.export_history_to_csv(temp_csv, days=days_to_export):
+                    with open(temp_csv, 'rb') as f:
+                        return f.read()
+                return None
+
+            csv_data = get_csv_data(days)
+            if csv_data:
+                st.download_button(
+                    label="Download Mining History CSV",
+                    data=csv_data,
+                    file_name=f"mining_history_{days}d.csv",
+                    mime="text/csv",
+                    help=f"Download full history for the last {days} days as a CSV file."
+                )
 
             # Clear History Button
             st.divider()

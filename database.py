@@ -1,6 +1,7 @@
 import sqlite3
 from datetime import datetime, timedelta
 import os
+import csv
 
 DB_FILE = os.path.join(os.getenv('DATA_DIR', '.'), 'miner_history.db')
 
@@ -133,3 +134,19 @@ def clear_history():
         cursor.execute('DELETE FROM history')
         cursor.execute('DELETE FROM gpu_history')
         conn.commit()
+
+def export_history_to_csv(filepath, days=30):
+    history = get_history(days=days)
+    if not history:
+        return False
+
+    try:
+        keys = history[0].keys()
+        with open(filepath, 'w', newline='') as f:
+            dict_writer = csv.DictWriter(f, fieldnames=keys)
+            dict_writer.writeheader()
+            dict_writer.writerows(history)
+        return True
+    except Exception as e:
+        print(f"Error exporting to CSV: {e}")
+        return False

@@ -1,8 +1,12 @@
 import unittest
 import os
-import csv
 import time
-from datetime import datetime, timedelta
+import sys
+from datetime import datetime
+
+# Add the root directory to the Python path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import report_generator
 import database
 
@@ -12,7 +16,6 @@ class TestReportGenerator(unittest.TestCase):
         os.makedirs(self.test_data_dir, exist_ok=True)
         os.environ['DATA_DIR'] = self.test_data_dir
         report_generator.DATA_DIR = self.test_data_dir
-        report_generator.CSV_FILE = os.path.join(self.test_data_dir, 'hashrate_history.csv')
         report_generator.REPORT_FILE = os.path.join(self.test_data_dir, 'weekly_report.txt')
         database.DB_FILE = os.path.join(self.test_data_dir, 'miner_history.db')
         database.init_db()
@@ -21,21 +24,6 @@ class TestReportGenerator(unittest.TestCase):
         if os.path.exists(self.test_data_dir):
             import shutil
             shutil.rmtree(self.test_data_dir)
-
-    def test_log_to_csv(self):
-        # Mock GPU_MOCK to True for get_full_miner_data
-        os.environ['GPU_MOCK'] = 'true'
-        report_generator.log_to_csv()
-
-        self.assertTrue(os.path.exists(report_generator.CSV_FILE))
-        with open(report_generator.CSV_FILE, 'r') as f:
-            reader = csv.reader(f)
-            header = next(reader)
-            self.assertEqual(header, ['timestamp', 'hashrate', 'dual_hashrate'])
-            row = next(reader)
-            self.assertEqual(len(row), 3)
-            # Check if hashrate is a number
-            float(row[1])
 
     def test_generate_weekly_report(self):
         # Insert some dummy data into the database
@@ -58,6 +46,9 @@ class TestReportGenerator(unittest.TestCase):
             self.assertIn("Mining Weekly Report", content)
             self.assertIn("Average Hashrate: 104.50 MH/s", content)
             self.assertIn("Average Dual Hashrate: 54.50 MH/s", content)
+            self.assertIn("Average Power Draw: 200.0 W", content)
+            self.assertIn("Average Efficiency: 0.52", content)
+            self.assertIn("Daily Summary:", content)
 
 if __name__ == '__main__':
     unittest.main()
