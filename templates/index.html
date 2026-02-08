@@ -70,14 +70,17 @@
             <div class="stat-card">
                 <h2>Metrics Exporter</h2>
                 <p id="service-metrics">--</p>
+                <button onclick="restartService('metrics.py')" class="btn-small">Restart</button>
             </div>
             <div class="stat-card">
                 <h2>Profit Switcher</h2>
                 <p id="service-profit">--</p>
+                <button onclick="restartService('profit_switcher.py')" class="btn-small">Restart</button>
             </div>
             <div class="stat-card">
                 <h2>CUDA Monitor</h2>
                 <p id="service-cuda">--</p>
+                <button onclick="restartService('cuda_monitor.sh')" class="btn-small">Restart</button>
             </div>
         </div>
 
@@ -268,6 +271,16 @@
                 powerChart.update('none');
             }
         });
+
+        async function restartService(serviceName) {
+            try {
+                const response = await fetch(`/api/services/restart/${serviceName}`, { method: 'POST' });
+                const result = await response.json();
+                alert(result.message);
+            } catch (error) {
+                alert(`Failed to restart ${serviceName}`);
+            }
+        }
 
         async function restartMiner() {
             if (confirm('Are you sure you want to restart the miner?')) {
