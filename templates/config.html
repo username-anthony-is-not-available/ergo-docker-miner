@@ -130,6 +130,16 @@
                 <label for="auto_restart_on_cuda_error">Auto-Restart on CUDA Error</label>
                 <input type="checkbox" id="auto_restart_on_cuda_error" name="AUTO_RESTART_ON_CUDA_ERROR">
             </div>
+            <hr>
+            <h2>Ergo Node Integration</h2>
+            <div class="form-group">
+                <label for="check_node_sync">Pause mining if local Ergo node is out of sync</label>
+                <input type="checkbox" id="check_node_sync" name="CHECK_NODE_SYNC">
+            </div>
+            <div class="form-group">
+                <label for="node_url">Ergo Node API URL</label>
+                <input type="text" id="node_url" name="NODE_URL" placeholder="http://localhost:9053">
+            </div>
             <button type="submit">Save</button>
         </form>
         <button id="restart-miner">Restart Miner</button>
@@ -158,6 +168,8 @@
                     document.getElementById('gpu_mem_offset').value = data.GPU_MEM_OFFSET || 0;
                     document.getElementById('gpu_power_limit').value = data.GPU_POWER_LIMIT || 0;
                     document.getElementById('auto_restart_on_cuda_error').checked = data.AUTO_RESTART_ON_CUDA_ERROR === 'true';
+                    document.getElementById('check_node_sync').checked = data.CHECK_NODE_SYNC === 'true';
+                    document.getElementById('node_url').value = data.NODE_URL || '';
 
                     // Dual Mining
                     document.getElementById('dual_algo').value = data.DUAL_ALGO || '';
@@ -186,6 +198,8 @@
                 data['PROFIT_SWITCHING_INTERVAL'] = document.getElementById('profit_switching_interval').value;
                 data['AUTO_RESTART_ON_CUDA_ERROR'] = document.getElementById('auto_restart_on_cuda_error').checked;
                 data['TELEGRAM_ENABLE'] = document.getElementById('telegram_enable').checked;
+                data['CHECK_NODE_SYNC'] = document.getElementById('check_node_sync').checked;
+                data['NODE_URL'] = document.getElementById('node_url').value;
 
                 fetch('/api/config', {
                     method: 'POST',

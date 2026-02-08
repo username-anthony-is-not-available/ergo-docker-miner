@@ -15,6 +15,45 @@ def _is_mock_enabled() -> bool:
     """Checks if the GPU mock mode is enabled via environment variable."""
     return os.getenv('GPU_MOCK', 'false').lower() == 'true'
 
+def get_node_status() -> Dict[str, Any]:
+    """Checks the sync status of a local Ergo node."""
+    node_url = os.getenv('NODE_URL', 'http://localhost:9053')
+    check_enabled = os.getenv('CHECK_NODE_SYNC', 'false').lower() == 'true'
+
+    if not check_enabled:
+        return {'is_synced': True, 'full_height': 0, 'headers_height': 0, 'enabled': False}
+
+    try:
+        response = requests.get(f"{node_url}/info", timeout=5)
+        response.raise_for_status()
+        data = response.json()
+
+        full_height = data.get('fullHeight')
+        headers_height = data.get('headersHeight')
+
+        # Robust check: if fullHeight is null or less than headersHeight, it's not synced
+        is_synced = False
+        if full_height is not None and headers_height is not None:
+            if full_height >= headers_height and full_height > 0:
+                is_synced = True
+
+        return {
+            'is_synced': is_synced,
+            'full_height': full_height,
+            'headers_height': headers_height,
+            'enabled': True,
+            'error': None
+        }
+    except Exception as e:
+        logger.error(f"Error checking node status: {e}")
+        return {
+            'is_synced': False,
+            'full_height': None,
+            'headers_height': None,
+            'enabled': True,
+            'error': str(e)
+        }
+
 def get_services_status() -> Dict[str, str]:
     """Checks if background services are running."""
     services = {

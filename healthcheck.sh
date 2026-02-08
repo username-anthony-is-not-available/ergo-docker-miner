@@ -30,6 +30,27 @@ else
     exit 0
 fi
 
+# 0. Check Ergo Node Sync if enabled
+if [ "$CHECK_NODE_SYNC" = "true" ]; then
+    NODE_URL=${NODE_URL:-http://localhost:9053}
+    NODE_INFO=$(curl -s "${NODE_URL}/info")
+    IS_SYNCED=$(echo "$NODE_INFO" | jq -r 'if .fullHeight != null and .headersHeight != null and .fullHeight >= .headersHeight then "true" else "false" end')
+
+    if [ "$IS_SYNCED" != "true" ]; then
+        # If node is out of sync, we check if miner is already running.
+        # If it is running, we should restart (so it hits the wait loop in start.sh).
+        # If it is NOT running, we are currently waiting, which is healthy.
+        if pgrep -x "$PROCESS_NAME" > /dev/null; then
+            echo "Node went out of sync while mining! Triggering restart to pause."
+            ./restart.sh
+            exit 1
+        else
+            echo "Node is not synced, but miner is not running. Waiting for sync..."
+            exit 0
+        fi
+    fi
+fi
+
 # 1. Check if the miner process is running
 if [ "$MULTI_PROCESS" = "true" ] && [ "$GPU_DEVICES" != "AUTO" ]; then
     EXPECTED_PROCESS_COUNT=$(echo "$GPU_DEVICES" | tr ',' '\n' | grep -v "^$" | wc -l)
