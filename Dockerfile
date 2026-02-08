@@ -32,6 +32,7 @@ RUN apt-get update && \
     python3-pip \
     nvidia-utils-525 \
     xserver-xorg \
+    logrotate \
     procps \
     gosu && \
     rm -rf /var/lib/apt/lists/*
@@ -52,7 +53,7 @@ COPY --from=builder /app/lolMiner /app/lolMiner
 COPY --from=builder /app/t-rex /app/t-rex
 
 # Copy scripts
-COPY start.sh metrics.sh metrics.py miner_api.py healthcheck.sh restart.sh database.py gpu_profiles.json env_config.py profit_switcher.py cuda_monitor.sh report_generator.py ./
+COPY start.sh metrics.sh metrics.py miner_api.py healthcheck.sh restart.sh database.py gpu_profiles.json env_config.py profit_switcher.py cuda_monitor.sh report_generator.py logrotate.conf ./
 COPY streamlit_app.py .
 
 RUN chmod +x start.sh metrics.sh healthcheck.sh restart.sh cuda_monitor.sh && \
