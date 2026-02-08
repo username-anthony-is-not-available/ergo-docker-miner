@@ -51,6 +51,46 @@
                 <input type="checkbox" id="auto_profit_switching" name="AUTO_PROFIT_SWITCHING">
             </div>
             <hr>
+            <h2>Dual Mining (lolMiner only)</h2>
+            <div class="form-group">
+                <label for="dual_algo">Dual Algorithm</label>
+                <select id="dual_algo" name="DUAL_ALGO">
+                    <option value="">None</option>
+                    <option value="KASPADUAL">Kaspa (KASPADUAL)</option>
+                    <option value="ALEPHDUAL">Alephium (ALEPHDUAL)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="dual_pool">Dual Pool Address</label>
+                <input type="text" id="dual_pool" name="DUAL_POOL">
+            </div>
+            <div class="form-group">
+                <label for="dual_wallet">Dual Wallet Address</label>
+                <input type="text" id="dual_wallet" name="DUAL_WALLET">
+            </div>
+            <div class="form-group">
+                <label for="dual_worker">Dual Worker Name</label>
+                <input type="text" id="dual_worker" name="DUAL_WORKER">
+            </div>
+            <hr>
+            <h2>Telegram Notifications</h2>
+            <div class="form-group">
+                <label for="telegram_enable">Enable Telegram Notifications</label>
+                <input type="checkbox" id="telegram_enable" name="TELEGRAM_ENABLE">
+            </div>
+            <div class="form-group">
+                <label for="telegram_bot_token">Telegram Bot Token</label>
+                <input type="text" id="telegram_bot_token" name="TELEGRAM_BOT_TOKEN">
+            </div>
+            <div class="form-group">
+                <label for="telegram_chat_id">Telegram Chat ID</label>
+                <input type="text" id="telegram_chat_id" name="TELEGRAM_CHAT_ID">
+            </div>
+            <div class="form-group">
+                <label for="telegram_notify_threshold">Notification Threshold (seconds)</label>
+                <input type="number" id="telegram_notify_threshold" name="TELEGRAM_NOTIFY_THRESHOLD">
+            </div>
+            <hr>
             <h2>Overclocking</h2>
             <div class="form-group">
                 <label for="apply_oc">Apply Overclocking</label>
@@ -108,6 +148,18 @@
                     document.getElementById('gpu_mem_offset').value = data.GPU_MEM_OFFSET || 0;
                     document.getElementById('gpu_power_limit').value = data.GPU_POWER_LIMIT || 0;
                     document.getElementById('auto_restart_on_cuda_error').checked = data.AUTO_RESTART_ON_CUDA_ERROR === 'true';
+
+                    // Dual Mining
+                    document.getElementById('dual_algo').value = data.DUAL_ALGO || '';
+                    document.getElementById('dual_pool').value = data.DUAL_POOL || '';
+                    document.getElementById('dual_wallet').value = data.DUAL_WALLET || '';
+                    document.getElementById('dual_worker').value = data.DUAL_WORKER || '';
+
+                    // Telegram
+                    document.getElementById('telegram_enable').checked = data.TELEGRAM_ENABLE === 'true';
+                    document.getElementById('telegram_bot_token').value = data.TELEGRAM_BOT_TOKEN || '';
+                    document.getElementById('telegram_chat_id').value = data.TELEGRAM_CHAT_ID || '';
+                    document.getElementById('telegram_notify_threshold').value = data.TELEGRAM_NOTIFY_THRESHOLD || 300;
                 });
             // Handle form submission
             document.getElementById('config-form').addEventListener('submit', function(event) {
@@ -121,6 +173,8 @@
                 data['ECO_MODE'] = document.getElementById('eco_mode').checked;
                 data['AUTO_PROFIT_SWITCHING'] = document.getElementById('auto_profit_switching').checked;
                 data['AUTO_RESTART_ON_CUDA_ERROR'] = document.getElementById('auto_restart_on_cuda_error').checked;
+                data['TELEGRAM_ENABLE'] = document.getElementById('telegram_enable').checked;
+
                 fetch('/api/config', {
                     method: 'POST',
                     headers: {

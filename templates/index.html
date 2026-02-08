@@ -40,12 +40,51 @@
                 <p id="uptime">--</p>
             </div>
         </div>
+
+        <h2>System Information</h2>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h2>CPU Usage</h2>
+                <p id="cpu-usage">-- %</p>
+            </div>
+            <div class="stat-card">
+                <h2>RAM Usage</h2>
+                <p id="ram-usage">-- %</p>
+            </div>
+            <div class="stat-card">
+                <h2>Disk Usage</h2>
+                <p id="disk-usage">-- %</p>
+            </div>
+            <div class="stat-card">
+                <h2>Host Uptime</h2>
+                <p id="host-uptime">--</p>
+            </div>
+        </div>
+
         <h2>GPUs</h2>
         <div id="gpu-container">
         </div>
         <h2>Hashrate History</h2>
         <div class="chart-container">
             <canvas id="hashrate-chart"></canvas>
+        </div>
+
+        <h2>Pool Profitability</h2>
+        <div class="table-container">
+            <table id="pool-stats-table">
+                <thead>
+                    <tr>
+                        <th>Pool</th>
+                        <th>Address</th>
+                        <th>Profitability Score</th>
+                    </tr>
+                </thead>
+                <tbody id="pool-stats-body">
+                    <tr>
+                        <td colspan="3">Loading pool stats...</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
 
         <div class="section-header">
@@ -99,6 +138,18 @@
                 const minutes = Math.floor((uptimeSeconds % 3600) / 60);
                 const seconds = uptimeSeconds % 60;
                 document.getElementById('uptime').innerText = `${hours}h ${minutes}m ${seconds}s`;
+            }
+
+            if (data.system_info) {
+                document.getElementById('cpu-usage').innerText = `${data.system_info.cpu_usage.toFixed(1)} %`;
+                document.getElementById('ram-usage').innerText = `${data.system_info.memory_usage.toFixed(1)} %`;
+                document.getElementById('disk-usage').innerText = `${data.system_info.disk_usage.toFixed(1)} %`;
+
+                const hostUptimeSeconds = Math.floor(data.system_info.host_uptime);
+                const d = Math.floor(hostUptimeSeconds / 86400);
+                const h = Math.floor((hostUptimeSeconds % 86400) / 3600);
+                const m = Math.floor((hostUptimeSeconds % 3600) / 60);
+                document.getElementById('host-uptime').innerText = `${d}d ${h}h ${m}m`;
             }
 
             if (data.gpus) {
@@ -194,6 +245,35 @@
         }
 
         renderHashrateChart();
+
+        async function fetchPoolStats() {
+            try {
+                const response = await fetch('/api/pool-stats');
+                if (!response.ok) throw new Error('API request failed');
+                const data = await response.json();
+                const tbody = document.getElementById('pool-stats-body');
+                tbody.innerHTML = '';
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3">No pool stats available.</td></tr>';
+                    return;
+                }
+                data.forEach(pool => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${pool.name}</td>
+                        <td>${pool.address}</td>
+                        <td>${pool.score.toFixed(4)}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (error) {
+                console.error('Error fetching pool stats:', error);
+                document.getElementById('pool-stats-body').innerHTML = '<tr><td colspan="3">Error loading pool stats.</td></tr>';
+            }
+        }
+
+        fetchPoolStats();
+        setInterval(fetchPoolStats, 300000); // Update every 5 minutes
 
         async function fetchLogs() {
             try {

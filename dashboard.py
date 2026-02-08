@@ -9,7 +9,7 @@ import subprocess
 import logging
 from typing import Dict, Any, Optional
 import database
-from miner_api import get_full_miner_data, get_gpu_names
+from miner_api import get_full_miner_data, get_gpu_names, get_system_info
 from contextlib import asynccontextmanager
 from env_config import read_env_file, write_env_file
 import profit_switcher
@@ -52,13 +52,18 @@ async def background_task() -> None:
     while True:
         global miner_data
         try:
+            # Fetch system info regardless of miner status
+            system_info = await asyncio.to_thread(get_system_info)
+
             # get_full_miner_data is synchronous, but we can run it in a thread to not block the event loop
             data = await asyncio.to_thread(get_full_miner_data)
             if data:
                 miner_data = data
+                miner_data['system_info'] = system_info # Ensure it's fresh
                 await sio.emit('update', miner_data)
             else:
                 miner_data['status'] = 'Error: Miner API unreachable'
+                miner_data['system_info'] = system_info
                 await sio.emit('update', miner_data)
         except Exception as e:
             logger.error(f"Error in background task: {e}")
