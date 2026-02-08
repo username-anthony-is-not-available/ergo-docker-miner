@@ -90,7 +90,7 @@ fi
 ./metrics.sh &
 
 # Start the dashboard in the background
-python3 dashboard.py &
+uvicorn dashboard:sio_app --host 0.0.0.0 --port 5000 &
 
 # Start GPU monitoring in the background based on available tools
 if command -v nvidia-smi &> /dev/null; then

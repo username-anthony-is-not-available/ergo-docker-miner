@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Detailed per-GPU timeseries for Dual Hashrate, Fan Speed, and Power Draw in Grafana.
 
 ### Changed
+- Migrated the web dashboard from Flask to FastAPI for improved performance and async support.
 - Updated Dockerfiles to include `gosu` and a non-root `miner` user (UID 1000).
 - Modified `start.sh` to drop privileges to the `miner` user after performing root-level operations like overclocking.
 - Refactored `dashboard.py` and `metrics.py` to use the centralized `miner_api.py`.
