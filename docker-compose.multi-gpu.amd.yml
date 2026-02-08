@@ -31,6 +31,11 @@ services:
       - "4444:4444"
       - "4455:4455"
       - "4456:4456"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     devices:
       - "/dev/kfd:/dev/kfd"
       - "/dev/dri:/dev/dri"
@@ -52,6 +57,11 @@ services:
       - "4445:4444"
       - "4457:4455"
       - "4458:4456"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     devices:
       - "/dev/kfd:/dev/kfd"
       - "/dev/dri:/dev/dri"

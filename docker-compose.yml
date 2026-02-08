@@ -16,6 +16,11 @@ services:
       - "4455:4455"
       - "4456:4456"
       - "5000:5000"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     deploy:
       resources:
         reservations:
@@ -38,6 +43,11 @@ services:
       - "4458:4455"
       - "4459:4456"
       - "5001:5000"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     devices:
       - "/dev/kfd:/dev/kfd"
       - "/dev/dri:/dev/dri"

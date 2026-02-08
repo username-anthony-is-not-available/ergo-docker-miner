@@ -167,6 +167,14 @@ if [ "$AUTO_RESTART_ON_CUDA_ERROR" = "true" ]; then
   ./cuda_monitor.sh >> "$DATA_DIR/cuda_monitor.log" 2>&1 &
 fi
 
+# Start log rotation loop
+(
+  while true; do
+    logrotate -s "$DATA_DIR/logrotate.status" /app/logrotate.conf 2>/dev/null
+    sleep 3600
+  done
+) &
+
 # Ergo Node Sync Check
 if [ "$CHECK_NODE_SYNC" = "true" ]; then
   NODE_URL=${NODE_URL:-http://localhost:9053}
