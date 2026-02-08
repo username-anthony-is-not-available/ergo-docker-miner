@@ -176,5 +176,28 @@ EOF
 chmod +x "$MOCK_BIN_DIR/pgrep"
 run_test "Multi-process process count mismatch" 1 "yes"
 
+# 13. High rejected share ratio (lolminer)
+export MULTI_PROCESS=false
+export GPU_DEVICES=AUTO
+export MINER=lolminer
+cat > "$MOCK_BIN_DIR/pgrep" <<EOF
+#!/bin/bash
+if [ -f /tmp/mock_process_running ]; then
+    echo "123"
+    exit 0
+else
+    exit 1
+fi
+EOF
+chmod +x "$MOCK_BIN_DIR/pgrep"
+# 10 accepted, 11 rejected = 21 total, > 50% reject ratio
+echo '{"Total_Performance": [100.5], "GPUs": [{"Accepted_Shares": 10, "Rejected_Shares": 11}]}' > /tmp/mock_api_response
+run_test "High rejected share ratio (lolminer)" 1 "yes"
+
+# 14. Normal rejected share ratio (lolminer)
+# 20 accepted, 1 rejected = 21 total, ~4.7% reject ratio
+echo '{"Total_Performance": [100.5], "GPUs": [{"Accepted_Shares": 20, "Rejected_Shares": 1}]}' > /tmp/mock_api_response
+run_test "Normal rejected share ratio (lolminer)" 0 "no"
+
 cleanup
 echo "All healthcheck tests passed!"

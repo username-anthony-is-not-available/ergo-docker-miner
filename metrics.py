@@ -130,7 +130,9 @@ def update_metrics() -> None:
             data.get('avg_fan_speed', 0),
             data.get('total_accepted_shares', 0),
             data.get('total_rejected_shares', 0),
-            data.get('total_dual_hashrate', 0)
+            data.get('total_dual_hashrate', 0),
+            data.get('total_power_draw', 0),
+            data.get('gpus', [])
         )
 
         # Prune once per hour

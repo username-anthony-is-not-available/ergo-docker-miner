@@ -14,8 +14,8 @@ class TestProfitSwitcher(unittest.TestCase):
 
         pool = profit_switcher.POOLS[0] # 2Miners
         score = profit_switcher.get_pool_profitability(pool)
-        # Score = (1 - 0.01) / 1.0 = 0.99 (Since 2miners effort is currently hardcoded to 1.0 in the impl)
-        self.assertAlmostEqual(score, 0.99)
+        # Score = (1 - 0.01) / 1.2 = 0.99 / 1.2 = 0.825
+        self.assertAlmostEqual(score, 0.825)
 
     @patch('profit_switcher.requests.get')
     def test_get_pool_profitability_herominers(self, mock_get):
