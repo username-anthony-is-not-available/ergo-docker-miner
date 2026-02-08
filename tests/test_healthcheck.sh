@@ -144,5 +144,37 @@ export GPU_DEVICES="0,1,2"
 echo '{"hashrate": 50000000, "gpus": [{}, {}]}' > /tmp/mock_api_response
 run_test "GPU count mismatch (t-rex)" 1 "yes"
 
+# 11. Multi-process healthy
+export MULTI_PROCESS=true
+export GPU_DEVICES="0,1"
+export MINER=lolminer
+# We need to mock pgrep to return multiple lines for MULTI_PROCESS check
+cat > "$MOCK_BIN_DIR/pgrep" <<EOF
+#!/bin/bash
+if [ -f /tmp/mock_process_running ]; then
+    echo "123"
+    echo "456"
+    exit 0
+else
+    exit 1
+fi
+EOF
+chmod +x "$MOCK_BIN_DIR/pgrep"
+echo '{"Total_Performance": [50.0], "GPUs": [{}]}' > /tmp/mock_api_response
+run_test "Multi-process healthy" 0 "no"
+
+# 12. Multi-process process count mismatch
+cat > "$MOCK_BIN_DIR/pgrep" <<EOF
+#!/bin/bash
+if [ -f /tmp/mock_process_running ]; then
+    echo "123"
+    exit 0
+else
+    exit 1
+fi
+EOF
+chmod +x "$MOCK_BIN_DIR/pgrep"
+run_test "Multi-process process count mismatch" 1 "yes"
+
 cleanup
 echo "All healthcheck tests passed!"

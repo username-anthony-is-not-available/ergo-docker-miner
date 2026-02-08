@@ -135,5 +135,39 @@ class TestMinerApi(unittest.TestCase):
         self.assertEqual(data['total_accepted_shares'], 10)
         self.assertEqual(data['avg_fan_speed'], 50.0)
 
+    @patch('requests.get')
+    def test_get_normalized_miner_data_multi_process(self, mock_get):
+        # Mock responses for two miners on ports 4444 and 4445
+        resp1 = MagicMock()
+        resp1.json.return_value = {
+            'Session': {'Uptime': 1000},
+            'Total_Performance': [60.0, 0],
+            'GPUs': [{'Performance': [60.0, 0], 'Fan_Speed': 50, 'Accepted_Shares': 5, 'Rejected_Shares': 0}]
+        }
+        resp2 = MagicMock()
+        resp2.json.return_value = {
+            'Session': {'Uptime': 1200},
+            'Total_Performance': [70.0, 0],
+            'GPUs': [{'Performance': [70.0, 0], 'Fan_Speed': 55, 'Accepted_Shares': 6, 'Rejected_Shares': 1}]
+        }
+        mock_get.side_effect = [resp1, resp2]
+
+        # Use patch.dict to set environment variables
+        with patch.dict(os.environ, {
+            'MINER': 'lolminer',
+            'MULTI_PROCESS': 'true',
+            'GPU_DEVICES': '0,2',
+            'API_PORT': '4444'
+        }):
+            data = miner_api.get_normalized_miner_data()
+            self.assertIsNotNone(data)
+            self.assertEqual(data['total_hashrate'], 130.0)
+            self.assertEqual(data['uptime'], 1000) # min of 1000 and 1200
+            self.assertEqual(len(data['gpus']), 2)
+            self.assertEqual(data['gpus'][0]['index'], 0)
+            self.assertEqual(data['gpus'][1]['index'], 2)
+            self.assertEqual(data['gpus'][0]['hashrate'], 60.0)
+            self.assertEqual(data['gpus'][1]['hashrate'], 70.0)
+
 if __name__ == '__main__':
     unittest.main()

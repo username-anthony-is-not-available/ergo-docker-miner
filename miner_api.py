@@ -67,12 +67,8 @@ def get_gpu_smi_data() -> List[Dict[str, float]]:
             pass
     return gpu_stats
 
-def get_normalized_miner_data() -> Optional[Dict[str, Any]]:
-    """Fetches data from the miner API and normalizes it."""
-    miner = os.getenv('MINER', 'lolminer')
-    api_port = int(os.getenv('API_PORT', 4444))
-
-    # Try with retries
+def _fetch_single_miner_data(miner: str, api_port: int) -> Optional[Dict[str, Any]]:
+    """Fetches data from a single miner API instance."""
     max_retries = 3
     for attempt in range(max_retries):
         try:
@@ -135,12 +131,47 @@ def get_normalized_miner_data() -> Optional[Dict[str, Any]]:
                 return normalized
         except (requests.exceptions.RequestException, ValueError) as e:
             if attempt < max_retries - 1:
-                logger.warning(f"Attempt {attempt + 1} failed to fetch miner data: {e}. Retrying...")
+                logger.warning(f"Attempt {attempt + 1} failed to fetch miner data on port {api_port}: {e}. Retrying...")
                 continue
             else:
-                logger.error(f"Failed to fetch miner data after {max_retries} attempts: {e}")
+                logger.error(f"Failed to fetch miner data on port {api_port} after {max_retries} attempts: {e}")
                 return None
     return None
+
+def get_normalized_miner_data() -> Optional[Dict[str, Any]]:
+    """Fetches data from the miner API and normalizes it, supporting multi-process mode."""
+    miner = os.getenv('MINER', 'lolminer')
+    api_port = int(os.getenv('API_PORT', 4444))
+    multi_process = os.getenv('MULTI_PROCESS', 'false').lower() == 'true'
+    gpu_devices_env = os.getenv('GPU_DEVICES', 'AUTO')
+
+    if multi_process and gpu_devices_env != 'AUTO':
+        device_ids = [d.strip() for d in gpu_devices_env.split(',') if d.strip()]
+        aggregated_data = None
+
+        for i, device_id in enumerate(device_ids):
+            current_port = api_port + i
+            data = _fetch_single_miner_data(miner, current_port)
+            if data:
+                # Map back to original GPU index
+                # In multi-process mode, each miner has 1 GPU, usually index 0 in its API
+                for gpu in data['gpus']:
+                    gpu['index'] = int(device_id)
+
+                if aggregated_data is None:
+                    aggregated_data = data
+                else:
+                    aggregated_data['total_hashrate'] += data['total_hashrate']
+                    aggregated_data['total_dual_hashrate'] += data['total_dual_hashrate']
+                    aggregated_data['uptime'] = min(aggregated_data['uptime'], data['uptime'])
+                    aggregated_data['gpus'].extend(data['gpus'])
+
+        # Ensure GPUs are sorted by index
+        if aggregated_data:
+            aggregated_data['gpus'].sort(key=lambda x: x['index'])
+        return aggregated_data
+    else:
+        return _fetch_single_miner_data(miner, api_port)
 
 def get_full_miner_data() -> Optional[Dict[str, Any]]:
     """Fetches miner and SMI data, merges them, and calculates aggregates."""

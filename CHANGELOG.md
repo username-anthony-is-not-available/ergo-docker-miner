@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Implement 'One-Click Multi-GPU' discovery in `start.sh` for both NVIDIA and AMD.
+- Add support for `MULTI_PROCESS` mining mode, running one miner process per GPU for improved isolation and stability.
 - Implement 'Telegram Bot' notifications for rig downtime and recovery.
 - New interactive Telegram configuration prompts in `setup.sh`.
 - Implement 'Auto-Profit Switching' between pools via a background supervisor.
