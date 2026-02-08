@@ -164,118 +164,6 @@
     {
       "datasource": "${DS_PROMETHEUS}",
       "gridPos": {
-        "h": 9,
-        "w": 24,
-        "x": 0,
-        "y": 20
-      },
-      "id": 6,
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        },
-        "tooltip": {
-          "mode": "multi"
-        }
-      },
-      "targets": [
-        {
-          "expr": "miner_gpu_hashrate",
-          "legendFormat": "GPU {{gpu}}",
-          "refId": "A"
-        }
-      ],
-      "title": "GPU Hashrate",
-      "type": "timeseries"
-    },
-    {
-      "datasource": "${DS_PROMETHEUS}",
-      "gridPos": {
-        "h": 9,
-        "w": 24,
-        "x": 0,
-        "y": 29
-      },
-      "id": 8,
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        },
-        "tooltip": {
-          "mode": "multi"
-        }
-      },
-      "targets": [
-        {
-          "expr": "miner_gpu_temperature",
-          "legendFormat": "GPU {{gpu}}",
-          "refId": "A"
-        }
-      ],
-      "title": "GPU Temperature",
-      "type": "timeseries"
-    },
-    {
-      "datasource": "${DS_PROMETHEUS}",
-      "gridPos": {
-        "h": 9,
-        "w": 12,
-        "x": 0,
-        "y": 65
-      },
-      "id": 10,
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        },
-        "tooltip": {
-          "mode": "multi"
-        }
-      },
-      "targets": [
-        {
-          "expr": "miner_gpu_shares_accepted",
-          "legendFormat": "GPU {{gpu}}",
-          "refId": "A"
-        }
-      ],
-      "title": "GPU Shares Accepted",
-      "type": "timeseries"
-    },
-    {
-      "datasource": "${DS_PROMETHEUS}",
-      "gridPos": {
-        "h": 9,
-        "w": 12,
-        "x": 12,
-        "y": 65
-      },
-      "id": 12,
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        },
-        "tooltip": {
-          "mode": "multi"
-        }
-      },
-      "targets": [
-        {
-          "expr": "miner_gpu_shares_rejected",
-          "legendFormat": "GPU {{gpu}}",
-          "refId": "A"
-        }
-      ],
-      "title": "GPU Shares Rejected",
-      "type": "timeseries"
-    },
-    {
-      "datasource": "${DS_PROMETHEUS}",
-      "gridPos": {
         "h": 6,
         "w": 12,
         "x": 0,
@@ -304,12 +192,12 @@
     {
       "datasource": "${DS_PROMETHEUS}",
       "gridPos": {
-        "h": 9,
-        "w": 24,
-        "x": 0,
-        "y": 56
+        "h": 6,
+        "w": 12,
+        "x": 12,
+        "y": 14
       },
-      "id": 14,
+      "id": 17,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -321,12 +209,73 @@
       },
       "targets": [
         {
-          "expr": "miner_gpu_dual_hashrate",
-          "legendFormat": "GPU {{gpu}}",
+          "expr": "miner_avg_fan_speed",
+          "legendFormat": "Avg Fan Speed",
           "refId": "A"
         }
       ],
-      "title": "GPU Dual Hashrate",
+      "title": "Average Fan Speed",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "${DS_PROMETHEUS}",
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 20
+      },
+      "id": 18,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "expr": "increase(miner_total_shares_accepted[1h])",
+          "legendFormat": "Accepted",
+          "refId": "A"
+        },
+        {
+          "expr": "increase(miner_total_shares_rejected[1h])",
+          "legendFormat": "Rejected",
+          "refId": "B"
+        }
+      ],
+      "title": "Share History (Hourly)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "${DS_PROMETHEUS}",
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 12,
+        "y": 20
+      },
+      "id": 19,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "expr": "increase(miner_total_shares_rejected[1h]) / (increase(miner_total_shares_accepted[1h]) + increase(miner_total_shares_rejected[1h])) * 100",
+          "legendFormat": "Rejection Rate %",
+          "refId": "A"
+        }
+      ],
+      "title": "Rejection Rate (%)",
       "type": "timeseries"
     },
     {
@@ -335,7 +284,91 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 47
+        "y": 26
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "expr": "miner_gpu_hashrate",
+          "legendFormat": "GPU {{gpu}}",
+          "refId": "A"
+        }
+      ],
+      "title": "GPU Hashrate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "${DS_PROMETHEUS}",
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 35
+      },
+      "id": 8,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "expr": "miner_gpu_temperature",
+          "legendFormat": "GPU {{gpu}}",
+          "refId": "A"
+        }
+      ],
+      "title": "GPU Temperature",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "${DS_PROMETHEUS}",
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 44
+      },
+      "id": 16,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "expr": "miner_gpu_power_draw",
+          "legendFormat": "GPU {{gpu}}",
+          "refId": "A"
+        }
+      ],
+      "title": "GPU Power Draw",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "${DS_PROMETHEUS}",
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 53
       },
       "id": 15,
       "options": {
@@ -363,9 +396,9 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 38
+        "y": 62
       },
-      "id": 16,
+      "id": 14,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -377,23 +410,23 @@
       },
       "targets": [
         {
-          "expr": "miner_gpu_power_draw",
+          "expr": "miner_gpu_dual_hashrate",
           "legendFormat": "GPU {{gpu}}",
           "refId": "A"
         }
       ],
-      "title": "GPU Power Draw",
+      "title": "GPU Dual Hashrate",
       "type": "timeseries"
     },
     {
       "datasource": "${DS_PROMETHEUS}",
       "gridPos": {
-        "h": 6,
+        "h": 9,
         "w": 12,
-        "x": 12,
-        "y": 14
+        "x": 0,
+        "y": 71
       },
-      "id": 17,
+      "id": 10,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -405,12 +438,40 @@
       },
       "targets": [
         {
-          "expr": "miner_avg_fan_speed",
-          "legendFormat": "Avg Fan Speed",
+          "expr": "miner_gpu_shares_accepted",
+          "legendFormat": "GPU {{gpu}}",
           "refId": "A"
         }
       ],
-      "title": "Average Fan Speed",
+      "title": "GPU Shares Accepted",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "${DS_PROMETHEUS}",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 71
+      },
+      "id": 12,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "expr": "miner_gpu_shares_rejected",
+          "legendFormat": "GPU {{gpu}}",
+          "refId": "A"
+        }
+      ],
+      "title": "GPU Shares Rejected",
       "type": "timeseries"
     }
   ],
