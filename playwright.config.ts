@@ -18,8 +18,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'python3 dashboard.py',
+    command: 'streamlit run streamlit_app.py --server.port 5000 --server.address 0.0.0.0 --server.headless true',
     url: 'http://localhost:5000',
     reuseExistingServer: !process.env.CI,
+    timeout: 120 * 1000,
   },
 });

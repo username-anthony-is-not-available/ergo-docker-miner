@@ -10,7 +10,7 @@ import logging
 from typing import Dict, Any, Optional
 
 import database
-from miner_api import get_full_miner_data, get_gpu_names, get_system_info, restart_service, get_node_status, refresh_gpu_names_cache
+from miner_api import get_full_miner_data, get_gpu_names, get_system_info, restart_service, get_node_status, refresh_gpu_names_cache, get_24h_average_hashrate
 from env_config import read_env_file, write_env_file
 import profit_switcher
 
@@ -52,6 +52,7 @@ def main():
         placeholder = st.empty()
 
         data = get_full_miner_data()
+        avg_hashrate_24h = get_24h_average_hashrate()
         system_info = get_system_info()
         node_status = get_node_status()
 
@@ -74,22 +75,28 @@ def main():
                 st.rerun()
 
             # Top Stats
-            col1, col2, col3, col4, col5, col6 = st.columns(6)
-            col1.metric("Total Hashrate", f"{data.get('total_hashrate', 0):.2f} MH/s")
+            num_cols = 8 if data.get('total_dual_hashrate', 0) > 0 else 7
+            cols = st.columns(num_cols)
+
+            cols[0].metric("Current Hashrate", f"{data.get('total_hashrate', 0):.2f} MH/s")
+            cols[1].metric("24h Avg Hashrate", f"{avg_hashrate_24h:.2f} MH/s")
+
+            curr_col = 2
             if data.get('total_dual_hashrate', 0) > 0:
-                col2.metric("Dual Hashrate", f"{data.get('total_dual_hashrate', 0):.2f} MH/s")
-            else:
-                col2.metric("Total Power", f"{data.get('total_power_draw', 0):.1f} W")
-            col3.metric("Avg Temp", f"{data.get('avg_temperature', 0):.1f} °C")
-            col4.metric("Efficiency", f"{data.get('efficiency', 0):.3f} MH/W")
-            col5.metric("Uptime", format_uptime(data.get('uptime', 0)))
+                cols[curr_col].metric("Dual Hashrate", f"{data.get('total_dual_hashrate', 0):.2f} MH/s")
+                curr_col += 1
+
+            cols[curr_col].metric("Total Power", f"{data.get('total_power_draw', 0):.1f} W")
+            cols[curr_col+1].metric("Avg Temp", f"{data.get('avg_temperature', 0):.1f} °C")
+            cols[curr_col+2].metric("Efficiency", f"{data.get('efficiency', 0):.3f} MH/W")
+            cols[curr_col+3].metric("Uptime", format_uptime(data.get('uptime', 0)))
 
             if node_status.get('enabled'):
                 node_text = "Synced" if node_status.get('is_synced') else "Syncing..."
                 if node_status.get('error'): node_text = "Error"
-                col6.metric("Ergo Node", node_text, delta=f"{node_status.get('full_height', 0)} / {node_status.get('headers_height', 0)}", delta_color="normal")
+                cols[curr_col+4].metric("Ergo Node", node_text, delta=f"{node_status.get('full_height', 0)} / {node_status.get('headers_height', 0)}", delta_color="normal")
             else:
-                col6.metric("Ergo Node", "Disabled")
+                cols[curr_col+4].metric("Ergo Node", "Disabled")
 
             # GPUs
             st.subheader("GPUs")
@@ -403,23 +410,36 @@ def main():
                 st.error(f"Failed to restart miner: {e}")
 
     elif page == "Logs":
-        st.title("Miner Logs")
+        st.title("System & Miner Logs")
         data_dir = os.getenv('DATA_DIR', '.')
 
         # Discover available log files
-        log_files = [f for f in os.listdir(data_dir) if f.startswith('miner') and f.endswith('.log')]
-        log_files.sort()
+        # Include both miner logs and background service logs
+        service_logs = [f for f in os.listdir(data_dir) if f.endswith('.log') and not f.startswith('miner')]
+        miner_logs = [f for f in os.listdir(data_dir) if f.startswith('miner') and f.endswith('.log')]
 
-        if not log_files:
-            st.info("No miner log files found. Waiting for miner to start...")
+        service_logs.sort()
+        miner_logs.sort()
+
+        all_logs = service_logs + miner_logs
+
+        if not all_logs:
+            st.info("No log files found. Waiting for services to start...")
         else:
-            selected_log = st.selectbox("Select Log File", log_files)
+            selected_log = st.selectbox("Select Log File", all_logs)
             log_path = os.path.join(data_dir, selected_log)
 
             if os.path.exists(log_path):
                 with open(log_path, 'r', errors='replace') as f:
-                    lines = f.readlines()
-                    st.text_area(f"Last 100 lines of {selected_log}", value="".join(lines[-100:]), height=400)
+                    # For large logs, read only the last part
+                    f.seek(0, os.SEEK_END)
+                    size = f.tell()
+                    # Read last 50KB or so
+                    f.seek(max(0, size - 51200))
+                    content = f.read()
+                    lines = content.splitlines()
+
+                    st.text_area(f"Latest entries from {selected_log}", value="\n".join(lines[-100:]), height=400)
 
                 with open(log_path, 'rb') as f:
                     st.download_button(f"Download {selected_log}", data=f, file_name=selected_log, mime="text/plain")

@@ -6,6 +6,7 @@ import logging
 from typing import List, Dict, Any, Optional
 import time
 import psutil
+import database
 
 logger = logging.getLogger(__name__)
 
@@ -464,6 +465,19 @@ def _get_mock_full_data() -> Dict[str, Any]:
         'timestamp': time.time(),
         'status': 'Mining'
     }
+
+def get_24h_average_hashrate() -> float:
+    """Calculates the average hashrate over the last 24 hours."""
+    try:
+        history = database.get_history(days=1)
+        if not history:
+            return 0.0
+
+        total_hashrate = sum(row['hashrate'] for row in history)
+        return total_hashrate / len(history)
+    except Exception as e:
+        logger.error(f"Error calculating 24h average hashrate: {e}")
+        return 0.0
 
 def get_full_miner_data() -> Optional[Dict[str, Any]]:
     """Fetches miner and SMI data, merges them, and calculates aggregates."""

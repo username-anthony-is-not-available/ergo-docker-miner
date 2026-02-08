@@ -15,6 +15,10 @@ DEFAULT_MIN_RUNTIME = 900 # 15 minutes
 last_switch_time = 0.0
 start_time = time.time()
 
+# Cache for pool scores
+_pool_score_cache = {}
+CACHE_TTL = 300 # 5 minutes
+
 POOLS = [
     {
         "name": "2Miners",
@@ -46,14 +50,25 @@ POOLS = [
     }
 ]
 
-def get_pool_profitability(pool: Dict, return_details: bool = False) -> Any:
+def get_pool_profitability(pool: Dict, return_details: bool = False, use_cache: bool = True) -> Any:
     """
     Calculates a profitability score for a pool.
     Score = (1 - Fee) / Effort
     Effort is estimated from the pool API if available.
     """
+    pool_url = pool["url"]
+
+    # Check cache
+    if use_cache and pool_url in _pool_score_cache:
+        cache_entry = _pool_score_cache[pool_url]
+        if time.time() - cache_entry['timestamp'] < CACHE_TTL:
+            logger.debug(f"Using cached score for {pool['name']}")
+            if return_details:
+                return cache_entry['details']
+            return cache_entry['score']
+
     try:
-        response = requests.get(pool["url"], timeout=10)
+        response = requests.get(pool_url, timeout=10)
         response.raise_for_status()
         try:
             data = response.json()
@@ -103,8 +118,16 @@ def get_pool_profitability(pool: Dict, return_details: bool = False) -> Any:
         score = (1.0 - fee) / effort
         logger.info(f"Pool {pool['name']} analysis: Score={score:.4f}, Effort={effort:.2f}, Fee={fee:.3f}")
 
+        # Update cache
+        details = {"score": score, "effort": effort, "fee": fee}
+        _pool_score_cache[pool_url] = {
+            'timestamp': time.time(),
+            'score': score,
+            'details': details
+        }
+
         if return_details:
-            return {"score": score, "effort": effort, "fee": fee}
+            return details
         return score
     except requests.exceptions.RequestException as e:
         logger.error(f"Network error fetching stats for {pool['name']}: {e}")
