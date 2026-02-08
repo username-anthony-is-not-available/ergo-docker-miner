@@ -105,7 +105,15 @@
                 <input type="checkbox" id="apply_oc" name="APPLY_OC">
             </div>
             <div class="form-group">
-                <label for="eco_mode">Enable Eco Mode</label>
+                <label for="gpu_tuning">GPU Tuning Preset</label>
+                <select id="gpu_tuning" name="GPU_TUNING">
+                    <option value="High">High Performance</option>
+                    <option value="Efficient">Efficient (Eco)</option>
+                    <option value="Quiet">Quiet</option>
+                </select>
+            </div>
+            <div class="form-group" style="display:none;">
+                <label for="eco_mode">Enable Eco Mode (Legacy)</label>
                 <input type="checkbox" id="eco_mode" name="ECO_MODE">
             </div>
             <div class="form-group">
@@ -162,6 +170,7 @@
                     document.getElementById('profit_switching_threshold').value = data.PROFIT_SWITCHING_THRESHOLD || 0.005;
                     document.getElementById('profit_switching_interval').value = data.PROFIT_SWITCHING_INTERVAL || 3600;
                     document.getElementById('apply_oc').checked = data.APPLY_OC === 'true';
+                    document.getElementById('gpu_tuning').value = data.GPU_TUNING || (data.ECO_MODE === 'true' ? 'Efficient' : 'High');
                     document.getElementById('eco_mode').checked = data.ECO_MODE === 'true';
                     document.getElementById('gpu_profile').value = data.GPU_PROFILE || '';
                     document.getElementById('gpu_clock_offset').value = data.GPU_CLOCK_OFFSET || 0;
@@ -183,6 +192,12 @@
                     document.getElementById('telegram_chat_id').value = data.TELEGRAM_CHAT_ID || '';
                     document.getElementById('telegram_notify_threshold').value = data.TELEGRAM_NOTIFY_THRESHOLD || 300;
                 });
+
+            // Sync legacy ECO_MODE with GPU_TUNING
+            document.getElementById('gpu_tuning').addEventListener('change', function() {
+                document.getElementById('eco_mode').checked = (this.value === 'Efficient');
+            });
+
             // Handle form submission
             document.getElementById('config-form').addEventListener('submit', function(event) {
                 event.preventDefault();

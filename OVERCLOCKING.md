@@ -17,7 +17,7 @@ Ergo (Autolykos2) is a memory-intensive algorithm but also benefits from a stabl
 - **Memory Clock:** Increasing the memory clock (VRAM) is the most effective way to increase your hashrate.
 - **Power Limit:** RTX 40-series cards often have very high default power limits. For Ergo, you can significantly reduce these limits with minimal impact on hashrate, greatly improving your efficiency (MH/Watt).
 - **Core Clock:** While Ergo isn't as core-dependent as some other coins, a slight negative offset or a locked core clock can help reduce power draw and heat.
-- **Eco Mode:** This project includes built-in "Eco Mode" profiles that prioritize efficiency and low temperatures.
+- **Tuning Presets:** This project includes built-in tuning presets (High, Efficient, Quiet) that prioritize different goals from maximum performance to lowest power draw.
 
 ## Recommended Settings (RTX 40-Series)
 
@@ -25,24 +25,33 @@ These settings are derived from the `gpu_profiles.json` included in this project
 
 | GPU Model | Mode | Core Offset | Mem Offset | Power Limit |
 |-----------|------|-------------|------------|-------------|
-| **RTX 4090** | Performance | -200 | +1500 | 350W |
+| **RTX 4090** | Performance (High) | -200 | +1500 | 350W |
 | | Efficiency (Eco) | -300 | +1500 | 280W |
-| **RTX 4080 Super**| Performance | -200 | +1500 | 270W |
+| | Quiet | -400 | +1500 | 220W |
+| **RTX 4080 Super**| Performance (High) | -200 | +1500 | 270W |
 | | Efficiency (Eco) | -300 | +1500 | 220W |
-| **RTX 4080** | Performance | -200 | +1500 | 250W |
+| | Quiet | -400 | +1500 | 180W |
+| **RTX 4080** | Performance (High) | -200 | +1500 | 250W |
 | | Efficiency (Eco) | -300 | +1500 | 200W |
-| **RTX 4070 Ti Super**| Performance | -200 | +1300 | 220W |
+| | Quiet | -400 | +1500 | 160W |
+| **RTX 4070 Ti Super**| Performance (High) | -200 | +1300 | 220W |
 | | Efficiency (Eco) | -300 | +1300 | 180W |
-| **RTX 4070 Ti** | Performance | -200 | +1300 | 200W |
+| | Quiet | -400 | +1300 | 140W |
+| **RTX 4070 Ti** | Performance (High) | -200 | +1300 | 200W |
 | | Efficiency (Eco) | -300 | +1300 | 160W |
-| **RTX 4070 Super**| Performance | -200 | +1300 | 170W |
+| | Quiet | -400 | +1300 | 130W |
+| **RTX 4070 Super**| Performance (High) | -200 | +1300 | 170W |
 | | Efficiency (Eco) | -300 | +1300 | 140W |
-| **RTX 4070** | Performance | -200 | +1300 | 150W |
+| | Quiet | -400 | +1300 | 110W |
+| **RTX 4070** | Performance (High) | -200 | +1300 | 150W |
 | | Efficiency (Eco) | -300 | +1300 | 120W |
-| **RTX 4060 Ti** | Performance | -200 | +1200 | 130W |
+| | Quiet | -400 | +1300 | 100W |
+| **RTX 4060 Ti** | Performance (High) | -200 | +1200 | 130W |
 | | Efficiency (Eco) | -300 | +1200 | 110W |
-| **RTX 4060** | Performance | -200 | +1200 | 100W |
+| | Quiet | -400 | +1200 | 90W |
+| **RTX 4060** | Performance (High) | -200 | +1200 | 100W |
 | | Efficiency (Eco) | -300 | +1200 | 80W |
+| | Quiet | -400 | +1200 | 70W |
 
 ## How to Apply These Settings
 
@@ -52,8 +61,8 @@ These settings are derived from the `gpu_profiles.json` included in this project
     ```bash
     APPLY_OC=true
     GPU_PROFILE="RTX 4090"
-    # To enable Eco mode:
-    ECO_MODE=true
+    # Select tuning preset: High, Efficient, or Quiet
+    GPU_TUNING="Efficient"
     ```
 
 ## Troubleshooting

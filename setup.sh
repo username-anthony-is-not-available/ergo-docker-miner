@@ -167,10 +167,16 @@ if [ "$GPU_TYPE" == "NVIDIA" ]; then
             read -p "Enter a profile name (e.g. RTX 3070) or leave blank: " GPU_PROFILE
         fi
 
-        read -p "Enable Eco Mode? (y/n) [n]: " ECO_MODE_CHOICE
-        if [[ "$ECO_MODE_CHOICE" =~ ^[Yy]$ ]]; then
-            ECO_MODE="true"
-        fi
+        echo "Select Tuning Preset:"
+        echo "1) High Performance"
+        echo "2) Efficient (Eco)"
+        echo "3) Quiet"
+        read -p "Selection [1]: " TUNING_CHOICE
+        case $TUNING_CHOICE in
+            2) GPU_TUNING="Efficient"; ECO_MODE="true" ;;
+            3) GPU_TUNING="Quiet"; ECO_MODE="false" ;;
+            *) GPU_TUNING="High"; ECO_MODE="false" ;;
+        esac
     fi
 fi
 
@@ -267,6 +273,7 @@ GPU_DEVICES=${GPU_DEVICES}
 
 # Overclocking
 APPLY_OC=${APPLY_OC}
+GPU_TUNING=${GPU_TUNING}
 ECO_MODE=${ECO_MODE}
 
 # Profit Switching
