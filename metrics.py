@@ -4,7 +4,7 @@ import os
 import logging
 import requests
 import database
-from miner_api import get_full_miner_data, get_node_status
+from miner_api import get_full_miner_data, get_node_status, get_services_status
 
 # Configure logging
 logging.basicConfig(
@@ -32,6 +32,8 @@ TOTAL_POWER_DRAW = Gauge('miner_total_power_draw', 'Total power draw of all GPUs
 EFFICIENCY = Gauge('miner_efficiency', 'Rig-wide power efficiency in MH/s per Watt', ['worker'])
 TOTAL_SHARES_ACCEPTED = Gauge('miner_total_shares_accepted', 'Total number of accepted shares', ['worker'])
 TOTAL_SHARES_REJECTED = Gauge('miner_total_shares_rejected', 'Total number of rejected shares', ['worker'])
+
+SERVICE_STATUS = Gauge('miner_service_status', 'Status of background services (1=Running, 0=Stopped/Disabled)', ['service', 'worker'])
 
 GPU_HASHRATE = Gauge('miner_gpu_hashrate', 'Hashrate of a single GPU in MH/s', ['gpu', 'worker'])
 GPU_DUAL_HASHRATE = Gauge('miner_gpu_dual_hashrate', 'Dual hashrate of a single GPU in MH/s', ['gpu', 'worker'])
@@ -80,6 +82,12 @@ def update_metrics() -> None:
 
         # Update node sync metric
         NODE_SYNCED.labels(worker=WORKER).set(1 if node_status.get('is_synced') else 0)
+
+        # Update service status metrics
+        services = get_services_status()
+        for service, s_info in services.items():
+            val = 1 if s_info['status'] == 'Running' else 0
+            SERVICE_STATUS.labels(service=service, worker=WORKER).set(val)
 
         # Telegram health check logic
         is_unhealthy = (data is None) or (data.get('total_hashrate', 0) == 0)

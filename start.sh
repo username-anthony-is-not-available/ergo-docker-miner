@@ -228,17 +228,29 @@ echo "Starting miner: $MINER (Multi-process: $MULTI_PROCESS)"
 
 # Cleanup function for multi-process mode
 cleanup() {
-  echo "Shutting down miners..."
+  echo "Shutting down all background processes..."
   # Kill all background jobs
   JOBS=$(jobs -p)
   if [ -n "$JOBS" ]; then
+    echo "Killing background jobs: $JOBS"
     kill $JOBS 2>/dev/null
+    sleep 2
+    kill -9 $JOBS 2>/dev/null
   fi
-  # Also pkill by process name as a secondary measure
+
+  # Also pkill background scripts and miners as a secondary measure
+  pkill -f "python3 metrics.py" 2>/dev/null
+  pkill -f "streamlit run streamlit_app.py" 2>/dev/null
+  pkill -f "python3 profit_switcher.py" 2>/dev/null
+  pkill -f "python3 report_generator.py" 2>/dev/null
+  pkill -f "./cuda_monitor.sh" 2>/dev/null
+
   case "$MINER" in
     lolminer) pkill -x lolMiner 2>/dev/null ;;
     t-rex) pkill -x t-rex 2>/dev/null ;;
   esac
+
+  echo "Cleanup complete."
   exit 0
 }
 
@@ -252,10 +264,12 @@ if [ "$MULTI_PROCESS" = "true" ] && [ "$GPU_DEVICES" != "AUTO" ]; then
     echo "Launching miner for GPU $GPU_ID on port $CURRENT_PORT..."
 
     # Miner-specific configuration for individual GPU
+    # Use unique log files per GPU in multi-process mode
+    CURRENT_LOG="$DATA_DIR/miner_gpu${GPU_ID}.log"
     case "$MINER" in
       lolminer)
         MINER_BIN="/app/lolMiner"
-        MINER_CONFIG="--algo AUTOLYKOS2 --pool ${POOL_ADDRESS} --user ${WALLET_ADDRESS}.${WORKER_NAME} --devices ${GPU_ID} --apiport ${CURRENT_PORT} --json-read-only --logfile $DATA_DIR/miner.log"
+        MINER_CONFIG="--algo AUTOLYKOS2 --pool ${POOL_ADDRESS} --user ${WALLET_ADDRESS}.${WORKER_NAME} --devices ${GPU_ID} --apiport ${CURRENT_PORT} --json-read-only --logfile $CURRENT_LOG"
         [ -n "$BACKUP_POOL_ADDRESS" ] && MINER_CONFIG="$MINER_CONFIG --pool ${BACKUP_POOL_ADDRESS}"
         if [ -n "$DUAL_ALGO" ]; then
           MINER_CONFIG="$MINER_CONFIG --dualmode ${DUAL_ALGO} --dualpool ${DUAL_POOL} --dualuser ${DUAL_WALLET}.${DUAL_WORKER:-$WORKER_NAME}"
@@ -263,7 +277,7 @@ if [ "$MULTI_PROCESS" = "true" ] && [ "$GPU_DEVICES" != "AUTO" ]; then
         ;;
       t-rex)
         MINER_BIN="/app/t-rex"
-        MINER_CONFIG="-a AUTOLYKOS2 -o ${POOL_ADDRESS} -u ${WALLET_ADDRESS}.${WORKER_NAME} -d ${GPU_ID} --api-bind-http 127.0.0.1:${CURRENT_PORT} --log-path $DATA_DIR/miner.log"
+        MINER_CONFIG="-a AUTOLYKOS2 -o ${POOL_ADDRESS} -u ${WALLET_ADDRESS}.${WORKER_NAME} -d ${GPU_ID} --api-bind-http 127.0.0.1:${CURRENT_PORT} --log-path $CURRENT_LOG"
         [ -n "$BACKUP_POOL_ADDRESS" ] && MINER_CONFIG="$MINER_CONFIG -o2 ${BACKUP_POOL_ADDRESS} -u2 ${WALLET_ADDRESS}.${WORKER_NAME}"
         ;;
     esac
@@ -271,7 +285,7 @@ if [ "$MULTI_PROCESS" = "true" ] && [ "$GPU_DEVICES" != "AUTO" ]; then
     [ -n "$EXTRA_ARGS" ] && MINER_CONFIG="$MINER_CONFIG $EXTRA_ARGS"
 
     # Start miner in background
-    $MINER_BIN $MINER_CONFIG >> "$DATA_DIR/miner.log" 2>&1 &
+    $MINER_BIN $MINER_CONFIG >> "$CURRENT_LOG" 2>&1 &
   done
 
   # Wait for all background miners

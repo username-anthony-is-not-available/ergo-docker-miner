@@ -55,29 +55,40 @@ def get_node_status() -> Dict[str, Any]:
             'error': str(e)
         }
 
-def get_services_status() -> Dict[str, str]:
-    """Checks if background services are running."""
+def get_services_status() -> Dict[str, Dict[str, Any]]:
+    """Checks if background services are running and their uptime."""
     services = {
-        'metrics.py': 'Stopped',
-        'profit_switcher.py': 'Stopped',
-        'report_generator.py': 'Stopped',
-        'cuda_monitor.sh': 'Stopped'
+        'metrics.py': {'status': 'Stopped', 'uptime': 0},
+        'profit_switcher.py': {'status': 'Stopped', 'uptime': 0},
+        'report_generator.py': {'status': 'Stopped', 'uptime': 0},
+        'cuda_monitor.sh': {'status': 'Stopped', 'uptime': 0}
     }
     try:
-        for proc in psutil.process_iter(['cmdline']):
-            cmdline = proc.info.get('cmdline')
-            if not cmdline:
+        current_time = time.time()
+        for proc in psutil.process_iter(['cmdline', 'create_time']):
+            try:
+                cmdline = proc.info.get('cmdline')
+                if not cmdline:
+                    continue
+                cmd_str = " ".join(cmdline)
+                for service in services.keys():
+                    if service in cmd_str:
+                        # Avoid matching the dashboard itself if it has the name in cmdline
+                        if 'streamlit_app.py' in cmd_str and service != 'streamlit_app.py':
+                            continue
+
+                        services[service]['status'] = 'Running'
+                        create_time = proc.info.get('create_time')
+                        if create_time:
+                            services[service]['uptime'] = current_time - create_time
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
-            cmd_str = " ".join(cmdline)
-            for service in services.keys():
-                if service in cmd_str:
-                    services[service] = 'Running'
     except Exception as e:
         logger.error(f"Error checking services status: {e}")
 
     # Check if cuda_monitor is even supposed to be running
     if os.getenv('AUTO_RESTART_ON_CUDA_ERROR', 'false').lower() != 'true':
-        services['cuda_monitor.sh'] = 'Disabled'
+        services['cuda_monitor.sh']['status'] = 'Disabled'
 
     return services
 
@@ -186,6 +197,12 @@ def get_gpu_names() -> List[str]:
     if gpu_names:
         _gpu_names_cache = gpu_names
     return gpu_names
+
+def refresh_gpu_names_cache() -> List[str]:
+    """Clears the GPU names cache and re-fetches it."""
+    global _gpu_names_cache
+    _gpu_names_cache = []
+    return get_gpu_names()
 
 def get_gpu_smi_data() -> List[Dict[str, float]]:
     """Fetches GPU stats from nvidia-smi or rocm-smi."""
@@ -331,6 +348,7 @@ def get_normalized_miner_data() -> Optional[Dict[str, Any]]:
         if gpu_devices_env == 'AUTO':
             # Robust fallback: if MULTI_PROCESS is on but devices are AUTO,
             # we try to resolve them here to know how many API ports to query.
+            device_ids = []
             try:
                 output = subprocess.check_output(['nvidia-smi', '--query-gpu=index', '--format=csv,noheader'], stderr=subprocess.DEVNULL).decode()
                 device_ids = [line.strip() for line in output.strip().split('\n') if line.strip()]
@@ -339,7 +357,33 @@ def get_normalized_miner_data() -> Optional[Dict[str, Any]]:
                     output = subprocess.check_output("rocm-smi --showtemp --csv | tail -n +2 | cut -d, -f1", shell=True, stderr=subprocess.DEVNULL).decode()
                     device_ids = [line.strip() for line in output.strip().split('\n') if line.strip()]
                 except:
-                    device_ids = []
+                    pass
+
+            # If SMI failed, try to discover by checking running miner processes
+            if not device_ids:
+                try:
+                    discovered_ports = []
+                    for proc in psutil.process_iter(['cmdline']):
+                        cmdline = proc.info.get('cmdline')
+                        if not cmdline: continue
+                        cmd_str = " ".join(cmdline)
+                        if (miner == 'lolminer' and 'lolMiner' in cmd_str) or (miner == 't-rex' and 't-rex' in cmd_str):
+                            if miner == 'lolminer':
+                                match = re.search(r'--apiport\s+(\d+)', cmd_str)
+                                if match: discovered_ports.append(int(match.group(1)))
+                            elif miner == 't-rex':
+                                match = re.search(r'--api-bind-http\s+(?:127\.0\.0\.1|0\.0\.0\.0):(\d+)', cmd_str)
+                                if match: discovered_ports.append(int(match.group(1)))
+
+                    if discovered_ports:
+                        # Map discovered ports back to sequential device IDs starting from 0
+                        # This is a heuristic when SMI is missing.
+                        device_ids = [str(i) for i in range(len(set(discovered_ports)))]
+                        # We also need to adjust api_port if the first discovered port is different
+                        if discovered_ports:
+                            api_port = min(discovered_ports)
+                except Exception as e:
+                    logger.warning(f"Failed to discover miners via process list: {e}")
         else:
             device_ids = [d.strip() for d in gpu_devices_env.split(',') if d.strip()]
 

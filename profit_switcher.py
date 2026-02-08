@@ -3,7 +3,7 @@ import time
 import logging
 import requests
 import subprocess
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from env_config import read_env_file, write_env_file
 
 # Set up logging
@@ -46,7 +46,7 @@ POOLS = [
     }
 ]
 
-def get_pool_profitability(pool: Dict) -> float:
+def get_pool_profitability(pool: Dict, return_details: bool = False) -> Any:
     """
     Calculates a profitability score for a pool.
     Score = (1 - Fee) / Effort
@@ -58,8 +58,8 @@ def get_pool_profitability(pool: Dict) -> float:
         try:
             data = response.json()
         except ValueError:
-            logger.error(f"Invalid JSON from {pool['name']} API")
-            return 0.0
+            logger.error(f"Invalid JSON response from {pool['name']} API at {pool['url']}")
+            return {"score": 0.0, "effort": 1.0, "fee": pool["fee"]} if return_details else 0.0
 
         fee = pool["fee"]
         effort = 1.0 # Default effort (100% luck)
@@ -67,33 +67,44 @@ def get_pool_profitability(pool: Dict) -> float:
         try:
             if pool["type"] == "2miners":
                 # 2Miners 'luck' is current round luck in percentage.
+                # It can be a list or a single value depending on the exact endpoint.
                 luck = data.get("luck", 100.0)
+                if isinstance(luck, list) and len(luck) > 0:
+                    luck = luck[0]
                 if isinstance(luck, str):
                     luck = float(luck)
-                effort = luck / 100.0
+                effort = max(float(luck) / 100.0, 0.01)
 
             elif pool["type"] == "herominers":
                 # HeroMiners has 'effort_1d' (average effort over 24h)
-                effort = data.get("effort_1d", 1.0)
+                effort = max(float(data.get("effort_1d", 1.0)), 0.01)
 
             elif pool["type"] == "nanopool":
                 # Nanopool has 'luck' in some responses.
+                luck = 100.0
                 if "luck" in data:
-                    effort = float(data["luck"]) / 100.0
+                    luck = float(data["luck"])
                 elif "data" in data and isinstance(data["data"], dict) and "luck" in data["data"]:
-                    effort = float(data["data"]["luck"]) / 100.0
+                    luck = float(data["data"]["luck"])
+                effort = max(luck / 100.0, 0.01)
 
             elif pool["type"] == "woolypooly":
                 # WoolyPooly 'luck' or 'effort' might be in the response.
+                luck = 100.0
                 if "luck" in data:
-                    effort = float(data["luck"]) / 100.0
+                    luck = float(data["luck"])
                 elif "effort" in data:
-                    effort = float(data["effort"]) / 100.0
+                    luck = float(data["effort"])
+                effort = max(luck / 100.0, 0.01)
         except (ValueError, TypeError, KeyError) as e:
-            logger.warning(f"Error parsing specific stats for {pool['name']}: {e}. Using default effort.")
+            logger.warning(f"Error parsing specific stats for {pool['name']}: {e}. Falling back to default effort.")
+            effort = 1.0
 
-        score = (1.0 - fee) / max(effort, 0.01)
-        logger.debug(f"Calculated score for {pool['name']}: {score:.4f} (Effort: {effort:.2f}, Fee: {fee:.3f})")
+        score = (1.0 - fee) / effort
+        logger.info(f"Pool {pool['name']} analysis: Score={score:.4f}, Effort={effort:.2f}, Fee={fee:.3f}")
+
+        if return_details:
+            return {"score": score, "effort": effort, "fee": fee}
         return score
     except requests.exceptions.RequestException as e:
         logger.error(f"Network error fetching stats for {pool['name']}: {e}")

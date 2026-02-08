@@ -86,5 +86,18 @@ class TestDatabase(unittest.TestCase):
         self.assertEqual(len(history_after), 1)
         self.assertEqual(history_after[0]['hashrate'], 120.5)
 
+    def test_clear_history(self):
+        # Insert some data
+        database.log_history(120.5, 45.0, 60.0, 100, 2)
+        database.log_history(121.0, 46.0, 61.0, 105, 3)
+
+        history_before = database.get_history(days=1)
+        self.assertEqual(len(history_before), 2)
+
+        database.clear_history()
+
+        history_after = database.get_history(days=1)
+        self.assertEqual(len(history_after), 0)
+
 if __name__ == '__main__':
     unittest.main()

@@ -2,11 +2,11 @@
 # cuda_monitor.sh - Background monitor for CUDA errors in miner logs
 
 DATA_DIR=${DATA_DIR:-/app/data}
-LOG_FILE="$DATA_DIR/miner.log"
+LOG_FILE="$DATA_DIR/miner*.log"
 
-# Wait for log file to be created by the miner
-echo "Waiting for $LOG_FILE to be created..."
-while [ ! -f "$LOG_FILE" ]; do
+# Wait for at least one log file to be created by the miner
+echo "Waiting for miner logs in $DATA_DIR to be created..."
+while [ -z "$(ls $LOG_FILE 2>/dev/null)" ]; do
   sleep 2
 done
 
