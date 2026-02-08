@@ -11,6 +11,10 @@ logger = logging.getLogger(__name__)
 # Module-level cache for GPU names
 _gpu_names_cache: List[str] = []
 
+def _is_mock_enabled() -> bool:
+    """Checks if the GPU mock mode is enabled via environment variable."""
+    return os.getenv('GPU_MOCK', 'false').lower() == 'true'
+
 def get_services_status() -> Dict[str, str]:
     """Checks if background services are running."""
     services = {
@@ -94,6 +98,9 @@ def get_system_info() -> Dict[str, Any]:
 
 def get_gpu_names() -> List[str]:
     """Fetches GPU names from nvidia-smi or rocm-smi."""
+    if _is_mock_enabled():
+        return ["Mock NVIDIA GeForce RTX 3080", "Mock NVIDIA GeForce RTX 3080"]
+
     global _gpu_names_cache
     if _gpu_names_cache:
         return _gpu_names_cache
@@ -122,6 +129,12 @@ def get_gpu_names() -> List[str]:
 
 def get_gpu_smi_data() -> List[Dict[str, float]]:
     """Fetches GPU stats from nvidia-smi or rocm-smi."""
+    if _is_mock_enabled():
+        return [
+            {'temperature': 60.0, 'power_draw': 200.0, 'fan_speed': 50.0},
+            {'temperature': 62.0, 'power_draw': 210.0, 'fan_speed': 55.0}
+        ]
+
     gpu_stats = []
     is_nvidia = False
     smi_cmd = ""
@@ -287,8 +300,49 @@ def get_normalized_miner_data() -> Optional[Dict[str, Any]]:
     else:
         return _fetch_single_miner_data(miner, api_port)
 
+def _get_mock_full_data() -> Dict[str, Any]:
+    """Generates realistic mock data for testing."""
+    gpus = []
+    num_gpus = 2
+    for i in range(num_gpus):
+        hashrate = 120.5 + i * 10
+        power = 200.0 + i * 10
+        gpus.append({
+            'index': i,
+            'hashrate': hashrate,
+            'dual_hashrate': 0.0,
+            'fan_speed': 50.0 + i * 5,
+            'accepted_shares': 100 + i * 20,
+            'rejected_shares': i,
+            'temperature': 60.0 + i * 2,
+            'power_draw': power,
+            'efficiency': hashrate / power if power > 0 else 0
+        })
+
+    total_hashrate = sum(g['hashrate'] for g in gpus)
+    total_power = sum(g['power_draw'] for g in gpus)
+
+    return {
+        'miner': 'lolminer (mock)',
+        'uptime': 3600,
+        'total_hashrate': total_hashrate,
+        'total_dual_hashrate': 0.0,
+        'gpus': gpus,
+        'total_power_draw': total_power,
+        'efficiency': total_hashrate / total_power if total_power > 0 else 0,
+        'avg_temperature': sum(g['temperature'] for g in gpus) / num_gpus,
+        'total_accepted_shares': sum(g['accepted_shares'] for g in gpus),
+        'total_rejected_shares': sum(g['rejected_shares'] for g in gpus),
+        'avg_fan_speed': sum(g['fan_speed'] for g in gpus) / num_gpus,
+        'timestamp': time.time(),
+        'status': 'Mining'
+    }
+
 def get_full_miner_data() -> Optional[Dict[str, Any]]:
     """Fetches miner and SMI data, merges them, and calculates aggregates."""
+    if _is_mock_enabled():
+        return _get_mock_full_data()
+
     data = get_normalized_miner_data()
     if not data:
         return None
