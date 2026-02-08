@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Implement 'Telegram Bot' notifications for rig downtime and recovery.
+- New interactive Telegram configuration prompts in `setup.sh`.
 - Implement 'Auto-Profit Switching' between pools via a background supervisor.
 - Implement 'Rootless Docker' support by running the miner process as a non-root user (`miner`).
 - Support for `EXTRA_ARGS` environment variable to pass custom flags to both lolMiner and T-Rex.

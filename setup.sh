@@ -171,6 +171,19 @@ else
     AUTO_PROFIT_SWITCHING="false"
 fi
 
+# 10. Telegram Notifications
+echo -e "\n${GREEN}10. Telegram Notifications${NC}"
+read -p "Enable Telegram Notifications for downtime? (y/n) [n]: " TELEGRAM_CHOICE
+if [[ "$TELEGRAM_CHOICE" =~ ^[Yy]$ ]]; then
+    TELEGRAM_ENABLE="true"
+    read -p "Enter Telegram Bot Token: " TELEGRAM_BOT_TOKEN
+    read -p "Enter Telegram Chat ID: " TELEGRAM_CHAT_ID
+    read -p "Enter Notification Threshold (seconds) [300]: " TELEGRAM_NOTIFY_THRESHOLD
+    TELEGRAM_NOTIFY_THRESHOLD=${TELEGRAM_NOTIFY_THRESHOLD:-300}
+else
+    TELEGRAM_ENABLE="false"
+fi
+
 # Generate .env file
 echo -e "\n${BLUE}Generating .env file...${NC}"
 cat <<EOF > .env
@@ -195,7 +208,18 @@ APPLY_OC=${APPLY_OC}
 
 # Profit Switching
 AUTO_PROFIT_SWITCHING=${AUTO_PROFIT_SWITCHING}
+
+# Telegram Notifications
+TELEGRAM_ENABLE=${TELEGRAM_ENABLE}
 EOF
+
+if [ "$TELEGRAM_ENABLE" == "true" ]; then
+    cat <<EOF >> .env
+TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+TELEGRAM_NOTIFY_THRESHOLD=${TELEGRAM_NOTIFY_THRESHOLD}
+EOF
+fi
 
 if [ -n "$GPU_PROFILE" ]; then
     echo "GPU_PROFILE=$GPU_PROFILE" >> .env
