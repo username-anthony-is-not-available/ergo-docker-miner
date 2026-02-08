@@ -11,6 +11,8 @@ from typing import Dict, Any, Optional
 import database
 from miner_api import get_full_miner_data, get_gpu_names
 from contextlib import asynccontextmanager
+from env_config import read_env_file, write_env_file
+import profit_switcher
 
 # Configure logging
 logging.basicConfig(
@@ -73,44 +75,6 @@ async def index(request: Request):
 async def config(request: Request):
     return templates.TemplateResponse(request, "config.html")
 
-def read_env_file() -> Dict[str, str]:
-    env_vars = {}
-    if os.path.exists('.env'):
-        with open('.env', 'r') as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith('#') and '=' in line:
-                    parts = line.split('=', 1)
-                    if len(parts) == 2:
-                        key, value = parts
-                        env_vars[key] = value
-    return env_vars
-
-def write_env_file(env_vars: Dict[str, str]) -> None:
-    lines = []
-    if os.path.exists('.env'):
-        with open('.env', 'r') as f:
-            lines = f.readlines()
-
-    new_lines = []
-    keys_written = set()
-    for line in lines:
-        stripped = line.strip()
-        if stripped and not stripped.startswith('#') and '=' in stripped:
-            key = stripped.split('=', 1)[0]
-            if key in env_vars:
-                new_lines.append(f"{key}={env_vars[key]}\n")
-                keys_written.add(key)
-                continue
-        new_lines.append(line)
-
-    for key, value in env_vars.items():
-        if key not in keys_written:
-            new_lines.append(f"{key}={value}\n")
-
-    with open('.env', 'w') as f:
-        f.writelines(new_lines)
-
 @app.get("/api/config")
 async def get_config():
     return read_env_file()
@@ -172,6 +136,19 @@ async def api_get_gpu_models():
     except Exception as e:
         logger.error(f"Error fetching GPU models: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.get("/api/pool-stats")
+async def get_pool_stats():
+    """Returns profitability stats for supported pools."""
+    stats = []
+    for pool in profit_switcher.POOLS:
+        score = await asyncio.to_thread(profit_switcher.get_pool_profitability, pool)
+        stats.append({
+            "name": pool["name"],
+            "address": pool["stratum"],
+            "score": round(score, 4)
+        })
+    return stats
 
 @sio.on('connect')
 async def handle_connect(sid, environ):

@@ -45,6 +45,12 @@
                 <input type="text" id="extra_args" name="EXTRA_ARGS">
             </div>
             <hr>
+            <h2>Profit Switching</h2>
+            <div class="form-group">
+                <label for="auto_profit_switching">Enable Auto Profit Switching</label>
+                <input type="checkbox" id="auto_profit_switching" name="AUTO_PROFIT_SWITCHING">
+            </div>
+            <hr>
             <h2>Overclocking</h2>
             <div class="form-group">
                 <label for="apply_oc">Apply Overclocking</label>
@@ -84,6 +90,7 @@
                     document.getElementById('worker_name').value = data.WORKER_NAME || '';
                     document.getElementById('gpu_devices').value = data.GPU_DEVICES || '';
                     document.getElementById('extra_args').value = data.EXTRA_ARGS || '';
+                    document.getElementById('auto_profit_switching').checked = data.AUTO_PROFIT_SWITCHING === 'true';
                     document.getElementById('apply_oc').checked = data.APPLY_OC === 'true';
                     document.getElementById('gpu_profile').value = data.GPU_PROFILE || '';
                     document.getElementById('gpu_clock_offset').value = data.GPU_CLOCK_OFFSET || 0;
@@ -99,6 +106,7 @@
                     data[key] = value;
                 }
                 data['APPLY_OC'] = document.getElementById('apply_oc').checked;
+                data['AUTO_PROFIT_SWITCHING'] = document.getElementById('auto_profit_switching').checked;
                 fetch('/api/config', {
                     method: 'POST',
                     headers: {

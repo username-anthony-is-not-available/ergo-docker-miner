@@ -162,6 +162,15 @@ fi
 echo -e "\n${GREEN}8. Extra Arguments${NC}"
 read -p "Enter any extra arguments for the miner (optional): " EXTRA_ARGS
 
+# 9. Profit Switching
+echo -e "\n${GREEN}9. Profit Switching${NC}"
+read -p "Enable Auto Profit Switching? (y/n) [n]: " AUTO_SWITCH_CHOICE
+if [[ "$AUTO_SWITCH_CHOICE" =~ ^[Yy]$ ]]; then
+    AUTO_PROFIT_SWITCHING="true"
+else
+    AUTO_PROFIT_SWITCHING="false"
+fi
+
 # Generate .env file
 echo -e "\n${BLUE}Generating .env file...${NC}"
 cat <<EOF > .env
@@ -183,6 +192,9 @@ GPU_DEVICES=${GPU_DEVICES}
 
 # Overclocking
 APPLY_OC=${APPLY_OC}
+
+# Profit Switching
+AUTO_PROFIT_SWITCHING=${AUTO_PROFIT_SWITCHING}
 EOF
 
 if [ -n "$GPU_PROFILE" ]; then

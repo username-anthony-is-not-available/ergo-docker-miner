@@ -11,6 +11,22 @@ if [ -f .env ]; then
 fi
 
 # Test Case 1: Complex configuration
+# Wallet: MyTestWallet
+# Worker: test-worker
+# Pool: 2 (HeroMiners)
+# Miner: 1 (lolMiner)
+# GPU Type: 1 (NVIDIA)
+# GPU Count: 2 (0,1)
+# Apply OC: y
+# Profile: RTX 3070
+# Dual Mining: y
+# Dual Algo: 1 (Kaspa)
+# Dual Wallet: MyDualWallet
+# Dual Pool: MyDualPool
+# Dual Worker: test-worker-dual
+# Extra Args: --extra-param 1
+# Profit Switch: y
+# Start now: n
 ./setup.sh <<EOF
 MyTestWallet
 test-worker
@@ -24,8 +40,9 @@ y
 1
 MyDualWallet
 MyDualPool
-
+test-worker-dual
 --extra-param 1
+y
 n
 EOF
 
@@ -39,25 +56,26 @@ fi
 EXIT_CODE=0
 
 check_var() {
-    if ! grep -q "$1" .env; then
-        echo "Failed: $1 not found in .env"
-        grep "$2" .env || echo "Actual value: (not found)"
+    if ! grep -q "^$1$" .env; then
+        echo "Failed: $1 not found in .env (exactly)"
+        grep "${1%%=*}" .env || echo "Actual value: (not found)"
         EXIT_CODE=1
     fi
 }
 
-check_var "WALLET_ADDRESS=MyTestWallet" "WALLET_ADDRESS"
-check_var "WORKER_NAME=test-worker" "WORKER_NAME"
-check_var "POOL_ADDRESS=stratum+tcp://herominers.com:1180" "POOL_ADDRESS"
-check_var "MINER=lolminer" "MINER"
-check_var "GPU_DEVICES=0,1" "GPU_DEVICES"
-check_var "APPLY_OC=true" "APPLY_OC"
-check_var "GPU_PROFILE=RTX 3070" "GPU_PROFILE"
-check_var "DUAL_ALGO=KASPADUAL" "DUAL_ALGO"
-check_var "DUAL_WALLET=MyDualWallet" "DUAL_WALLET"
-check_var "DUAL_POOL=MyDualPool" "DUAL_POOL"
-check_var "DUAL_WORKER=test-worker-dual" "DUAL_WORKER"
-check_var "EXTRA_ARGS=--extra-param 1" "EXTRA_ARGS"
+check_var "WALLET_ADDRESS=MyTestWallet"
+check_var "WORKER_NAME=test-worker"
+check_var "POOL_ADDRESS=stratum+tcp://herominers.com:1180"
+check_var "MINER=lolminer"
+check_var "GPU_DEVICES=0,1"
+check_var "APPLY_OC=true"
+check_var "GPU_PROFILE=RTX 3070"
+check_var "DUAL_ALGO=KASPADUAL"
+check_var "DUAL_WALLET=MyDualWallet"
+check_var "DUAL_POOL=MyDualPool"
+check_var "DUAL_WORKER=test-worker-dual"
+check_var "EXTRA_ARGS=--extra-param 1"
+check_var "AUTO_PROFIT_SWITCHING=true"
 
 if [ $EXIT_CODE -eq 0 ]; then
     echo "setup.sh test 1 PASSED"
@@ -68,24 +86,34 @@ fi
 rm .env
 
 echo "Running setup.sh test 2 (AMD, Defaults)..."
+# Wallet: AmdWallet
+# Worker: default
+# Pool: default
+# Miner: default
+# GPU Type: 2 (AMD)
+# GPU Count: default (AUTO)
+# Extra Args: empty
+# Profit Switching: n
+# Start now: n
 ./setup.sh <<EOF
 AmdWallet
 
 1
 1
 2
-AUTO
 
 
 n
+n
 EOF
 
-check_var "WALLET_ADDRESS=AmdWallet" "WALLET_ADDRESS"
-check_var "WORKER_NAME=ergo-miner" "WORKER_NAME"
-check_var "POOL_ADDRESS=stratum+tcp://erg.2miners.com:8080" "POOL_ADDRESS"
-check_var "MINER=lolminer" "MINER"
-check_var "GPU_DEVICES=AUTO" "GPU_DEVICES"
-check_var "APPLY_OC=false" "APPLY_OC"
+check_var "WALLET_ADDRESS=AmdWallet"
+check_var "WORKER_NAME=ergo-miner"
+check_var "POOL_ADDRESS=stratum+tcp://erg.2miners.com:8080"
+check_var "MINER=lolminer"
+check_var "GPU_DEVICES=AUTO"
+check_var "APPLY_OC=false"
+check_var "AUTO_PROFIT_SWITCHING=false"
 
 if [ $EXIT_CODE -eq 0 ]; then
     echo "setup.sh test 2 PASSED"

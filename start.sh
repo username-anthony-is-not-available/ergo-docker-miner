@@ -92,6 +92,9 @@ fi
 # Start the dashboard in the background
 uvicorn dashboard:sio_app --host 0.0.0.0 --port 5000 &
 
+# Start the profit switcher in the background
+python3 profit_switcher.py &
+
 # Start GPU monitoring in the background based on available tools
 if command -v nvidia-smi &> /dev/null; then
   (
