@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Implement automated CUDA error detection and auto-restart functionality via `cuda_monitor.sh`.
+- New 'Auto-Restart on CUDA Error' configuration option in `setup.sh` and the web dashboard.
 - Add NVIDIA container runtime validation tool to `setup.sh` for easier first-time troubleshooting.
 - Enhance Prometheus metrics with `miner_info`, `miner_uptime`, and `miner_api_up`.
 - Add `worker` label to all Prometheus metrics for better multi-rig support.
