@@ -180,7 +180,16 @@ echo "Starting miner: $MINER (Multi-process: $MULTI_PROCESS)"
 # Cleanup function for multi-process mode
 cleanup() {
   echo "Shutting down miners..."
-  kill $(jobs -p) 2>/dev/null
+  # Kill all background jobs
+  JOBS=$(jobs -p)
+  if [ -n "$JOBS" ]; then
+    kill $JOBS 2>/dev/null
+  fi
+  # Also pkill by process name as a secondary measure
+  case "$MINER" in
+    lolminer) pkill -x lolMiner 2>/dev/null ;;
+    t-rex) pkill -x t-rex 2>/dev/null ;;
+  esac
   exit 0
 }
 

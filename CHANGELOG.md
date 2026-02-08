@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Implement rig-wide and per-GPU power efficiency metrics (MH/s per Watt) in the dashboard and Prometheus exporter.
+- Add "Service Status" watchdog to monitor the health of background processes (Metrics, Profit Switcher, CUDA Monitor).
+- Implement a 15-minute safety cooldown in `profit_switcher.py` to prevent rapid pool switching and ensure stability.
+- Improve multi-process cleanup in `start.sh` with more robust termination logic using `jobs -p` and `pkill` fallback.
 - Implement detailed per-GPU historical tracking in a new `gpu_history` database table.
 - Add real-time, non-refresh chart updates to the web dashboard using Socket.IO.
 - Add total power draw history chart and rig-wide power tracking in the dashboard.

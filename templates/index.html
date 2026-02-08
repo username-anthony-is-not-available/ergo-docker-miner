@@ -39,6 +39,10 @@
                 <h2>Uptime</h2>
                 <p id="uptime">--</p>
             </div>
+            <div class="stat-card">
+                <h2>Efficiency</h2>
+                <p id="total-efficiency">-- MH/W</p>
+            </div>
         </div>
 
         <h2>System Information</h2>
@@ -58,6 +62,22 @@
             <div class="stat-card">
                 <h2>Host Uptime</h2>
                 <p id="host-uptime">--</p>
+            </div>
+        </div>
+
+        <h2>Service Status</h2>
+        <div class="stats-grid" id="service-status-container">
+            <div class="stat-card">
+                <h2>Metrics Exporter</h2>
+                <p id="service-metrics">--</p>
+            </div>
+            <div class="stat-card">
+                <h2>Profit Switcher</h2>
+                <p id="service-profit">--</p>
+            </div>
+            <div class="stat-card">
+                <h2>CUDA Monitor</h2>
+                <p id="service-cuda">--</p>
             </div>
         </div>
 
@@ -127,6 +147,9 @@
             if (data.total_power_draw !== undefined) {
                 document.getElementById('total-power').innerText = `${data.total_power_draw.toFixed(1)} W`;
             }
+            if (data.efficiency !== undefined) {
+                document.getElementById('total-efficiency').innerText = `${data.efficiency.toFixed(3)} MH/W`;
+            }
             if (data.avg_temperature !== undefined) {
                 document.getElementById('avg-temp').innerText = `${data.avg_temperature.toFixed(1)} °C`;
             }
@@ -157,6 +180,20 @@
                 const h = Math.floor((hostUptimeSeconds % 86400) / 3600);
                 const m = Math.floor((hostUptimeSeconds % 3600) / 60);
                 document.getElementById('host-uptime').innerText = `${d}d ${h}h ${m}m`;
+
+                if (data.system_info.services) {
+                    const services = data.system_info.services;
+                    const updateService = (id, status) => {
+                        const el = document.getElementById(id);
+                        el.innerText = status;
+                        if (status === 'Running') el.style.color = '#4caf50';
+                        else if (status === 'Disabled') el.style.color = '#888';
+                        else el.style.color = '#f44336';
+                    };
+                    updateService('service-metrics', services['metrics.py']);
+                    updateService('service-profit', services['profit_switcher.py']);
+                    updateService('service-cuda', services['cuda_monitor.sh']);
+                }
             }
 
             if (data.gpus) {
@@ -171,6 +208,7 @@
                             <h3>GPU ${gpu.index}</h3>
                             <p><strong>Hashrate:</strong> <span class="hashrate">--</span> MH/s</p>
                             <p class="dual-hashrate-container" style="display: none;"><strong>Dual Hashrate:</strong> <span class="dual-hashrate">--</span> MH/s</p>
+                            <p><strong>Efficiency:</strong> <span class="efficiency">--</span> MH/W</p>
                             <p><strong>Temp:</strong> <span class="temp">--</span>°C</p>
                             <p><strong>Power:</strong> <span class="power">--</span>W</p>
                             <p><strong>Fan Speed:</strong> <span class="fan-speed">--</span>%</p>
@@ -187,6 +225,7 @@
                         gpuCard.querySelector('.dual-hashrate-container').style.display = 'none';
                     }
 
+                    gpuCard.querySelector('.efficiency').innerText = gpu.efficiency.toFixed(3);
                     gpuCard.querySelector('.temp').innerText = gpu.temperature;
                     gpuCard.querySelector('.power').innerText = gpu.power_draw;
                     gpuCard.querySelector('.fan-speed').innerText = gpu.fan_speed;
