@@ -6,3 +6,4 @@ test-results/
 *.log
 *.db
 miner_history.db
+.coverage
