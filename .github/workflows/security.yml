@@ -1,0 +1,57 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 0 * * 0' # Weekly on Sunday at midnight
+
+jobs:
+  scan:
+    name: Trivy Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        dockerfile: [Dockerfile, Dockerfile.amd]
+        include:
+          - dockerfile: Dockerfile
+            image_tag: ergo-miner-nvidia
+          - dockerfile: Dockerfile.amd
+            image_tag: ergo-miner-amd
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build the Docker image
+        run: docker build -f ${{ matrix.dockerfile }} -t ${{ matrix.image_tag }} .
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        id: trivy-scan
+        with:
+          image-ref: '${{ matrix.image_tag }}'
+          format: 'sarif'
+          output: 'trivy-results-${{ matrix.dockerfile }}.sarif'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() && steps.trivy-scan.outcome != 'skipped'
+        with:
+          sarif_file: 'trivy-results-${{ matrix.dockerfile }}.sarif'
+          category: '${{ matrix.dockerfile }}'
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        if: always() && steps.trivy-scan.outcome != 'skipped'
+        with:
+          name: trivy-results-${{ matrix.dockerfile }}
+          path: 'trivy-results-${{ matrix.dockerfile }}.sarif'
