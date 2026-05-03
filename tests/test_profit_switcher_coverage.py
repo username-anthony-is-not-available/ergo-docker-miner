@@ -2,7 +2,7 @@ import pytest
 import profit_switcher
 import requests
 import time
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 @pytest.fixture(autouse=True)
 def setup_teardown():
