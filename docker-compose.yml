@@ -4,6 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
+        - GPU_TYPE=nvidia
         - LOLMINER_VERSION=${LOLMINER_VERSION:-1.98a}
     container_name: ergo-miner-nvidia
     restart: unless-stopped
@@ -31,8 +32,9 @@ services:
   amd:
     build:
       context: .
-      dockerfile: Dockerfile.amd
+      dockerfile: Dockerfile
       args:
+        - GPU_TYPE=amd
         - LOLMINER_VERSION=${LOLMINER_VERSION:-1.98a}
     container_name: ergo-miner-amd
     restart: unless-stopped

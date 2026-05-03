@@ -5,6 +5,8 @@ import logging
 import requests
 import database
 from miner_api import get_full_miner_data, get_node_status, get_services_status
+import discord_notifier
+import json
 
 # Configure logging
 logging.basicConfig(
@@ -56,6 +58,11 @@ TELEGRAM_NOTIFY_THRESHOLD = int(os.getenv('TELEGRAM_NOTIFY_THRESHOLD', 300))
 # Notification state
 unhealthy_since = None
 is_currently_notified = False
+
+# Discord temperature alert state
+discord_temp_unhealthy_since = None
+discord_temp_is_notified = False
+discord_temp_gpu_index = None
 
 def send_telegram_notification(message: str) -> None:
     if not TELEGRAM_ENABLE or not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
@@ -155,6 +162,43 @@ def update_metrics() -> None:
             GPU_EFFICIENCY.labels(gpu=gpu_idx, worker=WORKER).set(gpu.get('efficiency', 0))
             GPU_SHARES_ACCEPTED.labels(gpu=gpu_idx, worker=WORKER).set(gpu.get('accepted_shares', 0))
             GPU_SHARES_REJECTED.labels(gpu=gpu_idx, worker=WORKER).set(gpu.get('rejected_shares', 0))
+
+        # Check GPU temperature thresholds and send Discord alerts
+        try:
+            gpu_profile = os.getenv('GPU_PROFILE')
+            if gpu_profile:
+                with open('gpu_profiles.json', 'r') as f:
+                    profiles = json.load(f)
+                profile_settings = profiles.get(gpu_profile, {})
+                temp_threshold = profile_settings.get('GPU_TEMP_THRESHOLD', 80)
+            else:
+                temp_threshold = 80
+
+            gpus_over_temp = []
+            for gpu in data.get('gpus', []):
+                gpu_idx = gpu.get('index', 'unknown')
+                temp = gpu.get('temperature', 0)
+                if temp > temp_threshold:
+                    gpus_over_temp.append((gpu_idx, temp))
+
+            if gpus_over_temp:
+                if discord_temp_unhealthy_since is None:
+                    discord_temp_unhealthy_since = time.time()
+                    discord_temp_gpu_index = [x[0] for x in gpus_over_temp]
+                elapsed = time.time() - discord_temp_unhealthy_since
+                if elapsed >= discord_notifier.DISCORD_NOTIFY_THRESHOLD and not discord_temp_is_notified:
+                    gpu_list = ', '.join([f"GPU {x[0]} ({x[1]}°C)" for x in gpus_over_temp])
+                    msg = f"⚠️ **GPU Temperature Alert**\nThreshold: {temp_threshold}°C\nOver limit: {gpu_list}"
+                    discord_notifier.send_discord_notification(msg)
+                    discord_temp_is_notified = True
+            else:
+                if discord_temp_is_notified:
+                    discord_notifier.send_discord_notification(f"✅ **GPU Temperature Recovered**\nAll GPUs below {temp_threshold}°C")
+                    discord_temp_is_notified = False
+                discord_temp_unhealthy_since = None
+                discord_temp_gpu_index = None
+        except Exception as e:
+            logger.error(f"Error checking GPU temperature thresholds: {e}")
 
         # Log history to SQLite
         database.log_history(

@@ -323,6 +323,35 @@ A pre-configured Grafana dashboard is available in the `grafana-dashboard.json` 
 -   **Per-GPU Metrics:** Detailed timeseries for Hashrate, Dual Hashrate, Temperature, Power Draw, and Fan Speed for each individual GPU.
 -   **Share Tracking:** Accepted and Rejected shares per GPU.
 
+## New Features
+
+### Discord Alerts for GPU Temperature
+Send Discord webhook notifications when GPU temperature exceeds the threshold defined in `gpu_profiles.json` (default 80°C).
+
+**Environment Variables:**
+- `DISCORD_ENABLE=true` - Enable Discord notifications
+- `DISCORD_WEBHOOK_URL` - Your Discord webhook URL
+- `DISCORD_NOTIFY_THRESHOLD=300` - Grace period in seconds before sending alert
+
+### Live ERG Price Integration
+Fetch real-time ERG price from CoinGecko API for more accurate profitability calculations.
+
+**Environment Variables:**
+- `USE_LIVE_PRICE=true` - Enable live price fetching (default: true)
+- `PRICE_CACHE_TTL=300` - Price cache TTL in seconds (default: 300)
+
+### Unified Multi-Architecture Dockerfile
+Single Dockerfile supports both NVIDIA and AMD GPUs via `GPU_TYPE` build arg.
+
+**Build Commands:**
+```bash
+# NVIDIA build (default)
+docker build -t ergo-miner .
+
+# AMD build
+docker build --build-arg GPU_TYPE=amd -t ergo-miner-amd .
+```
+
 ## Profitability Estimation
 
 Mining profitability can vary significantly based on your hardware, electricity costs, and the current price of Ergo. This section provides some general estimates to help you gauge your potential earnings.

@@ -151,7 +151,7 @@ else
 fi
 
 # Start the metrics exporter in the background
-./metrics.sh >> "$DATA_DIR/metrics.log" 2>&1 &
+python3 metrics.py >> "$DATA_DIR/metrics.log" 2>&1 &
 
 # Start the dashboard in the background
 streamlit run streamlit_app.py --server.port 5000 --server.address 0.0.0.0 --server.headless true &> "$DATA_DIR/streamlit.log" &
@@ -164,7 +164,7 @@ python3 report_generator.py >> "$DATA_DIR/report_generator.log" 2>&1 &
 
 # Start CUDA error monitor if enabled
 if [ "$AUTO_RESTART_ON_CUDA_ERROR" = "true" ]; then
-  ./cuda_monitor.sh >> "$DATA_DIR/cuda_monitor.log" 2>&1 &
+  python3 log_monitor.py >> "$DATA_DIR/log_monitor.log" 2>&1 &
 fi
 
 # Start log rotation loop
@@ -251,7 +251,7 @@ cleanup() {
   pkill -f "streamlit run streamlit_app.py" 2>/dev/null
   pkill -f "python3 profit_switcher.py" 2>/dev/null
   pkill -f "python3 report_generator.py" 2>/dev/null
-  pkill -f "./cuda_monitor.sh" 2>/dev/null
+  pkill -f "python3 log_monitor.py" 2>/dev/null
 
   case "$MINER" in
     lolminer) pkill -x lolMiner 2>/dev/null ;;

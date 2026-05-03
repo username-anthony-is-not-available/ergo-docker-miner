@@ -5,6 +5,7 @@ import requests
 import subprocess
 from typing import Dict, List, Optional, Any
 from env_config import read_env_file, write_env_file
+import price_fetcher
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -116,6 +117,10 @@ def get_pool_profitability(pool: Dict, return_details: bool = False, use_cache: 
             effort = 1.0
 
         score = (1.0 - fee) / effort
+        erg_price = price_fetcher.fetch_erg_price()
+        if erg_price is not None:
+            score *= erg_price
+            logger.info(f"Adjusted score with ERG price (${erg_price}): {score:.4f}")
         logger.info(f"Pool {pool['name']} analysis: Score={score:.4f}, Effort={effort:.2f}, Fee={fee:.3f}")
 
         # Update cache
