@@ -174,6 +174,31 @@ def test_main_custom_pool(mocker):
     with pytest.raises(Exception, match="Break Loop"):
         profit_switcher.main()
 
+def test_main_custom_pool_match(mocker):
+    profit_switcher.start_time = time.time() - 2000
+    mocker.patch('profit_switcher.read_env_file', return_value={
+        "AUTO_PROFIT_SWITCHING": "true",
+        "POOL_ADDRESS": "custom-stratum",
+        "PROFIT_SWITCHING_THRESHOLD": "0.1",
+        "MIN_SWITCH_COOLDOWN": "0"
+    })
+
+    # Mock POOLS
+    test_pools = [
+        {"name": "Other", "stratum": "other-stratum", "url": "url1", "fee": 0.01, "type": "nanopool"},
+        {"name": "MatchMe", "stratum": "custom-stratum", "url": "url2", "fee": 0.01, "type": "nanopool"}
+    ]
+    mocker.patch('profit_switcher.POOLS', test_pools)
+
+    # First loop returns 1.0 for Other, and 0.0 for MatchMe (intentionally to trigger block)
+    # Then it identifies MatchMe and calls get_pool_profitability again, returning 0.5.
+    mocker.patch('profit_switcher.get_pool_profitability', side_effect=[1.0, 0.0, 0.5])
+
+    mock_sleep = mocker.patch('profit_switcher.time.sleep', side_effect=Exception("Break Loop"))
+
+    with pytest.raises(Exception, match="Break Loop"):
+        profit_switcher.main()
+
 def test_main_best_pool_case(mocker):
     profit_switcher.start_time = time.time() - 2000
     mocker.patch('profit_switcher.read_env_file', return_value={
