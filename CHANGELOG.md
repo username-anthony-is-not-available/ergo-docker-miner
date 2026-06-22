@@ -85,7 +85,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactored `dashboard.py` to use `subprocess` for improved security and error handling.
 - Enhanced `dashboard.py` with comprehensive logging and error handling for API and SMI calls.
 - Updated `templates/index.html` with a new stats grid, log viewer, and "Last Updated" timestamp.
-- Refactored `Dockerfile` and `Dockerfile.amd` to use `LOLMINER_VERSION` build argument.
+- Refactored `Dockerfile` and the former `Dockerfile.amd` into a unified `Dockerfile` using the `LOLMINER_VERSION` and `GPU_TYPE` build arguments.
 - Updated Docker Compose files to support `LOLMINER_VERSION` build argument.
 - Generalized Prometheus metrics prefix from `lolminer_` to `miner_` to support multiple backends.
 - Updated Grafana dashboard to use new `miner_` metric names.

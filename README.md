@@ -98,7 +98,7 @@ By default, the file is configured for a two-GPU setup. To add more GPUs, you ca
 
 ### AMD
 
-The AMD configuration utilizes `Dockerfile.amd` based on the ROCm runtime. To use this configuration for AMD GPUs, run the following command:
+The AMD configuration utilizes the unified `Dockerfile` with the `GPU_TYPE=amd` build argument, based on the ROCm runtime. To use this configuration for AMD GPUs, run the following command:
 
 ```bash
 sudo docker compose -f docker-compose.multi-gpu.amd.yml up -d --build
