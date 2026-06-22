@@ -8,8 +8,10 @@ class TestProfitSwitcherCaching(unittest.TestCase):
         # Clear cache before each test
         profit_switcher._pool_score_cache = {}
 
+    @patch('price_fetcher.fetch_erg_price')
     @patch('requests.get')
-    def test_caching_logic(self, mock_get):
+    def test_caching_logic(self, mock_get, mock_fetch_price):
+        mock_fetch_price.return_value = None
         pool = {
             "name": "TestPool",
             "url": "http://test.com/api",
@@ -39,8 +41,10 @@ class TestProfitSwitcherCaching(unittest.TestCase):
         self.assertEqual(mock_get.call_count, 2)
         self.assertEqual(score3, 0.99)
 
+    @patch('price_fetcher.fetch_erg_price')
     @patch('requests.get')
-    def test_cache_expiration(self, mock_get):
+    def test_cache_expiration(self, mock_get, mock_fetch_price):
+        mock_fetch_price.return_value = None
         pool = {
             "name": "TestPool",
             "url": "http://test.com/api",

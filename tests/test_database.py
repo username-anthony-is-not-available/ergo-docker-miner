@@ -14,6 +14,7 @@ class TestDatabase(unittest.TestCase):
         # Use a test database
         database.DB_FILE = 'test_miner_history.db'
         database.init_db()
+        database.clear_history()
 
     def tearDown(self):
         if os.path.exists('test_miner_history.db'):

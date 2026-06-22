@@ -14,6 +14,7 @@ def setup_teardown():
     yield
 
 def test_get_pool_profitability_cache_hit_with_details(mocker):
+    mocker.patch('profit_switcher.price_fetcher.fetch_erg_price', return_value=None)
     pool = profit_switcher.POOLS[0]
     mock_get = mocker.patch('profit_switcher.requests.get')
 
