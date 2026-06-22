@@ -18,11 +18,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        dockerfile: [Dockerfile, Dockerfile.amd]
+        gpu_type: [nvidia, amd]
         include:
-          - dockerfile: Dockerfile
+          - gpu_type: nvidia
             image_tag: ergo-miner-nvidia
-          - dockerfile: Dockerfile.amd
+          - gpu_type: amd
             image_tag: ergo-miner-amd
 
     steps:
@@ -30,7 +30,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build the Docker image
-        run: docker build -f ${{ matrix.dockerfile }} -t ${{ matrix.image_tag }} .
+        run: docker build --build-arg GPU_TYPE=${{ matrix.gpu_type }} -t ${{ matrix.image_tag }} .
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
@@ -38,7 +38,7 @@ jobs:
         with:
           image-ref: '${{ matrix.image_tag }}'
           format: 'sarif'
-          output: 'trivy-results-${{ matrix.dockerfile }}.sarif'
+          output: 'trivy-results-${{ matrix.gpu_type }}.sarif'
           severity: 'CRITICAL,HIGH'
           exit-code: '1'
 
@@ -46,12 +46,12 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         if: always() && steps.trivy-scan.outcome != 'skipped'
         with:
-          sarif_file: 'trivy-results-${{ matrix.dockerfile }}.sarif'
-          category: '${{ matrix.dockerfile }}'
+          sarif_file: 'trivy-results-${{ matrix.gpu_type }}.sarif'
+          category: '${{ matrix.gpu_type }}'
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         if: always() && steps.trivy-scan.outcome != 'skipped'
         with:
-          name: trivy-results-${{ matrix.dockerfile }}
-          path: 'trivy-results-${{ matrix.dockerfile }}.sarif'
+          name: trivy-results-${{ matrix.gpu_type }}
+          path: 'trivy-results-${{ matrix.gpu_type }}.sarif'
