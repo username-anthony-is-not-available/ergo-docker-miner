@@ -36,3 +36,11 @@ Jules has the authority to:
 - Refactor code for better performance or maintainability (per `STANDARDS.md`).
 - Update dependencies to resolve security vulnerabilities.
 - Propose and implement new features aligned with the project `GOAL.md`.
+
+## GitHub Actions billing (owner policy, 2026-10-25)
+
+GitHub Actions is DISABLED on this repository. The owner does not pay for GitHub Actions.
+- Do NOT re-enable Actions in repository settings.
+- Do NOT add `.github/workflows` files or trigger workflow runs.
+- Do NOT request CI runs as part of any task.
+- Verify work locally instead; CI status is not a signal for this repo.
