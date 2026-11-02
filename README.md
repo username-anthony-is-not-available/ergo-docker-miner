@@ -141,6 +141,22 @@ By default, the file is configured for a two-GPU setup. To add more GPUs, you ca
 -   `PROFIT_SWITCHING_THRESHOLD`: Minimum profitability gain required to switch pools (e.g. `0.005` for 0.5%).
 -   `PROFIT_SWITCHING_INTERVAL`: Time in seconds between profitability checks (default: `3600`).
 
+## Startup Configuration Validation
+
+Before making host-side changes or launching background services, `start.sh`
+validates the runtime environment passed by Docker Compose. `MINER` must be
+`lolminer` or `t-rex`; pool addresses must be valid stratum URLs; and the wallet
+and primary pool must be set. Boolean options must use lowercase `true` or
+`false`, `GPU_DEVICES` must be `AUTO` or unique non-negative IDs, and `API_PORT`
+must be between 1 and 65535. Multi-process port ranges are checked when GPU IDs
+are explicit. The supplied Compose files pass the exact interpolated
+`HOST_BIND_ADDRESS` into each container, so validation checks the same IPv4 or
+bracketed IPv6 address used for published ports. When present,
+`gpu_profiles.json` is checked too: clock/memory offsets and power limits must be
+integers, power limits must be 1..1000, and temperature thresholds must be
+numeric values from 1..150. An unknown `GPU_PROFILE` stops startup with a clear
+error.
+
 ## Auto-Profit Switching
 
 This image includes a supervisor that periodically checks the profitability of supported pools (2Miners, HeroMiners, Nanopool, and WoolyPooly) based on their fees and current luck/effort. If it finds a pool that is significantly more profitable than your current pool, it will automatically update your configuration and restart the miner.
@@ -255,7 +271,10 @@ To simplify overclocking for different GPU models, this image supports tuning pr
 
 To use the "RTX 3070" profile, set `GPU_PROFILE=RTX 3070` in your `.env` file.
 
-If `GPU_PROFILE` is set, it will override any values set for `GPU_CLOCK_OFFSET`, `GPU_MEM_OFFSET`, and `GPU_POWER_LIMIT`. If the specified profile is not found in `gpu_profiles.json`, the script will fall back to using the individual environment variables.
+If `GPU_PROFILE` is set, it supplies the profile's `GPU_CLOCK_OFFSET`,
+`GPU_MEM_OFFSET`, and `GPU_POWER_LIMIT` values. A profile name not present in
+`gpu_profiles.json` is rejected before startup. Profile files may omit
+`GPU_TEMP_THRESHOLD`, which then uses the default health-check threshold.
 
 ### **Eco Mode**
 
