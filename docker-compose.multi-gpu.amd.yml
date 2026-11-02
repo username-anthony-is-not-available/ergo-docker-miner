@@ -11,7 +11,7 @@
 # - Container name (e.g., ergo-miner-gpu2)
 # - WORKER_NAME (e.g., ergo-miner-gpu2)
 # - GPU_DEVICES (e.g., 2)
-# - Host ports (e.g., 4446:4444, 4459:4455, 4460:4456)
+# - Host ports (e.g., 127.0.0.1:4446:4444); retain the configured host IP prefix
 
 services:
   ergo-miner-gpu0:
@@ -29,9 +29,9 @@ services:
       - WORKER_NAME=ergo-miner-gpu0
       - GPU_DEVICES=0
     ports:
-      - "4444:4444"
-      - "4455:4455"
-      - "4456:4456"
+      - "${HOST_BIND_ADDRESS:-127.0.0.1}:4444:4444"
+      - "${HOST_BIND_ADDRESS:-127.0.0.1}:4455:4455"
+      - "${HOST_BIND_ADDRESS:-127.0.0.1}:4456:4456"
     logging:
       driver: "json-file"
       options:
@@ -56,9 +56,9 @@ services:
       - WORKER_NAME=ergo-miner-gpu1
       - GPU_DEVICES=1
     ports:
-      - "4445:4444"
-      - "4457:4455"
-      - "4458:4456"
+      - "${HOST_BIND_ADDRESS:-127.0.0.1}:4445:4444"
+      - "${HOST_BIND_ADDRESS:-127.0.0.1}:4457:4455"
+      - "${HOST_BIND_ADDRESS:-127.0.0.1}:4458:4456"
     logging:
       driver: "json-file"
       options:

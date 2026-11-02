@@ -93,7 +93,7 @@ By default, the file is configured for a two-GPU setup. To add more GPUs, you ca
 -   **Container name:** (e.g., `ergo-miner-gpu2`)
 -   **`WORKER_NAME`:** (e.g., `ergo-miner-gpu2`)
 -   **`GPU_DEVICES`:** (e.g., `2`)
--   **Host ports:** (e.g., `4446:4444`, `4459:4455`, `4460:4456`)
+-   **Host ports:** (e.g., `127.0.0.1:4446:4444`, `127.0.0.1:4459:4455`, `127.0.0.1:4460:4456`)
 -   **`device_ids`:** (e.g., `['2']`)
 
 ### AMD
@@ -112,10 +112,14 @@ By default, the file is configured for a two-GPU setup. To add more GPUs, you ca
 -   **Container name:** (e.g., `ergo-miner-gpu2`)
 -   **`WORKER_NAME`:** (e.g., `ergo-miner-gpu2`)
 -   **`GPU_DEVICES`:** (e.g., `2`)
--   **Host ports:** (e.g., `4446:4444`, `4459:4455`, `4460:4456`)
+-   **Host ports:** (e.g., `127.0.0.1:4446:4444`, `127.0.0.1:4459:4455`, `127.0.0.1:4460:4456`)
 
 ## Environment Variable Reference
 
+-   `HOST_BIND_ADDRESS`: Host address for published ports (default: `127.0.0.1`). Use an IPv4
+    address or a bracketed IPv6 literal such as `[::1]`. Set it in Compose's `.env` file or the
+    shell environment; a service `env_file` alone does not control Compose interpolation. Use a
+    trusted non-loopback address only when remote access is intended.
 -   `POOL_ADDRESS`: The full address of the mining pool (e.g., `stratum+tcp://erg.2miners.com:8080`).
 -   `BACKUP_POOL_ADDRESS`: The address of a backup mining pool. The miner will automatically failover to this pool if the primary one becomes unavailable.
 -   `WALLET_ADDRESS`: Your Ergo wallet address where the mining rewards will be sent.
@@ -184,6 +188,15 @@ The overclocking settings will be applied to all GPUs visible within the contain
 ## Security & Rootless Docker
 
 This project is designed with security in mind.
+
+### Host Port Binding
+The supplied Compose files bind miner APIs, metrics, and the dashboard to `127.0.0.1` by default,
+limiting access to the Docker host. Docker Compose interpolates `HOST_BIND_ADDRESS` from the
+project `.env` file or shell environment; a service `env_file` alone does not set the Compose-time
+value. Use an IPv4 address or a bracketed IPv6 literal such as `[::1]` (not bare `::1`) when
+overriding it. Choose a trusted host IP only when access from other devices is required. Avoid
+`0.0.0.0` unless network access is intentionally exposed and protected by suitable firewall and
+access controls. Keep this host-IP prefix when adding port mappings to a multi-GPU file.
 
 ### Non-Root Execution
 By default, the mining process, dashboard, and metrics exporter run as a non-root user named `miner` (UID 1000) inside the container. This limits the potential impact of any vulnerability in the mining software.
@@ -296,7 +309,7 @@ The default notification threshold is 300 seconds (5 minutes), meaning you will 
 
 The image includes a built-in Prometheus exporter that provides key performance indicators.
 
--   **URL:** `http://<your-docker-host>:4455/metrics`
+-   **URL:** `http://127.0.0.1:4455/metrics` by default (uses the host address configured by `HOST_BIND_ADDRESS`).
 -   **Format:** Prometheus Text-Based
 
 ### **Key Metrics**
