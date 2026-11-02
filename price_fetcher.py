@@ -1,7 +1,7 @@
 import os
 import time
 import logging
-import requests
+from network_retry import get_with_retry
 
 logging.basicConfig(
     level=logging.INFO,
@@ -29,8 +29,7 @@ def fetch_erg_price():
         return _cache['price']
 
     try:
-        response = requests.get(COINGECKO_URL, timeout=10)
-        response.raise_for_status()
+        response = get_with_retry(COINGECKO_URL, timeout=10)
         data = response.json()
         price = data.get('ergo', {}).get('usd')
         if price is not None:

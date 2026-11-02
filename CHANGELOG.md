@@ -58,7 +58,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Integrated `EXTRA_ARGS` prompt in `setup.sh`.
 - New `miner_api.py` module to centralize and de-duplicate miner and GPU data fetching logic.
 - Dynamic "Miner Status" indicator in the web dashboard (Mining, Idle, Error).
-- Retry logic and improved error handling for miner API calls.
+- Add bounded exponential backoff for miner, node, pool, and price GET requests;
+  retry connection/timeout failures and HTTP 408/429/500/502/503/504 responses only.
 - Integrated miner log viewer in the web dashboard with a new `/api/logs` endpoint.
 - Rig-wide metrics (Total Power Draw, Average Temperature) in the web dashboard.
 - Automated T-Rex version discovery in `setup.sh`.

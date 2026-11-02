@@ -34,6 +34,9 @@ This backlog tracks the strategic priorities and upcoming tasks for the Ergo Doc
 - [ ] Expand unit test coverage for `metrics.py`.
 - [ ] Explore rootless Docker optimizations for overclocking.
 
+## In Review
+- [ ] [Ergo Docker Miner issue #233](https://github.com/username-anthony-is-not-available/ergo-docker-miner/issues/233): Bounded exponential backoff for transient idempotent GET requests ([PR #237](https://github.com/username-anthony-is-not-available/ergo-docker-miner/pull/237)); awaiting review.
+
 ## Completed (Recent)
 - [x] Multi-process mining mode implementation.
 - [x] #234: Bind published Compose service ports to loopback by default; PR review pending.
