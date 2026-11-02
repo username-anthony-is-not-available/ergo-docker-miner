@@ -36,6 +36,7 @@ This backlog tracks the strategic priorities and upcoming tasks for the Ergo Doc
 
 ## In Review
 - [ ] [Ergo Docker Miner issue #233](https://github.com/username-anthony-is-not-available/ergo-docker-miner/issues/233): Bounded exponential backoff for transient idempotent GET requests ([PR #237](https://github.com/username-anthony-is-not-available/ergo-docker-miner/pull/237)); awaiting review.
+- [ ] [Ergo Docker Miner issue #231](https://github.com/username-anthony-is-not-available/ergo-docker-miner/issues/231): Fail-fast validation for miner settings and GPU profiles ([PR #239](https://github.com/username-anthony-is-not-available/ergo-docker-miner/pull/239)); awaiting formal approval.
 
 ## Completed (Recent)
 - [x] Multi-process mining mode implementation.
