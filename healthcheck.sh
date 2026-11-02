@@ -39,6 +39,59 @@ REJECTED_SHARES=$(get_metric "miner_total_shares_rejected")
 NODE_SYNCED=$(get_metric "miner_node_synced")
 MINER_TYPE=$(get_label "miner_info" "miner")
 
+# Require an explicit healthy API status so stale rates cannot hide an outage.
+API_IS_DOWN=0
+API_STATUS_UP=$(awk -v api="$API_UP" 'BEGIN {
+    if (api ~ /^[0-9]+([.][0-9]+)?$/ && api + 0 == 1) print "1"; else print "0"
+}')
+if [ "$API_STATUS_UP" != "1" ]; then
+    echo "Miner API status is missing, invalid, or unreachable; starting the existing unhealthy grace period."
+    API_IS_DOWN=1
+    HASHRATE=0
+fi
+
+# Flag overheating without restarting the miner, so it can cool down safely.
+if [ "$API_IS_DOWN" = "0" ]; then
+    GPU_TEMP_THRESHOLD=$(python3 - <<'PY' 2>/dev/null
+import json
+import os
+
+threshold = 80
+profile = os.getenv("GPU_PROFILE")
+if profile:
+    try:
+        with open("gpu_profiles.json", encoding="utf-8") as profile_file:
+            profile_data = json.load(profile_file)
+        threshold = profile_data.get(profile, {}).get("GPU_TEMP_THRESHOLD", 80)
+    except (OSError, ValueError, TypeError, AttributeError):
+        pass
+print(threshold)
+PY
+)
+    if ! awk -v threshold="$GPU_TEMP_THRESHOLD" 'BEGIN {
+        exit !(threshold ~ /^[0-9]+([.][0-9]+)?$/)
+    }'; then
+        echo "Invalid GPU temperature threshold; defaulting to 80°C."
+        GPU_TEMP_THRESHOLD=80
+    fi
+
+    HOT_GPU_TEMPS=$(printf '%s\n' "$METRICS" | awk -v threshold="$GPU_TEMP_THRESHOLD" '
+        $1 ~ /^miner_gpu_temperature\{/ &&
+        $2 ~ /^[-+]?[0-9]+([.][0-9]+)?([eE][-+]?[0-9]+)?$/ &&
+        ($2 + 0) > threshold {
+            gpu = $1
+            sub(/^.*gpu="/, "", gpu)
+            sub(/".*/, "", gpu)
+            printf "GPU %s: %s°C\n", gpu, $2
+        }')
+    if [ -n "$HOT_GPU_TEMPS" ]; then
+        echo "GPU temperature exceeds the profile threshold (${GPU_TEMP_THRESHOLD}°C):"
+        printf '%s\n' "$HOT_GPU_TEMPS"
+        echo "Marking container unhealthy without restarting the miner."
+        exit 1
+    fi
+fi
+
 # Determine process name for checks
 if [ "$MINER_TYPE" = "lolminer" ]; then
     PROCESS_NAME="lolMiner"
