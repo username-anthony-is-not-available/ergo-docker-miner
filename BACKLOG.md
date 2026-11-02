@@ -35,11 +35,12 @@ This backlog tracks the strategic priorities and upcoming tasks for the Ergo Doc
 - [ ] Explore rootless Docker optimizations for overclocking.
 
 ## In Review
-- [ ] [Ergo Docker Miner issue #233](https://github.com/username-anthony-is-not-available/ergo-docker-miner/issues/233): Bounded exponential backoff for transient idempotent GET requests ([PR #237](https://github.com/username-anthony-is-not-available/ergo-docker-miner/pull/237)); awaiting review.
+- [ ] [Ergo Docker Miner issue #228](https://github.com/username-anthony-is-not-available/ergo-docker-miner/issues/228): Health checks for miner API outages and GPU temperatures ([PR #238](https://github.com/username-anthony-is-not-available/ergo-docker-miner/pull/238)); awaiting required approval.
 
 ## Completed (Recent)
 - [x] Multi-process mining mode implementation.
-- [x] #234: Bind published Compose service ports to loopback by default; PR review pending.
+- [x] [#234](https://github.com/username-anthony-is-not-available/ergo-docker-miner/issues/234): Bind published Compose service ports to loopback by default ([PR #236](https://github.com/username-anthony-is-not-available/ergo-docker-miner/pull/236)).
+- [x] [#233](https://github.com/username-anthony-is-not-available/ergo-docker-miner/issues/233): Add bounded exponential backoff for transient idempotent GET requests ([PR #237](https://github.com/username-anthony-is-not-available/ergo-docker-miner/pull/237)).
 - [x] Telegram notifications for rig downtime.
 - [x] Auto-profit switching initial release.
 - [x] Enhanced web dashboard with FastAPI backend.
