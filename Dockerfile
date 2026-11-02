@@ -80,7 +80,10 @@ COPY --from=miner-builder /app/lolMiner /app/lolMiner
 COPY --from=miner-builder /app/t-rex /app/t-rex
 
 # Copy application files
-COPY start.sh metrics.py miner_api.py healthcheck.sh restart.sh database.py gpu_profiles.json env_config.py profit_switcher.py report_generator.py logrotate.conf log_monitor.py price_fetcher.py discord_notifier.py streamlit_app.py ./
+COPY start.sh config_validator.py metrics.py miner_api.py \
+     healthcheck.sh restart.sh database.py gpu_profiles.json env_config.py \
+     profit_switcher.py report_generator.py logrotate.conf log_monitor.py \
+     price_fetcher.py discord_notifier.py streamlit_app.py ./
 
 RUN chmod +x start.sh healthcheck.sh restart.sh log_monitor.py && \
     mkdir -p /app/data && \

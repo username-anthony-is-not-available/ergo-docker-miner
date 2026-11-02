@@ -17,6 +17,16 @@ load_secret DUAL_WALLET
 
 # Default to /app/data if DATA_DIR is not set
 DATA_DIR=${DATA_DIR:-/app/data}
+MINER=${MINER:-lolminer}
+GPU_DEVICES=${GPU_DEVICES:-AUTO}
+MULTI_PROCESS=${MULTI_PROCESS:-false}
+API_PORT=${API_PORT:-4444}
+
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+if ! python3 "$SCRIPT_DIR/config_validator.py"; then
+    echo "Startup aborted because configuration validation failed." >&2
+    exit 1
+fi
 
 # Handle privilege dropping if running as root
 if [ "$(id -u)" = '0' ]; then
@@ -127,10 +137,6 @@ fi
 
 # -- Below this line runs as non-root (miner) --
 
-# Default to AUTO if GPU_DEVICES is not set
-GPU_DEVICES=${GPU_DEVICES:-AUTO}
-MULTI_PROCESS=${MULTI_PROCESS:-false}
-
 # GPU Discovery for AUTO mode
 if [ "$GPU_DEVICES" = "AUTO" ]; then
   echo "GPU_DEVICES is set to AUTO. Detecting GPUs..."
@@ -227,10 +233,6 @@ elif command -v rocm-smi &> /dev/null; then
     done
   ) &
 fi
-
-# Default to lolminer if MINER is not set
-MINER=${MINER:-lolminer}
-API_PORT=${API_PORT:-4444}
 
 echo "Starting miner: $MINER (Multi-process: $MULTI_PROCESS)"
 
