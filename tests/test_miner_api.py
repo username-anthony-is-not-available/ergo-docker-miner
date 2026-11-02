@@ -51,20 +51,25 @@ class TestMinerApi(unittest.TestCase):
                 }
             ]
         }
-        mock_get.return_value = mock_response
+        mock_get.side_effect = [
+            requests.exceptions.Timeout("API timed out"),
+            mock_response,
+        ]
 
         with patch.dict(os.environ, {'MINER': 't-rex'}):
-            data = miner_api.get_normalized_miner_data()
+            with patch('network_retry.time.sleep'):
+                data = miner_api.get_normalized_miner_data()
             self.assertEqual(data['miner'], 't-rex')
             self.assertEqual(data['total_hashrate'], 120.0)
             self.assertEqual(data['gpus'][0]['temperature'], 55)
             self.assertEqual(data['gpus'][0]['power_draw'], 150)
+            self.assertEqual(mock_get.call_count, 2)
 
     @patch('requests.get')
     def test_get_normalized_miner_data_retry(self, mock_get):
         # Mock failure then success
         mock_get.side_effect = [
-            requests.exceptions.RequestException("API Down"),
+            requests.exceptions.ConnectionError("API Down"),
             MagicMock(json=lambda: {'Session': {'Uptime': 1000}, 'Total_Performance': [100.0], 'GPUs': []})
         ]
 
@@ -73,6 +78,32 @@ class TestMinerApi(unittest.TestCase):
             self.assertIsNotNone(data)
             self.assertEqual(data['total_hashrate'], 100.0)
             self.assertEqual(mock_get.call_count, 2)
+
+    @patch('miner_api.get_with_retry')
+    def test_get_node_status_uses_retry_helper(self, mock_get):
+        response = MagicMock()
+        response.json.return_value = {'fullHeight': 100, 'headersHeight': 100}
+        mock_get.return_value = response
+
+        with patch.dict(os.environ, {
+            'CHECK_NODE_SYNC': 'true',
+            'NODE_URL': 'http://node:9053',
+        }):
+            status = miner_api.get_node_status()
+
+        mock_get.assert_called_once_with('http://node:9053/info', timeout=5)
+        self.assertTrue(status['is_synced'])
+
+    @patch('requests.get')
+    def test_malformed_miner_json_is_not_retried(self, mock_get):
+        response = MagicMock()
+        response.json.side_effect = ValueError('invalid JSON')
+        mock_get.return_value = response
+
+        data = miner_api._fetch_single_miner_data('lolminer', 4444)
+
+        self.assertIsNone(data)
+        mock_get.assert_called_once_with('http://localhost:4444/', timeout=2)
 
     @patch('subprocess.check_output')
     def test_get_gpu_smi_data_nvidia(self, mock_check_output):

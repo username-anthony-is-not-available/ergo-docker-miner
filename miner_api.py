@@ -7,6 +7,7 @@ from typing import List, Dict, Any, Optional
 import time
 import psutil
 import database
+from network_retry import get_with_retry
 
 logger = logging.getLogger(__name__)
 
@@ -26,8 +27,7 @@ def get_node_status() -> Dict[str, Any]:
         return {'is_synced': True, 'full_height': 0, 'headers_height': 0, 'enabled': False}
 
     try:
-        response = requests.get(f"{node_url}/info", timeout=5)
-        response.raise_for_status()
+        response = get_with_retry(f"{node_url}/info", timeout=5)
         data = response.json()
 
         full_height = data.get('fullHeight')
@@ -294,48 +294,41 @@ def parse_lolminer_data(data: Dict[str, Any]) -> Dict[str, Any]:
     return normalized
 
 def _fetch_single_miner_data(miner: str, api_port: int) -> Optional[Dict[str, Any]]:
-    """Fetches data from a single miner API instance."""
-    max_retries = 3
-    for attempt in range(max_retries):
-        try:
-            if miner == 'lolminer':
-                response = requests.get(f'http://localhost:{api_port}/', timeout=2)
-                response.raise_for_status()
-                return parse_lolminer_data(response.json())
+    """Fetch miner API data with bounded exponential backoff on transient failures."""
+    try:
+        if miner == 'lolminer':
+            response = get_with_retry(f'http://localhost:{api_port}/', timeout=2)
+            return parse_lolminer_data(response.json())
 
-            elif miner == 't-rex':
-                response = requests.get(f'http://localhost:{api_port}/summary', timeout=2)
-                response.raise_for_status()
-                data = response.json()
+        if miner == 't-rex':
+            response = get_with_retry(
+                f'http://localhost:{api_port}/summary', timeout=2
+            )
+            data = response.json()
 
-                normalized = {
-                    'miner': 't-rex',
-                    'uptime': data.get('uptime', 0),
-                    'total_hashrate': data.get('hashrate', 0) / 1000000,
-                    'total_dual_hashrate': 0,
-                    'gpus': []
-                }
+            normalized = {
+                'miner': 't-rex',
+                'uptime': data.get('uptime', 0),
+                'total_hashrate': data.get('hashrate', 0) / 1000000,
+                'total_dual_hashrate': 0,
+                'gpus': []
+            }
 
-                for i, gpu in enumerate(data.get('gpus', [])):
-                    shares = gpu.get('shares', {})
-                    normalized['gpus'].append({
-                        'index': i,
-                        'hashrate': gpu.get('hashrate', 0) / 1000000,
-                        'dual_hashrate': 0,
-                        'fan_speed': gpu.get('fan_speed', 0),
-                        'accepted_shares': shares.get('accepted_count', 0),
-                        'rejected_shares': shares.get('rejected_count', 0),
-                        'temperature': gpu.get('temperature', 0),
-                        'power_draw': gpu.get('power', 0)
-                    })
-                return normalized
-        except (requests.exceptions.RequestException, ValueError) as e:
-            if attempt < max_retries - 1:
-                logger.warning(f"Attempt {attempt + 1} failed to fetch miner data on port {api_port}: {e}. Retrying...")
-                continue
-            else:
-                logger.error(f"Failed to fetch miner data on port {api_port} after {max_retries} attempts: {e}")
-                return None
+            for i, gpu in enumerate(data.get('gpus', [])):
+                shares = gpu.get('shares', {})
+                normalized['gpus'].append({
+                    'index': i,
+                    'hashrate': gpu.get('hashrate', 0) / 1000000,
+                    'dual_hashrate': 0,
+                    'fan_speed': gpu.get('fan_speed', 0),
+                    'accepted_shares': shares.get('accepted_count', 0),
+                    'rejected_shares': shares.get('rejected_count', 0),
+                    'temperature': gpu.get('temperature', 0),
+                    'power_draw': gpu.get('power', 0)
+                })
+            return normalized
+    except (requests.exceptions.RequestException, ValueError) as e:
+        logger.error(f"Failed to fetch miner data on port {api_port}: {e}")
     return None
 
 def get_normalized_miner_data() -> Optional[Dict[str, Any]]:

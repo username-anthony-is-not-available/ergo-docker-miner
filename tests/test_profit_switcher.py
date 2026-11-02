@@ -17,6 +17,27 @@ class TestProfitSwitcher(unittest.TestCase):
         # Score = (1 - 0.01) / 1.2 = 0.99 / 1.2 = 0.825
         self.assertAlmostEqual(score, 0.825)
 
+    def test_get_pool_profitability_retries_transient_failure(self):
+        response = MagicMock()
+        response.json.return_value = {"luck": 120}
+        response.status_code = 200
+        failure = profit_switcher.requests.exceptions.ConnectionError("offline")
+
+        with patch(
+            "network_retry.requests.get", side_effect=[failure, response]
+        ) as mock_get:
+            with patch("network_retry.time.sleep"):
+                with patch(
+                    "profit_switcher.price_fetcher.fetch_erg_price",
+                    return_value=None,
+                ):
+                    score = profit_switcher.get_pool_profitability(
+                        profit_switcher.POOLS[0], use_cache=False
+                    )
+
+        self.assertAlmostEqual(score, 0.825)
+        self.assertEqual(mock_get.call_count, 2)
+
     @patch('profit_switcher.requests.get')
     def test_get_pool_profitability_herominers(self, mock_get):
         mock_response = MagicMock()
