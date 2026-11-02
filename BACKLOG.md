@@ -36,6 +36,7 @@ This backlog tracks the strategic priorities and upcoming tasks for the Ergo Doc
 
 ## Completed (Recent)
 - [x] Multi-process mining mode implementation.
+- [x] #234: Bind published Compose service ports to loopback by default; PR review pending.
 - [x] Telegram notifications for rig downtime.
 - [x] Auto-profit switching initial release.
 - [x] Enhanced web dashboard with FastAPI backend.
