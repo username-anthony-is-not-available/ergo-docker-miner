@@ -18,7 +18,8 @@ This script will guide you through configuring your wallet, pool, and GPU settin
 ## Features
 
 - **Automated Failover:** Automatically switches to a backup pool if the primary one is unavailable.
-- **Health Monitoring:** Includes a robust health check script that monitors both process status and hashrate.
+- **Health Monitoring:** Checks miner API reachability, node sync, GPU count,
+  rejected shares, hashrate, and per-GPU temperature against the active profile limit.
 - **Prometheus Exporter:** Exposes a Prometheus endpoint for easy integration with monitoring tools.
 - **Grafana Dashboard:** Includes a pre-configured Grafana dashboard to visualize your mining performance.
 - **Auto-Restart:** Automatically restarts the container if the miner crashes or stops submitting shares for more than 5 minutes.
@@ -27,6 +28,10 @@ This script will guide you through configuring your wallet, pool, and GPU settin
 - **Telegram Notifications:** Receive instant alerts on your phone when your rig goes down or experiences zero hashrate.
 - **Hashrate Logging & Reports:** Automatically logs hashrate to CSV and generates weekly summary reports for performance tracking.
 - **Enhanced Security:** The miner runs as a non-root user (`miner`) inside the container by default. It also supports Rootless Docker environments.
+
+Miner API outages use the existing five-minute recovery grace period. A GPU above
+the active profile's `GPU_TEMP_THRESHOLD` (80°C by default) marks the container
+unhealthy without restarting an overheated miner.
 
 ## Requirements
 

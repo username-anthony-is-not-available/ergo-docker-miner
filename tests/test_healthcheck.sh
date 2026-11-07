@@ -4,6 +4,7 @@
 
 # Cleanup previous state
 export HEALTHCHECK_STATE_FILE="/tmp/test_miner_unhealthy_since"
+export GPU_PROFILE=""
 rm -f "$HEALTHCHECK_STATE_FILE"
 rm -f /tmp/mock_api_response /tmp/mock_process_running /tmp/restart_called /tmp/test_output
 
@@ -92,16 +93,24 @@ function mock_metrics() {
     local rejected=${5:-0.0}
     local miner=${6:-lolminer}
     local node_synced=${7:-1.0}
+    local gpu_temp=${8:-60.0}
+    local second_gpu_temp=${9:-}
 
     cat > /tmp/mock_api_response <<EOF
 miner_hashrate{worker="test"} $hashrate
-miner_api_up{worker="test"} $api_up
 miner_gpu_count{worker="test"} $gpu_count
 miner_total_shares_accepted{worker="test"} $accepted
 miner_total_shares_rejected{worker="test"} $rejected
 miner_node_synced{worker="test"} $node_synced
 miner_info{miner="$miner",version="1.0",worker="test"} 1.0
+miner_gpu_temperature{gpu="0",worker="test"} $gpu_temp
 EOF
+    if [ "$api_up" != "missing" ]; then
+        echo "miner_api_up{worker=\"test\"} $api_up" >> /tmp/mock_api_response
+    fi
+    if [ -n "$second_gpu_temp" ]; then
+        echo "miner_gpu_temperature{gpu=\"1\",worker=\"test\"} $second_gpu_temp" >> /tmp/mock_api_response
+    fi
 }
 
 # --- Test Cases ---
@@ -174,7 +183,40 @@ mock_metrics 100.5 1.0 2.0 100 0 lolminer 0.0 # Node not synced
 rm /tmp/mock_process_running # Miner NOT running
 run_test "Node out of sync while waiting" 0 "no"
 
-# 13. Metrics server unreachable
+# 13. Miner API/network unavailable despite a stale positive hashrate
+mock_metrics 100.5 0.0 2.0 100 0 lolminer 1.0
+rm -f "$HEALTHCHECK_STATE_FILE"
+run_test "Miner API unavailable (grace starts)" 0 "no"
+if [ ! -f "$HEALTHCHECK_STATE_FILE" ]; then
+    echo "FAILED: State file not created for API outage"
+    cleanup
+    exit 1
+fi
+echo $(($(date +%s) - 360)) > "$HEALTHCHECK_STATE_FILE"
+run_test "Miner API unavailable (after grace)" 1 "yes"
+mock_metrics 100.5 missing 2.0 100 0 lolminer 1.0
+rm -f "$HEALTHCHECK_STATE_FILE"
+run_test "Missing miner API status (grace starts)" 0 "no"
+if [ ! -f "$HEALTHCHECK_STATE_FILE" ]; then
+    echo "FAILED: State file not created for missing API status"
+    cleanup
+    exit 1
+fi
+echo $(($(date +%s) - 360)) > "$HEALTHCHECK_STATE_FILE"
+mock_metrics 100.5 invalid 2.0 100 0 lolminer 1.0
+run_test "Malformed miner API status (after grace)" 1 "yes"
+
+# 14. Temperatures at the active profile limit are healthy; above it is not.
+export GPU_PROFILE="RTX 3090"
+mock_metrics 100.5 1.0 2.0 100 0 lolminer 1.0 80.0
+run_test "GPU temperature at profile limit" 0 "no"
+mock_metrics 100.5 1.0 2.0 100 0 lolminer 1.0 80.1
+run_test "GPU temperature above profile limit" 1 "no"
+mock_metrics 100.5 1.0 2.0 100 0 lolminer 1.0 60.0 80.1
+run_test "One GPU above profile limit" 1 "no"
+export GPU_PROFILE=""
+
+# 15. Metrics server unreachable
 touch /tmp/curl_fail
 run_test "Metrics server unreachable" 0 "no"
 
