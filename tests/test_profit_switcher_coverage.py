@@ -6,8 +6,8 @@ from unittest.mock import MagicMock
 
 @pytest.fixture(autouse=True)
 def setup_teardown():
-    # Clear cache before each test
-    profit_switcher._pool_score_cache = {}
+    # Clear cache and EMA/streak state before each test
+    profit_switcher.reset_switcher_state()
     # Reset globals
     profit_switcher.last_switch_time = 0.0
     profit_switcher.start_time = time.time()

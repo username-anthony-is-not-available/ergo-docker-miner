@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Performance
+- Enhance `profit_switcher.py` with Exponential Moving Average (EMA) score smoothing,
+  bounded linear trend weighting, transient-zero protection, and configurable
+  consecutive confirmation hysteresis (`PROFIT_SWITCHING_EMA_ALPHA`,
+  `PROFIT_SWITCHING_TREND_WINDOW`, `PROFIT_SWITCHING_CONFIRMATIONS`) to prevent
+  unnecessary restarts from short-term pool luck spikes.
 - Optimize `Dockerfile` multi-stage layer ordering (defer `GPU_TYPE` divergence so
   `lolMiner`, common OS packages, `miner` user, and Python venv layers are shared),
   strip `__pycache__` from `/opt/venv`, add missing `network_retry.py` to runtime

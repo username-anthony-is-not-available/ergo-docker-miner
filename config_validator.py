@@ -246,6 +246,29 @@ def validate_configuration(
                 _validate_pool_address("DUAL_POOL", config["DUAL_POOL"].strip())
             )
 
+    raw_alpha = config.get("PROFIT_SWITCHING_EMA_ALPHA", "").strip()
+    if raw_alpha:
+        try:
+            alpha = float(raw_alpha)
+            if not _is_finite_number(alpha) or not 0 < alpha <= 1.0:
+                errors.append("PROFIT_SWITCHING_EMA_ALPHA must be in (0, 1].")
+        except ValueError:
+            errors.append("PROFIT_SWITCHING_EMA_ALPHA must be numeric.")
+
+    for int_name, minimum in (
+        ("PROFIT_SWITCHING_TREND_WINDOW", 2),
+        ("PROFIT_SWITCHING_CONFIRMATIONS", 1),
+    ):
+        raw_val = config.get(int_name, "").strip()
+        if not raw_val:
+            continue
+        try:
+            parsed_int = int(raw_val)
+            if parsed_int < minimum:
+                errors.append(f"{int_name} must be an integer >= {minimum}.")
+        except ValueError:
+            errors.append(f"{int_name} must be an integer >= {minimum}.")
+
     return errors
 
 
