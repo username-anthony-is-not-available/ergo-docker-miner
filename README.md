@@ -358,7 +358,14 @@ The exporter provides the following metrics, all labeled with `worker` for easy 
 - `miner_hashrate`: Total rig hashrate in MH/s.
 - `miner_uptime`: Miner session uptime in seconds.
 - `miner_api_up`: Status of the miner API (1 for UP, 0 for DOWN).
+- `miner_api_latency_seconds`: Miner API scrape latency in seconds.
+- `miner_node_latency_seconds`: Ergo node status check latency in seconds.
+- `miner_pool_latency_seconds`: TCP connection latency to the configured mining pool in seconds (labeled with `pool`).
+- `miner_pool_up`: Reachability of the configured mining pool TCP endpoint (`1` = UP, `0` = DOWN).
+- `miner_avg_temperature`: Average GPU temperature across the rig in °C.
+- `miner_max_gpu_temperature`: Peak GPU temperature across the rig in °C.
 - `miner_total_power_draw`: Total power consumption in watts.
+- `miner_avg_power_draw`: Average power consumption per GPU in watts.
 - `miner_gpu_hashrate`: Per-GPU hashrate (labeled with `gpu` index).
 - `miner_gpu_temperature`: Per-GPU temperature in °C.
 - `miner_gpu_power_draw`: Per-GPU power draw in watts.
