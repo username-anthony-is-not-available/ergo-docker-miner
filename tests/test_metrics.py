@@ -1,13 +1,37 @@
-import unittest
-from unittest.mock import patch, MagicMock
-import sys
 import os
+import sys
+import unittest
+from unittest.mock import MagicMock, patch
 
 # Add the root directory to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import metrics
-from metrics import update_metrics, HASHRATE, DUAL_HASHRATE, AVG_FAN_SPEED, TOTAL_POWER_DRAW, TOTAL_SHARES_ACCEPTED, TOTAL_SHARES_REJECTED, GPU_HASHRATE, GPU_TEMPERATURE, GPU_POWER_DRAW, WORKER, API_UP, UPTIME, INFO
+from metrics import (
+    API_LATENCY,
+    API_UP,
+    AVG_FAN_SPEED,
+    AVG_POWER_DRAW,
+    AVG_TEMPERATURE,
+    DUAL_HASHRATE,
+    GPU_HASHRATE,
+    GPU_POWER_DRAW,
+    GPU_TEMPERATURE,
+    HASHRATE,
+    INFO,
+    MAX_GPU_TEMPERATURE,
+    NODE_LATENCY,
+    POOL_LATENCY,
+    POOL_UP,
+    TOTAL_POWER_DRAW,
+    TOTAL_SHARES_ACCEPTED,
+    TOTAL_SHARES_REJECTED,
+    UPTIME,
+    WORKER,
+    measure_pool_latency,
+    update_metrics,
+)
+
 
 class TestMetrics(unittest.TestCase):
     def setUp(self):
@@ -15,12 +39,17 @@ class TestMetrics(unittest.TestCase):
         # Reset Prometheus metrics
         HASHRATE.labels(worker=WORKER).set(0)
         DUAL_HASHRATE.labels(worker=WORKER).set(0)
+        AVG_TEMPERATURE.labels(worker=WORKER).set(0)
+        MAX_GPU_TEMPERATURE.labels(worker=WORKER).set(0)
         AVG_FAN_SPEED.labels(worker=WORKER).set(0)
         TOTAL_POWER_DRAW.labels(worker=WORKER).set(0)
+        AVG_POWER_DRAW.labels(worker=WORKER).set(0)
         TOTAL_SHARES_ACCEPTED.labels(worker=WORKER).set(0)
         TOTAL_SHARES_REJECTED.labels(worker=WORKER).set(0)
         API_UP.labels(worker=WORKER).set(0)
         UPTIME.labels(worker=WORKER).set(0)
+        API_LATENCY.labels(worker=WORKER).set(0)
+        NODE_LATENCY.labels(worker=WORKER).set(0)
 
     @patch('database.log_history')
     @patch('database.prune_history')
@@ -55,12 +84,17 @@ class TestMetrics(unittest.TestCase):
         # Assert global metrics
         self.assertEqual(HASHRATE.labels(worker=WORKER)._value.get(), 120.5)
         self.assertEqual(DUAL_HASHRATE.labels(worker=WORKER)._value.get(), 250.5)
+        self.assertEqual(AVG_TEMPERATURE.labels(worker=WORKER)._value.get(), 37.5)
+        self.assertEqual(MAX_GPU_TEMPERATURE.labels(worker=WORKER)._value.get(), 40.0)
         self.assertEqual(TOTAL_POWER_DRAW.labels(worker=WORKER)._value.get(), 245.5)
+        self.assertEqual(AVG_POWER_DRAW.labels(worker=WORKER)._value.get(), 122.75)
         self.assertEqual(AVG_FAN_SPEED.labels(worker=WORKER)._value.get(), 57.5)
         self.assertEqual(TOTAL_SHARES_ACCEPTED.labels(worker=WORKER)._value.get(), 210)
         self.assertEqual(TOTAL_SHARES_REJECTED.labels(worker=WORKER)._value.get(), 5)
         self.assertEqual(API_UP.labels(worker=WORKER)._value.get(), 1)
         self.assertEqual(UPTIME.labels(worker=WORKER)._value.get(), 0) # Mock uptime is 0 unless specified
+        self.assertGreaterEqual(API_LATENCY.labels(worker=WORKER)._value.get(), 0.0)
+        self.assertGreaterEqual(NODE_LATENCY.labels(worker=WORKER)._value.get(), 0.0)
 
         # Assert individual instance metrics
         self.assertEqual(metrics.MINER_INSTANCE_UP.labels(port="4444", worker=WORKER)._value.get(), 1)
@@ -89,9 +123,46 @@ class TestMetrics(unittest.TestCase):
         update_metrics()
 
         self.assertEqual(HASHRATE.labels(worker=WORKER)._value.get(), 0)
+        self.assertEqual(AVG_TEMPERATURE.labels(worker=WORKER)._value.get(), 0)
+        self.assertEqual(MAX_GPU_TEMPERATURE.labels(worker=WORKER)._value.get(), 0)
         self.assertEqual(TOTAL_POWER_DRAW.labels(worker=WORKER)._value.get(), 0)
+        self.assertEqual(AVG_POWER_DRAW.labels(worker=WORKER)._value.get(), 0)
         self.assertEqual(API_UP.labels(worker=WORKER)._value.get(), 0)
         mock_log.assert_not_called()
+
+    @patch('metrics.socket.create_connection')
+    def test_measure_pool_latency_success_and_failure(self, mock_connect):
+        mock_sock = MagicMock()
+        mock_connect.return_value.__enter__.return_value = mock_sock
+
+        latency = measure_pool_latency('stratum+tcp://erg.2miners.com:8080', timeout=1.5)
+        self.assertIsNotNone(latency)
+        self.assertGreaterEqual(latency, 0.0)
+        mock_connect.assert_called_once_with(('erg.2miners.com', 8080), timeout=1.5)
+
+        mock_connect.side_effect = OSError('connection timed out')
+        self.assertIsNone(measure_pool_latency('stratum+tcp://erg.2miners.com:8080'))
+        self.assertIsNone(measure_pool_latency('not-a-valid-pool'))
+
+    @patch('database.log_history')
+    @patch('database.prune_history')
+    @patch('metrics.measure_pool_latency')
+    @patch('metrics.get_full_miner_data')
+    def test_update_metrics_records_pool_latency_and_up(
+        self, mock_full_data, mock_pool_latency, mock_prune, mock_log
+    ):
+        mock_full_data.return_value = None
+        pool_url = 'stratum+tcp://erg.2miners.com:8080'
+
+        with patch.dict(os.environ, {'POOL_ADDRESS': pool_url}):
+            mock_pool_latency.return_value = 0.042
+            update_metrics()
+            self.assertEqual(POOL_UP.labels(pool=pool_url, worker=WORKER)._value.get(), 1)
+            self.assertAlmostEqual(POOL_LATENCY.labels(pool=pool_url, worker=WORKER)._value.get(), 0.042)
+
+            mock_pool_latency.return_value = None
+            update_metrics()
+            self.assertEqual(POOL_UP.labels(pool=pool_url, worker=WORKER)._value.get(), 0)
 
 if __name__ == '__main__':
     unittest.main()

@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   on Python >=3.11, and Playwright `^1.65.0`), resolving known Starlette and Pillow CVEs.
 
 ### Added
+- Expand Prometheus metrics in `metrics.py` with `miner_avg_temperature`,
+  `miner_max_gpu_temperature`, `miner_avg_power_draw`, `miner_api_latency_seconds`,
+  `miner_node_latency_seconds`, `miner_pool_latency_seconds`, and `miner_pool_up`.
 - Validate miner environment settings and `gpu_profiles.json` before startup,
   with clear errors for invalid values.
 - Enhance `healthcheck.sh` to use miner API reachability and flag GPUs above
