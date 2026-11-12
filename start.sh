@@ -1,12 +1,25 @@
 #!/bin/bash
 
-# Support Docker secrets for sensitive variables
+# Support Docker secrets for sensitive variables (<VAR>_FILE or /run/secrets/<VAR>)
 load_secret() {
     local var=$1
+    local file_var="${var}_FILE"
+    local custom_file="${!file_var}"
     local file="/run/secrets/$var"
+
+    if [ -n "${!var}" ]; then
+        return 0
+    fi
+
+    if [ -n "$custom_file" ] && [ -f "$custom_file" ]; then
+        file="$custom_file"
+    fi
+
     if [ -f "$file" ]; then
-        if [ -z "${!var}" ]; then
-            export "$var"=$(cat "$file" | tr -d '\r\n')
+        local secret_value
+        secret_value=$(tr -d '\r\n' < "$file")
+        if [ -n "$secret_value" ]; then
+            export "$var=$secret_value"
             echo "Loaded $var from secret."
         fi
     fi
@@ -14,6 +27,9 @@ load_secret() {
 
 load_secret WALLET_ADDRESS
 load_secret DUAL_WALLET
+load_secret TELEGRAM_BOT_TOKEN
+load_secret TELEGRAM_CHAT_ID
+load_secret DISCORD_WEBHOOK_URL
 
 # Default to /app/data if DATA_DIR is not set
 DATA_DIR=${DATA_DIR:-/app/data}

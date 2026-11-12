@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Security
+- Expand Docker secrets support in `start.sh`, `env_config.py`, `config_validator.py`,
+  `metrics.py`, and `discord_notifier.py` to cover `WALLET_ADDRESS`, `DUAL_WALLET`,
+  `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, and `DISCORD_WEBHOOK_URL`, including
+  `<VAR>_FILE` overrides and secret redaction in notification error logs.
 - Update Python and Node.js dependencies in `requirements.txt` and `package.json`
   to patched versions (`fastapi==0.162.5`, `uvicorn==0.54.0`, `python-socketio==5.18.1`,
   `aiofiles==25.1.0`, `httpx==0.28.1`, `prometheus-client==0.26.0`, `requests==2.34.2`,

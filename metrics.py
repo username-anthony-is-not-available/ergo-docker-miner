@@ -6,6 +6,7 @@ import requests
 import database
 from miner_api import get_full_miner_data, get_node_status, get_services_status
 import discord_notifier
+from env_config import get_secret
 import json
 
 # Configure logging
@@ -51,8 +52,8 @@ last_prune_time = 0.0
 
 # Telegram configuration
 TELEGRAM_ENABLE = os.getenv('TELEGRAM_ENABLE', 'false').lower() == 'true'
-TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
-TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
+TELEGRAM_BOT_TOKEN = get_secret('TELEGRAM_BOT_TOKEN')
+TELEGRAM_CHAT_ID = get_secret('TELEGRAM_CHAT_ID')
 TELEGRAM_NOTIFY_THRESHOLD = int(os.getenv('TELEGRAM_NOTIFY_THRESHOLD', 300))
 
 # Notification state
@@ -65,12 +66,15 @@ discord_temp_is_notified = False
 discord_temp_gpu_index = None
 
 def send_telegram_notification(message: str) -> None:
-    if not TELEGRAM_ENABLE or not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+    """Send a Telegram notification without exposing bot tokens in logs."""
+    bot_token = TELEGRAM_BOT_TOKEN or get_secret('TELEGRAM_BOT_TOKEN')
+    chat_id = TELEGRAM_CHAT_ID or get_secret('TELEGRAM_CHAT_ID')
+    if not TELEGRAM_ENABLE or not bot_token or not chat_id:
         return
 
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
     payload = {
-        "chat_id": TELEGRAM_CHAT_ID,
+        "chat_id": chat_id,
         "text": message,
         "parse_mode": "HTML"
     }
@@ -80,7 +84,8 @@ def send_telegram_notification(message: str) -> None:
         response.raise_for_status()
         logger.info("Telegram notification sent successfully")
     except Exception as e:
-        logger.error(f"Failed to send Telegram notification: {e}")
+        safe_err = str(e).replace(bot_token, "<redacted-bot-token>")
+        logger.error(f"Failed to send Telegram notification: {safe_err}")
 
 def update_metrics() -> None:
     global last_prune_time, unhealthy_since, is_currently_notified

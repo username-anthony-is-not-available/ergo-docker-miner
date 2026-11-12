@@ -11,6 +11,8 @@ from collections.abc import Mapping
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from env_config import get_secret, resolve_secrets_into_env
+
 BOOLEAN_VARIABLES = (
     "APPLY_OC",
     "AUTO_PROFIT_SWITCHING",
@@ -139,7 +141,7 @@ def validate_configuration(
         elif value:
             errors.extend(_validate_pool_address(name, value))
 
-    wallet = config.get("WALLET_ADDRESS", "").strip()
+    wallet = (get_secret("WALLET_ADDRESS", env=config) or "").strip()
     if not wallet:
         errors.append("WALLET_ADDRESS is required before mining can start.")
 
@@ -237,7 +239,7 @@ def validate_configuration(
             errors.append("DUAL_ALGO is supported only when MINER is lolminer.")
         if not config.get("DUAL_POOL", "").strip():
             errors.append("DUAL_POOL is required when DUAL_ALGO is configured.")
-        if not config.get("DUAL_WALLET", "").strip():
+        if not (get_secret("DUAL_WALLET", env=config) or "").strip():
             errors.append("DUAL_WALLET is required when DUAL_ALGO is configured.")
         if config.get("DUAL_POOL", "").strip():
             errors.extend(
@@ -250,7 +252,8 @@ def validate_configuration(
 def main() -> int:
     """Validate process environment and report any errors without exposing values."""
     profiles_path = Path(__file__).with_name("gpu_profiles.json")
-    errors = validate_configuration(os.environ, profiles_path)
+    resolved_env = resolve_secrets_into_env(os.environ)
+    errors = validate_configuration(resolved_env, profiles_path)
     if errors:
         print("Invalid miner configuration:", file=sys.stderr)
         for error in errors:

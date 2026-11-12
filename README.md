@@ -236,11 +236,14 @@ docker run --user 1000:1000 ...
 *Note: If started as a non-root user, the automatic overclocking feature will be skipped as it requires root privileges.*
 
 ### Docker Secrets
-For improved security, you can use Docker secrets to provide sensitive information like wallet addresses instead of including them in plain text in your `docker-compose.yml` or `.env` file.
+For improved security, you can use Docker secrets (or `<VAR>_FILE` paths) to provide sensitive information like wallet addresses and notification tokens instead of storing them in plain text in your `docker-compose.yml` or `.env` file.
 
-The following secrets are supported:
+The following secrets are supported (either mounted at `/run/secrets/<VAR>` or referenced via `<VAR>_FILE`):
 - `WALLET_ADDRESS`: Your primary Ergo wallet address.
 - `DUAL_WALLET`: Your wallet address for the second coin (if dual mining).
+- `TELEGRAM_BOT_TOKEN`: Your Telegram Bot API token.
+- `TELEGRAM_CHAT_ID`: Your Telegram Chat ID.
+- `DISCORD_WEBHOOK_URL`: Your Discord webhook URL.
 
 To use secrets in Docker Compose:
 ```yaml
@@ -249,10 +252,21 @@ services:
     # ...
     secrets:
       - WALLET_ADDRESS
+      - TELEGRAM_BOT_TOKEN
+      - TELEGRAM_CHAT_ID
+      - DISCORD_WEBHOOK_URL
 secrets:
   WALLET_ADDRESS:
-    file: ./wallet_address.txt
+    file: ./secrets/wallet_address.txt
+  TELEGRAM_BOT_TOKEN:
+    file: ./secrets/telegram_bot_token.txt
+  TELEGRAM_CHAT_ID:
+    file: ./secrets/telegram_chat_id.txt
+  DISCORD_WEBHOOK_URL:
+    file: ./secrets/discord_webhook_url.txt
 ```
+
+You can also point any supported variable to a custom file path using `<VAR>_FILE` (for example, `WALLET_ADDRESS_FILE=/run/secrets/custom_wallet`). Explicit environment variables take precedence if both are set.
 
 ### GPU Tuning Profiles
 
