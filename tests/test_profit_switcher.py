@@ -5,6 +5,10 @@ import os
 
 class TestProfitSwitcher(unittest.TestCase):
 
+    def setUp(self):
+        profit_switcher.reset_switcher_state()
+        profit_switcher.last_switch_time = 0.0
+
     @patch('profit_switcher.requests.get')
     def test_get_pool_profitability_2miners(self, mock_get):
         mock_response = MagicMock()

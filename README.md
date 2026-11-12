@@ -145,6 +145,9 @@ By default, the file is configured for a two-GPU setup. To add more GPUs, you ca
 -   `TELEGRAM_NOTIFY_THRESHOLD`: Grace period in seconds before sending a downtime notification (default: `300`).
 -   `PROFIT_SWITCHING_THRESHOLD`: Minimum profitability gain required to switch pools (e.g. `0.005` for 0.5%).
 -   `PROFIT_SWITCHING_INTERVAL`: Time in seconds between profitability checks (default: `3600`).
+-   `PROFIT_SWITCHING_EMA_ALPHA`: Exponential moving average smoothing factor in `(0, 1]` (default: `0.35`).
+-   `PROFIT_SWITCHING_TREND_WINDOW`: Number of recent intervals used for trend slope weighting (default: `6`).
+-   `PROFIT_SWITCHING_CONFIRMATIONS`: Consecutive intervals a candidate pool must stay ahead before switching (default: `1`, recommended `2`).
 
 ## Startup Configuration Validation
 
