@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- Update Python and Node.js dependencies in `requirements.txt` and `package.json`
+  to patched versions (`fastapi==0.162.5`, `uvicorn==0.54.0`, `python-socketio==5.18.1`,
+  `aiofiles==25.1.0`, `httpx==0.28.1`, `prometheus-client==0.26.0`, `requests==2.34.2`,
+  `psutil==7.2.2`, `streamlit`, `pandas`, `plotly==7.1.0`, `watchdog`, `pillow==13.0.0`
+  on Python >=3.11, and Playwright `^1.65.0`), resolving known Starlette and Pillow CVEs.
+
 ### Added
 - Validate miner environment settings and `gpu_profiles.json` before startup,
   with clear errors for invalid values.
