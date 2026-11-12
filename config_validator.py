@@ -7,8 +7,8 @@ import json
 import math
 import os
 import sys
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Mapping
 from urllib.parse import urlsplit
 
 BOOLEAN_VARIABLES = (
@@ -33,7 +33,7 @@ PROFILE_INTEGER_KEYS = {
 STRATUM_SCHEMES = {"stratum+tcp", "stratum+ssl", "stratum+tls"}
 
 
-def _is_finite_number(value: int | float) -> bool:
+def _is_finite_number(value: float) -> bool:
     """Return whether a JSON/config number is finite, including very large ints."""
     try:
         return math.isfinite(value)
@@ -56,8 +56,10 @@ def _validate_pool_address(name: str, value: str) -> list[str]:
         or not 1 <= port <= 65535
     ):
         return [
-            f"{name} must be a valid stratum URL with scheme stratum+tcp, "
-            "stratum+ssl, or stratum+tls and a port from 1 to 65535."
+            (
+                f"{name} must be a valid stratum URL with scheme stratum+tcp, "
+                "stratum+ssl, or stratum+tls and a port from 1 to 65535."
+            )
         ]
     return []
 
