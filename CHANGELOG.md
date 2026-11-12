@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Performance
+- Optimize `Dockerfile` multi-stage layer ordering (defer `GPU_TYPE` divergence so
+  `lolMiner`, common OS packages, `miner` user, and Python venv layers are shared),
+  strip `__pycache__` from `/opt/venv`, add missing `network_retry.py` to runtime
+  `COPY`, and expand `.dockerignore` to exclude `.git`, `tests`, `node_modules`, and
+  docs from the build context.
+
 ### Security
 - Expand Docker secrets support in `start.sh`, `env_config.py`, `config_validator.py`,
   `metrics.py`, and `discord_notifier.py` to cover `WALLET_ADDRESS`, `DUAL_WALLET`,
