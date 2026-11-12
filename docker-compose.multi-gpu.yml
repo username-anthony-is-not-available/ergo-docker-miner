@@ -27,6 +27,7 @@ services:
     environment:
       - WORKER_NAME=ergo-miner-gpu0
       - GPU_DEVICES=0
+      - "HOST_BIND_ADDRESS=${HOST_BIND_ADDRESS:-127.0.0.1}"
     ports:
       - "${HOST_BIND_ADDRESS:-127.0.0.1}:4444:4444"
       - "${HOST_BIND_ADDRESS:-127.0.0.1}:4455:4455"
@@ -56,6 +57,7 @@ services:
     environment:
       - WORKER_NAME=ergo-miner-gpu1
       - GPU_DEVICES=1
+      - "HOST_BIND_ADDRESS=${HOST_BIND_ADDRESS:-127.0.0.1}"
     ports:
       - "${HOST_BIND_ADDRESS:-127.0.0.1}:4445:4444"
       - "${HOST_BIND_ADDRESS:-127.0.0.1}:4457:4455"

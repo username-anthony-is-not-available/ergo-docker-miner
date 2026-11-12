@@ -36,6 +36,7 @@ This backlog tracks the strategic priorities and upcoming tasks for the Ergo Doc
 
 ## In Review
 - [ ] [Ergo Docker Miner issue #228](https://github.com/username-anthony-is-not-available/ergo-docker-miner/issues/228): Health checks for miner API outages and GPU temperatures ([PR #238](https://github.com/username-anthony-is-not-available/ergo-docker-miner/pull/238)); awaiting required approval.
+- [ ] [Ergo Docker Miner issue #231](https://github.com/username-anthony-is-not-available/ergo-docker-miner/issues/231): Fail-fast validation for miner settings and GPU profiles ([PR #239](https://github.com/username-anthony-is-not-available/ergo-docker-miner/pull/239)); awaiting formal approval.
 
 ## Completed (Recent)
 - [x] Multi-process mining mode implementation.

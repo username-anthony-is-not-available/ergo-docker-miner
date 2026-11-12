@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Validate miner environment settings and `gpu_profiles.json` before startup,
+  with clear errors for invalid values.
 - Enhance `healthcheck.sh` to use miner API reachability and flag GPUs above
   their active profile's temperature threshold without restarting an overheated miner.
 - Major enhancement to the web dashboard configuration UI with logical grouping, icons, and support for all environment variables (Dual Mining, Telegram, Profit Switching Advanced).
